@@ -1,0 +1,11 @@
+
+# OPTION VERSION must match spirit:version in component.xml; update both when bumping IP version.
+
+OPTION psf_version = 2.1;
+
+BEGIN driver axis_passthrough_monitor
+	OPTION supported_peripherals = (axis_passthrough_monitor);
+	OPTION copyfiles = all;
+	OPTION VERSION = 1.1;
+	OPTION NAME = axis_passthrough_monitor;
+END DRIVER

@@ -1,0 +1,11 @@
+
+# OPTION VERSION must match spirit:version in component.xml; update both when bumping IP version.
+
+OPTION psf_version = 2.1;
+
+BEGIN driver axis_pixel_compare
+	OPTION supported_peripherals = (axis_pixel_compare);
+	OPTION copyfiles = all;
+	OPTION VERSION = 2.5;
+	OPTION NAME = axis_pixel_compare;
+END DRIVER

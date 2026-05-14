@@ -1,0 +1,4 @@
+# Large generated/cache folders — do not track
+vivado_proj/
+ip_cache/
+sdk_workspace/
