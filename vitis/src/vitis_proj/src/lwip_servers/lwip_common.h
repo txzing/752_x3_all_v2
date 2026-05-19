@@ -74,6 +74,7 @@ int lwip_common_init(struct netif *netif);
 void transfer_data(struct netif *netif);
 
 #if defined (UDP_COMMAND_SRV) || defined (TCP_COMMAND_SRV)
+void ack_fail_request(void);
 void msg_cmd_0x10(void);
 void msg_cmd_0x11(void);
 void msg_cmd_0x12(void);
@@ -82,6 +83,9 @@ void msg_cmd_0x20(void);
 void msg_cmd_0x21(void);
 void msg_cmd_0x30(void);
 void msg_cmd_0x40(void);
+#if defined (XPAR_XV_TPG_NUM_INSTANCES)
+void msg_cmd_0x50(void);
+#endif
 void msg_cmd_0x80(void);
 #if defined (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES)
 void err_auto_send_func(u8 ch);

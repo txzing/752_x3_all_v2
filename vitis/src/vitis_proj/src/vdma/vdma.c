@@ -175,7 +175,7 @@ int MultiVdmaInit(VdmaChannel *VdmaChannels, int NumChannels)
     	}
 #endif
         VdmaChannels[i].WriteError = 0;
-        VdmaChannels[i].WriteOneFrameEnd = 0;
+        VdmaChannels[i].WriteOneFrameEnd = -1;
         VdmaChannels[i].FrameLength = VdmaChannels[i].Width * VdmaChannels[i].Height * 3;
         VdmaChannels[i].pkg_cnt = 1;
         VdmaChannels[i].udp_send_times = (VdmaChannels[i].FrameLength/VdmaChannels[i].UDP_IMG_PACKEG_SIZE);
@@ -253,38 +253,53 @@ void vdma_lwip_note_channel_resolution(u8 lvds_idx_0based, u32 w, u32 h)
 	s_lwip_ch_h[lvds_idx_0based] = h;
 }
 
-/* 按 eth_video_ch 重配 LWIP S2MM 的宽高与 stride，并刷新 FrameLength / udp_send_times；会停 DMA 再启 */
-void vdma_lwip_apply_channel_geometry(u8 eth_video_ch)
+/* 读指定 LVDS 通道宽高：monitor 实时值 > s_lwip_ch_* 缓存 > 默认 1920x1080 */
+int vdma_lwip_get_channel_dims(u8 lvds_idx_0based, u32 *out_w, u32 *out_h)
 {
-	VdmaChannel *vc = &VdmaChannels[0];
-	u8 idx;
 	u32 w = 1920U;
 	u32 h = 1080U;
 	u32 mon;
 	u32 rw;
 	u32 rh;
 
-	if (eth_video_ch < 1U || eth_video_ch > CHANNEL_NUM)
+	if (lvds_idx_0based >= CHANNEL_NUM || out_w == NULL || out_h == NULL)
 	{
-		return;
+		return 0;
 	}
-	idx = (u8)(eth_video_ch - 1U);
 #if defined (XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES)
-	mon = vdma_passthrough_mon_base_lvds(idx);
+	mon = vdma_passthrough_mon_base_lvds(lvds_idx_0based);
 #else
 	mon = 0U;
 #endif
-	/* 优先实时读 monitor；失败则用 s_lwip_ch_* 缓存；仍无则保持上面默认 1920x1080 */
 	if (mon != 0U && vdma_passthrough_read_rgb_dims(mon, &rw, &rh) != 0)
 	{
 		w = rw;
 		h = rh;
 	}
-	else if (s_lwip_ch_w[idx] > 0U && s_lwip_ch_h[idx] > 0U)
+	else if (s_lwip_ch_w[lvds_idx_0based] > 0U && s_lwip_ch_h[lvds_idx_0based] > 0U)
 	{
-		w = s_lwip_ch_w[idx];
-		h = s_lwip_ch_h[idx];
+		w = s_lwip_ch_w[lvds_idx_0based];
+		h = s_lwip_ch_h[lvds_idx_0based];
 	}
+	*out_w = w;
+	*out_h = h;
+	return 1;
+}
+
+/* 按 eth_video_ch 重配 LWIP S2MM 的宽高与 stride，并刷新 FrameLength / udp_send_times；会停 DMA 再启 */
+void vdma_lwip_apply_channel_geometry(u8 eth_video_ch)
+{
+	VdmaChannel *vc = &VdmaChannels[0];
+	u8 idx;
+	u32 w;
+	u32 h;
+
+	if (eth_video_ch < 1U || eth_video_ch > CHANNEL_NUM)
+	{
+		return;
+	}
+	idx = (u8)(eth_video_ch - 1U);
+	(void)vdma_lwip_get_channel_dims(idx, &w, &h);
 
 	vc->Width = w;
 	vc->Height = h;
@@ -348,6 +363,57 @@ void vdma_lwip_try_pending_channel_switch(void)
 	board_apply_video_channel_switch(p);
 	usleep(10*1000U); /* 给轴开关与视频路径几微秒稳定时间 */
 	vdma_lwip_apply_channel_geometry(p);
+}
+
+void vdma_lwip_arm_pic_capture(int eth_video_ch_idx)
+{
+	VdmaChannel *vc;
+
+	if (eth_video_ch_idx < 0 || eth_video_ch_idx >= ETH_VIDEO_NUM)
+	{
+		return;
+	}
+	vc = &VdmaChannels[eth_video_ch_idx];
+	vc->VIDEO_FLAG = SEND_PIC;
+	vc->send_pic_start = 1U;
+	vc->send_video_start = 0U;
+	vc->video_sending = 0U;
+	vc->pkg_cnt = 1U;
+	/* 勿用缓冲区里在发图指令之前的旧帧；等下一次 S2MM 写满再传 */
+	vc->WriteOneFrameEnd = -1;
+}
+
+void vdma_lwip_arm_video_stream(int eth_video_ch_idx)
+{
+	VdmaChannel *vc;
+
+	if (eth_video_ch_idx < 0 || eth_video_ch_idx >= ETH_VIDEO_NUM)
+	{
+		return;
+	}
+	vc = &VdmaChannels[eth_video_ch_idx];
+	vc->VIDEO_FLAG = SEND_VIDEO;
+	vc->send_pic_start = 0U;
+	vc->send_video_start = 1U;
+	vc->video_sending = 0U;
+	vc->pkg_cnt = 1U;
+	vc->WriteOneFrameEnd = -1;
+}
+
+void vdma_lwip_stop_media(int eth_video_ch_idx)
+{
+	VdmaChannel *vc;
+
+	if (eth_video_ch_idx < 0 || eth_video_ch_idx >= ETH_VIDEO_NUM)
+	{
+		return;
+	}
+	vc = &VdmaChannels[eth_video_ch_idx];
+	vc->send_pic_start = 0U;
+	vc->send_video_start = 0U;
+	vc->video_sending = 0U;
+	vc->pkg_cnt = 1U;
+	vc->WriteOneFrameEnd = -1;
 }
 
 #define MAX_ITERATIONS 3 // 每个通道运行的最大次数

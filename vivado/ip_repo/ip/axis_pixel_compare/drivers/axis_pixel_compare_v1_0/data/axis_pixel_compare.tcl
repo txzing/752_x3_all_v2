@@ -1,24 +1,24 @@
 ###############################################################################
 # axis_pixel_compare.tcl - BSP/HSI driver generation
 #
-# Version: 2.5 (must match spirit:version in component.xml and OPTION VERSION in
+# Version: 2.7 (must match spirit:version in component.xml and OPTION VERSION in
 #               drivers/axis_pixel_compare_v1_0/data/axis_pixel_compare.mdd)
 # Revision date: 2026-05-15
 #
 # - xdefine_include_file -> xparameters.h (NUM_INSTANCES, DEVICE_ID, S00 base/high)
 # - axis_pixel_compare_g.c written here: DeviceId, S00_axi_BaseAddr, IntrId (no HighAddr).
-# - IntrId: 逐行解析 xparameters.h 中的 XPAR_* 宏；PMU 域为 0U；否则默认输出
-#   XPAR_FABRIC_<UP>_INTR_INTR（避免 BSP 生成顺序下尚未写入 FABRIC 块，以及勿用
-#   get_interrupt_id 数值：其常为 IRQ 位序号，非 GIC SPI，会导致 4U/5U/6U 等错误）。
+# - IntrId: 解析 xparameters.h；PMU 域为 0U。BSP 生成时本驱动常早于 INTC 驱动，中断宏可能
+#   尚未写入 xparameters.h，故 MicroBlaze 回退为 XPAR_INTC_<n>_AXIS_PIXEL_COMPARE_<i>_VEC_ID
+#   （编译期展开），MPSoC 回退为 XPAR_FABRIC_<UP>_INTR_INTR。勿用 get_interrupt_id 数值作
+#   GIC SPI（常为 4U/5U/6U 等错误值）。
 #
 # IntrId 选择策略（按顺序命中即返回；不写死 LVDS 等板级实例名）：
-#   A) ZynqMP / Versal：XPAR_FABRIC_<UP>_INTR_INTR / _INTERRUPT_INTR
-#   B) Zynq-7000：XPAR_FABRIC_<UP>_IP2INTC_IRPT_INTR
-#   C) ZynqMP 规范别名：XPAR_FABRIC_AXIS_PIXEL_COMPARE_<n>_VEC_ID
-#   D) vec_base_<n>_VEC_ID（从 *_AXIS_PIXEL_COMPARE_0_VEC_ID 推断）
-#   E) 逐行扫描：符号名包含 <UP> 且后缀为 *_INTR_* / *_VEC_ID（兼容 MicroBlaze INTC）
-#   F) 非 PMU 且以上均不可用：回退 XPAR_FABRIC_<UP>_INTR_INTR（供编译期展开）
-#   G) PMU 或无中断连接：0U
+#   A) xparameters.h 已有：AXI_INTC_<UP>_INTR_INTR 行、VEC_ID、FABRIC_* 等
+#   B) 逐行扫描：符号名包含 <UP> 且后缀为 *_INTR_* / *_VEC_ID
+#   C) 编译期回退（宏可尚未出现在生成时的 xparameters.h 中）：
+#        MicroBlaze -> XPAR_INTC_<n>_AXIS_PIXEL_COMPARE_<inst_idx>_VEC_ID
+#        ARM PS/GIC -> XPAR_FABRIC_<UP>_INTR_INTR
+#   D) PMU 或无中断连接：0U
 #
 # xparameters.h 定位：从 [info script] 与 [pwd] 双向向上查找，且同时尝试
 #   include/xparameters.h 与 bspinclude/include/xparameters.h（Vitis 导出布局）。
@@ -111,6 +111,61 @@ proc axis_pixel_compare_is_pmu_sw_domain {} {
 	return 0
 }
 
+# True if target is MicroBlaze (INTC VEC_ID compile-time fallback, not FABRIC_*).
+proc axis_pixel_compare_is_microblaze_platform {txt} {
+	if {$txt ne ""} {
+		if {[regexp {\#define[ \t]+XPAR_MICROBLAZE} $txt]} {
+			return 1
+		}
+		if {[regexp {\#define[ \t]+XPAR_[A-Za-z0-9_]*MICROBLAZE_[A-Za-z0-9_]+[ \t]+} $txt]} {
+			return 1
+		}
+		if {[regexp {\#define[ \t]+XPAR_INTC_[0-9]+_DEVICE_ID} $txt]} {
+			return 1
+		}
+	}
+	if {[catch {set swp [hsi::get_sw_processor]}]} {
+		return 0
+	}
+	if {[catch {
+		set hw [hsi::get_cells -hier [common::get_property HW_INSTANCE $swp]]
+		set ipn [string tolower [common::get_property IP_NAME $hw]]
+		if {[string match *microblaze* $ipn]} {
+			return 1
+		}
+	}]} {
+		return 0
+	}
+	return 0
+}
+
+# XPAR_INTC_0 etc. from partial xparameters.h (present before IRQ vector lines).
+proc axis_pixel_compare_get_intc_canonical_prefix {txt} {
+	if {$txt ne ""} {
+		foreach rawline [split $txt \n] {
+			set line [string trimright $rawline "\r"]
+			if {[regexp {\#define[ \t]+(XPAR_INTC_[0-9]+)_DEVICE_ID} $line -> prefix]} {
+				return $prefix
+			}
+		}
+	}
+	return "XPAR_INTC_0"
+}
+
+# MicroBlaze canonical vector macro (INTC driver adds #define at end of BSP gen).
+proc axis_pixel_compare_mb_vec_id_expr {txt inst_idx} {
+	set prefix [axis_pixel_compare_get_intc_canonical_prefix $txt]
+	return [format "%s_AXIS_PIXEL_COMPARE_%s_VEC_ID" $prefix $inst_idx]
+}
+
+# Platform-specific IntrId when xparameters.h has no IRQ lines yet at HSI time.
+proc axis_pixel_compare_intr_fallback_expr {txt up inst_idx} {
+	if {[axis_pixel_compare_is_microblaze_platform $txt]} {
+		return [axis_pixel_compare_mb_vec_id_expr $txt $inst_idx]
+	}
+	return "XPAR_FABRIC_${up}_INTR_INTR"
+}
+
 # True if xparameters.h contains "#define <sym> <value>" (per-line; CRLF-safe; no whole-file regexp).
 proc axis_pixel_compare_xparam_has_define {txt sym} {
 	if {$txt eq "" || $sym eq ""} {
@@ -146,7 +201,29 @@ proc axis_pixel_compare_get_vec_macro_base_from_txt {txt} {
 		}
 		return $base
 	}
+	if {[axis_pixel_compare_is_microblaze_platform $txt]} {
+		return [format "%s_AXIS_PIXEL_COMPARE" [axis_pixel_compare_get_intc_canonical_prefix $txt]]
+	}
 	return "XPAR_FABRIC_AXIS_PIXEL_COMPARE"
+}
+
+# MicroBlaze (etc.): BSP emits XPAR_<...>_AXI_INTC_<UP>_INTR_INTR — no FABRIC_*.
+# Use per-line #define + glob on symbol (HSI Tcl regexp with long anchored patterns can miss).
+proc axis_pixel_compare_axi_intc_intr_sym {txt up} {
+	if {$txt eq "" || $up eq ""} {
+		return ""
+	}
+	set needle "AXI_INTC_${up}_INTR_INTR"
+	foreach rawline [split $txt \n] {
+		set line [string trimright $rawline "\r"]
+		if {![regexp {\#define[ \t]+(XPAR_[A-Za-z0-9_]+)[ \t]+} $line -> sym]} {
+			continue
+		}
+		if {[string match *$needle $sym]} {
+			return $sym
+		}
+	}
+	return ""
 }
 
 # Tcl 8.5-safe line scan (no "regexp -> var")
@@ -166,7 +243,11 @@ proc axis_pixel_compare_intr_sym_by_up_scan {txt up} {
 		}
 		set pri 99
 		if {[string match *_INTR_INTR $sym]} {
-			set pri 1
+			if {[string match *AXI_INTC* $sym]} {
+				set pri 0
+			} else {
+				set pri 1
+			}
 		} elseif {[string match *_INTERRUPT_INTR $sym]} {
 			set pri 2
 		} elseif {[string match *_IP2INTC_IRPT_INTR $sym]} {
@@ -191,6 +272,24 @@ proc axis_pixel_compare_intr_c_expr {txt periph inst_idx} {
 	if {[axis_pixel_compare_is_pmu_sw_domain]} {
 		return "0U"
 	}
+	set s_axi_intc [axis_pixel_compare_axi_intc_intr_sym $txt $up]
+	if {$s_axi_intc ne ""} {
+		return $s_axi_intc
+	}
+	# VEC_ID (e.g. XPAR_INTC_0_AXIS_PIXEL_COMPARE_n_VEC_ID) before FABRIC: MicroBlaze BSP
+	# always has these when INTC is connected; avoids FABRIC fallback if AXI_INTC line scan fails.
+	set s_alias [format "XPAR_FABRIC_AXIS_PIXEL_COMPARE_%s_VEC_ID" $inst_idx]
+	if {[axis_pixel_compare_xparam_has_define $txt $s_alias]} {
+		return $s_alias
+	}
+	set vec_base [axis_pixel_compare_get_vec_macro_base_from_txt $txt]
+	set s_vec [format "%s_%s_VEC_ID" $vec_base $inst_idx]
+	if {[axis_pixel_compare_xparam_has_define $txt $s_vec]} {
+		return $s_vec
+	}
+	if {[axis_pixel_compare_is_microblaze_platform $txt]} {
+		return $s_vec
+	}
 	set s_fabric_intr "XPAR_FABRIC_${up}_INTR_INTR"
 	if {[axis_pixel_compare_xparam_has_define $txt $s_fabric_intr]} {
 		return $s_fabric_intr
@@ -203,23 +302,11 @@ proc axis_pixel_compare_intr_c_expr {txt periph inst_idx} {
 	if {[axis_pixel_compare_xparam_has_define $txt $s_ip2]} {
 		return $s_ip2
 	}
-	set s_alias [format "XPAR_FABRIC_AXIS_PIXEL_COMPARE_%s_VEC_ID" $inst_idx]
-	if {[axis_pixel_compare_xparam_has_define $txt $s_alias]} {
-		return $s_alias
-	}
-	set vec_base [axis_pixel_compare_get_vec_macro_base_from_txt $txt]
-	set s_vec [format "%s_%s_VEC_ID" $vec_base $inst_idx]
-	if {[axis_pixel_compare_xparam_has_define $txt $s_vec]} {
-		return $s_vec
-	}
 	set scanned [axis_pixel_compare_intr_sym_by_up_scan $txt $up]
 	if {$scanned ne ""} {
 		return $scanned
 	}
-	# Do not use ::hsi::utils::get_interrupt_id numeric values: not the GIC SPI ID used
-	# by XScuGic on ZynqMP (often small indices like 4U/5U/6U). Emit canonical fabric macro;
-	# xparameters.h is complete at application compile time.
-	return $s_fabric_intr
+	return [axis_pixel_compare_intr_fallback_expr $txt $up $inst_idx]
 }
 
 proc axis_pixel_compare_write_g_c {drv_handle} {
@@ -243,7 +330,7 @@ proc axis_pixel_compare_write_g_c {drv_handle} {
 	puts $f "* DO NOT EDIT."
 	puts $f "*"
 	puts $f "* Description: axis_pixel_compare driver configuration (DeviceId, BaseAddr, IntrId)."
-	puts $f "* IntrId: xparameters.h / fabric macro fallback (see axis_pixel_compare.tcl)."
+	puts $f "* IntrId: MB->XPAR_INTC_*_AXIS_PIXEL_COMPARE_*_VEC_ID; MPSoC->XPAR_FABRIC_* (see axis_pixel_compare.tcl)."
 	if {$xph ne ""} {
 		puts $f "* xparameters.h: $xph"
 	}

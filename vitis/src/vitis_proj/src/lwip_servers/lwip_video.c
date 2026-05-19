@@ -38,19 +38,56 @@ packet_header packet_p;
 #define UDP_VIDEO_PACE_US       28U
 #endif
 
-static void fill_packet_common(VdmaChannel *channel, int channel_id, int send_flag, int picseq)
+static void fill_packet_common_ex(VdmaChannel *channel, int channel_id, int send_flag, int picseq,
+				  u32 width, u32 height, u32 frame_length)
 {
 	packet_p.HEAD_ID    = HEADER_ID;
 	packet_p.Channel_ID = channel_id;
 	packet_p.SEND_FLAG  = send_flag;
-	packet_p.Width      = channel->Width;
-	packet_p.Height     = channel->Height;
-	packet_p.total      = channel->FrameLength;
+	packet_p.Width      = width;
+	packet_p.Height     = height;
+	packet_p.total      = frame_length;
 	packet_p.offset     = (channel->pkg_cnt - 1) * channel->UDP_IMG_PACKEG_SIZE;
 	packet_p.picseq     = picseq;
 	packet_p.frameseq   = channel->pkg_cnt;
 	packet_p.framesize  = channel->UDP_IMG_PACKEG_SIZE;
 }
+
+static void fill_packet_common(VdmaChannel *channel, int channel_id, int send_flag, int picseq)
+{
+	fill_packet_common_ex(channel, channel_id, send_flag, picseq,
+			      channel->Width, channel->Height, channel->FrameLength);
+}
+
+#if defined (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES)
+/* 错误帧上传：包头/分包数须对应该 LVDS 路，不能用当前预览通道的 VdmaChannels[0] 几何 */
+static void err_pic_geometry(u8 lvds_idx, u32 *out_w, u32 *out_h, u32 *out_frame_len, u16 *out_send_times)
+{
+	VdmaChannel *vc = &VdmaChannels[0];
+	u32 w;
+	u32 h;
+
+	if (lvds_idx < XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES &&
+	    vcmp_m[lvds_idx].Width >= 10U && vcmp_m[lvds_idx].Height >= 10U)
+	{
+		w = vcmp_m[lvds_idx].Width;
+		h = vcmp_m[lvds_idx].Height;
+	}
+	else if (vdma_lwip_get_channel_dims(lvds_idx, &w, &h) == 0)
+	{
+		w = vc->Width;
+		h = vc->Height;
+	}
+	*out_w = w;
+	*out_h = h;
+	*out_frame_len = w * h * 3U;
+	*out_send_times = (u16)(*out_frame_len / (u32)vc->UDP_IMG_PACKEG_SIZE);
+	if (*out_send_times == 0U)
+	{
+		*out_send_times = 1U;
+	}
+}
+#endif
 
 /**
  * 单包发送：对 pbuf 不足(UDP_SEND_TRY_LATER)与 udp_send 失败做短退避重试，尽量不丢序号、不把失败当成功。
@@ -135,7 +172,9 @@ static int video_send_needs_reschedule(int sta)
  */
 void lwip_video_transfer(void)
 {
+	/* MonitorAndExitAfterIterations 为调试用途，会丢弃前 MAX_ITERATIONS 帧，勿放在产品路径 */
 	MonitorAndExitAfterIterations();
+
 	/* 主循环入口：若此前 UDP 请求了切通道且当前无传输，则在此或帧发完后应用 */
 	vdma_lwip_try_pending_channel_switch();
     for (int i = 0; i < ETH_VIDEO_NUM; i++) // 遍历所有通道
@@ -200,16 +239,24 @@ void lwip_video_transfer(void)
 int handle_err_pic_transfer(int channel)
 {
 	VdmaChannel *currentChannel = &VdmaChannels[0];
+	u32 err_w;
+	u32 err_h;
+	u32 err_frame_len;
+	u16 err_send_times;
 
 	int sta;
 	u8 burst = 0U;
 
+	vcmp_m_refresh_channel((u8)channel);
+	err_pic_geometry((u8)channel, &err_w, &err_h, &err_frame_len, &err_send_times);
+
 	// 单次调度发送多包，降低调度/函数调用开销
-	while ((currentChannel->pkg_cnt <= currentChannel->udp_send_times) &&
+	while ((currentChannel->pkg_cnt <= err_send_times) &&
 	       (burst < UDP_ERR_BURST_PACKETS))
 	{
-		// 构造数据包头部
-		fill_packet_common(currentChannel, channel + 1, 2, 1);
+		// 构造数据包头部（按本路 LVDS 分辨率，非当前预览通道几何）
+		fill_packet_common_ex(currentChannel, channel + 1, 2, 1,
+				      err_w, err_h, err_frame_len);
 
 		// 刷新缓存
 		Xil_DCacheInvalidateRange(
@@ -242,9 +289,11 @@ int handle_err_pic_transfer(int channel)
 		currentChannel->pkg_cnt++;
 		burst++;
 	}
-    if (currentChannel->pkg_cnt > currentChannel->udp_send_times) // 当前帧发送完成
+    if (currentChannel->pkg_cnt > err_send_times) // 当前帧发送完成
     {
-		xil_printf("Channel %d: Picture transmission complete. pkg_cnt:%d\r\n", packet_p.Channel_ID, currentChannel->pkg_cnt - 1);
+		xil_printf("CH %d: pic_err_send %ux%u. pkg_cnt:%d\r\n",
+			   packet_p.Channel_ID, (unsigned)err_w, (unsigned)err_h,
+			   currentChannel->pkg_cnt - 1);
 		currentChannel->send_err_start[channel] = 0; // 停止图片发送
 		currentChannel->pkg_cnt = 1;
 
@@ -276,7 +325,7 @@ int handle_channel_transfer(int channel)
         // 构造数据包头部
         fill_packet_common(currentChannel,
         		           current_ch,
-        		           (currentChannel->send_pic_start == 1) ? 0 : 1,
+        		           (currentChannel->VIDEO_FLAG == SEND_PIC) ? 0 : 1,
         		           channel);
         // 刷新缓存
         Xil_DCacheInvalidateRange(
@@ -311,7 +360,7 @@ int handle_channel_transfer(int channel)
         	}
         	return -1;
         }
-        if (currentChannel->send_pic_start == 1)
+        if (currentChannel->VIDEO_FLAG == SEND_PIC)
         {
 			if (UDP_PIC_PACE_EVERY_N > 0U &&
 			    ((u32)currentChannel->pkg_cnt % UDP_PIC_PACE_EVERY_N) == 0U)
@@ -349,11 +398,11 @@ int handle_channel_transfer(int channel)
         }
         else if (currentChannel->VIDEO_FLAG == SEND_VIDEO) // 视频帧传输完成
         {
-            xil_printf("Channel %d: Video frame complete. pkg_cnt:%d\r\n", packet_p.Channel_ID, currentChannel->pkg_cnt - 1);
-        	currentChannel->send_pic_start = 0;
+//            xil_printf("Channel %d: Video frame complete. pkg_cnt:%d\r\n", packet_p.Channel_ID, currentChannel->pkg_cnt - 1);
         	currentChannel->video_sending = 0;
             currentChannel->WriteOneFrameEnd = -1;
             currentChannel->pkg_cnt = 1; // 重置计数
+            /* 连续视频：保持 send_video_start，下一帧 S2MM 完成后再传 */
             /* 视频帧分包发完，同样在此间隙尝试应用待切换 */
             vdma_lwip_try_pending_channel_switch();
             return 0; // 传输完成

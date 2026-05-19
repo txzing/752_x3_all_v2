@@ -176,9 +176,14 @@ int vdma_udp_init(void);
 /* LWIP 上传：按通道分辨率与延迟切换（实现见 vdma.c 同文件内注释块） */
 int vdma_passthrough_read_rgb_dims(u32 mon_base, u32 *out_w, u32 *out_h);
 void vdma_lwip_note_channel_resolution(u8 lvds_idx_0based, u32 w, u32 h);
+int vdma_lwip_get_channel_dims(u8 lvds_idx_0based, u32 *out_w, u32 *out_h);
 void vdma_lwip_apply_channel_geometry(u8 eth_video_ch);
 void vdma_lwip_request_channel_switch(u8 eth_video_ch);
 void vdma_lwip_try_pending_channel_switch(void);
+/* 0x80 抓图：丢弃待发旧帧，等下一帧完整写入后再分包上传 */
+void vdma_lwip_arm_pic_capture(int eth_video_ch_idx);
+void vdma_lwip_arm_video_stream(int eth_video_ch_idx);
+void vdma_lwip_stop_media(int eth_video_ch_idx);
 
 #define ETH_VIDEO_NUM 1
 

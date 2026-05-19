@@ -6,6 +6,6 @@ OPTION psf_version = 2.1;
 BEGIN driver axis_pixel_compare
 	OPTION supported_peripherals = (axis_pixel_compare);
 	OPTION copyfiles = all;
-	OPTION VERSION = 2.5;
+	OPTION VERSION = 2.7;
 	OPTION NAME = axis_pixel_compare;
 END DRIVER

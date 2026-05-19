@@ -429,8 +429,54 @@ int32_t saveconfig(config_Settings_t * config_p)
 }
 
 #if defined (UDP_COMMAND_SRV) || defined (TCP_COMMAND_SRV)
+
+static void ack_copy_request(void)
+{
+	if (receivelen < 8)
+	{
+		return;
+	}
+	sendlen = receivelen;
+	memcpy(send_buf, receivebuf, (size_t)sendlen);
+}
+
+/* 应答失败：回显请求帧，预留字节 2～3 置 FF FF，并重新计算校验 */
+void ack_fail_request(void)
+{
+	if (receivelen < 8)
+	{
+		return;
+	}
+	ack_copy_request();
+	send_buf[2] = 0xFF;
+	send_buf[3] = 0xFF;
+	send_buf[sendlen - 1] = checksum(send_buf, sendlen - 1);
+}
+
+static uint16_t req_frame_len(void)
+{
+	return (uint16_t)receivebuf[0] | ((uint16_t)receivebuf[1] << 8);
+}
+
+static int req_len_match(uint16_t expected)
+{
+	return (receivelen == (int)expected) && (req_frame_len() == expected);
+}
+
+static int req_len_at_least(uint16_t minimum)
+{
+	return (receivelen >= (int)minimum) &&
+	       (req_frame_len() == (uint16_t)receivelen) &&
+	       (req_frame_len() >= minimum);
+}
+
 void msg_cmd_0x10(void)//read mem
 {
+	if (!req_len_match(10))
+	{
+		ack_fail_request();
+		return;
+	}
 
 	memcpy(&msg_addr,receivebuf+5,4);
 	msg_value = Xil_In32(msg_addr); // don't use signed int, otherwise hardfail
@@ -447,6 +493,12 @@ void msg_cmd_0x10(void)//read mem
 
 void msg_cmd_0x11(void)//write mem
 {
+	if (!req_len_match(14))
+	{
+		ack_fail_request();
+		return;
+	}
+
 	memcpy(&msg_addr,receivebuf+5,4);
 	memcpy(&msg_value,receivebuf+9,4);
 	//msg_value=htonl(msg_value);
@@ -464,9 +516,15 @@ void msg_cmd_0x12(void)//read block men
 {
 	memcpy(&msg_addr,receivebuf+5,4);
 	memcpy(&mem_len,receivebuf+9,4);
-	sendlen=receivelen+mem_len*4;
-	if(sendlen > ARRAY_SIZE(send_buf))
+	if (!req_len_match(14) || mem_len == 0U)
 	{
+		ack_fail_request();
+		return;
+	}
+	sendlen=receivelen+mem_len*4;
+	if(sendlen > (int)ARRAY_SIZE(send_buf) || sendlen > 1400)
+	{
+		ack_fail_request();
 		return;
 	}
 	memcpy(send_buf,receivebuf,receivelen);
@@ -477,18 +535,23 @@ void msg_cmd_0x12(void)//read block men
 
 void msg_cmd_0x13(void)//write block men
 {
+	uint16_t expect_len;
+
 	memcpy(&msg_addr,receivebuf+5,4);
 	memcpy(&mem_len,receivebuf+9,4);
+	if (mem_len == 0U)
+	{
+		ack_fail_request();
+		return;
+	}
+	expect_len = (uint16_t)(14U + mem_len * 4U);
+	if (!req_len_match(expect_len))
+	{
+		ack_fail_request();
+		return;
+	}
 	memcpy((void*)msg_addr,receivebuf+13,mem_len*4);
-	if(mem_len*4 + 14 > ARRAY_SIZE(send_buf))
-	{
-		return;
-	}
-	sendlen=receivelen-mem_len*4;
-	if(sendlen < 14)
-	{
-		return;
-	}
+	sendlen = 14;
 	memcpy(send_buf,receivebuf,sendlen);
 	memcpy(send_buf,&sendlen,2);
 	send_buf[sendlen-1] = checksum(send_buf,sendlen-1);
@@ -515,6 +578,17 @@ void msg_cmd_0x20(void)
 //	xil_printf("reg_addr: %x\r\n", reg_addr);
 //	xil_printf("flag: %x\r\n", flag);
 
+	if (!req_len_match(12) || len == 0U)
+	{
+		ack_fail_request();
+		return;
+	}
+	if ((int)receivelen + (int)len + 1 > (int)ARRAY_SIZE(send_buf))
+	{
+		ack_fail_request();
+		return;
+	}
+
 	if (flag == 1)
 	{
 		Status = xgpio_i2c_reg8_continuous_read(ch, addr, reg_addr, data, len, STRETCH_OFF);
@@ -527,7 +601,16 @@ void msg_cmd_0x20(void)
 	sendlen=receivelen;
 	memcpy(send_buf,receivebuf,sendlen);
 	memcpy(send_buf + (sendlen-1),&Status,1);
-	memcpy(send_buf + (sendlen), data, len);
+	if (Status == XST_SUCCESS)
+	{
+		memcpy(send_buf + (sendlen), data, len);
+	}
+	else
+	{
+		memset(send_buf + (sendlen), 0, len);
+		send_buf[2] = 0xFF;
+		send_buf[3] = 0xFF;
+	}
 	sendlen = sendlen + len + 1;
 	memcpy(send_buf,&sendlen,2);
 	send_buf[sendlen-1] = checksum(send_buf,sendlen-1); //
@@ -553,6 +636,12 @@ void msg_cmd_0x21(void)
 //	xil_printf("reg_addr %x\r\n",reg_addr);
 //	xil_printf("flag %x\r\n",flag);
 //	xil_printf("value %x\r\n",value);
+	if (!req_len_match(13))
+	{
+		ack_fail_request();
+		return;
+	}
+
 	if(flag == 1)
 	{
 		Status = xgpio_i2c_reg8_write(ch,addr,reg_addr,value,STRETCH_OFF);
@@ -564,68 +653,31 @@ void msg_cmd_0x21(void)
 
 	sendlen=receivelen;
 	memcpy(send_buf,receivebuf,sendlen);
-	// Overwrite byte[10] as status: 0 = success, 1 = fail
+	/* 偏移 10：0 成功，非 0 失败；同时置预留 FF FF 便于上位机统一判断 */
 	memcpy(send_buf+10,&Status,1);
+	if (Status != XST_SUCCESS)
+	{
+		send_buf[2] = 0xFF;
+		send_buf[3] = 0xFF;
+	}
 	memcpy(send_buf,&sendlen,2);
 	send_buf[sendlen-1] = checksum(send_buf,sendlen-1); //
 }
 
 #if defined (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES)
-static uint32_t get_pc_base_addr(uint8_t ch)
-{
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 1U)
-	if (ch == 1U)
-	{
-		return XPAR_LVDS_S0_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR;
-	}
-#endif
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 2U)
-	if (ch == 2U)
-	{
-		return XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR;
-	}
-#endif
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 3U)
-	if (ch == 3U)
-	{
-		return XPAR_LVDS_S2_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR;
-	}
-#endif
-	return 0U;
-}
-
-static uint32_t get_passthrough_base_addr(uint8_t ch)
-{
-	if (ch < 1U)
-	{
-		return 0U;
-	}
-#if defined (XPAR_XAXIVDMA_NUM_INSTANCES) && defined (XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES)
-	return vdma_passthrough_mon_base_lvds((u8)(ch - 1U));
-#else
-	return 0U;
-#endif
-}
-
-static uint8_t is_passthrough_idle(uint32_t base_addr)
-{
-	return (uint8_t)((Xil_In32(base_addr + 0x8) == 0U) &&
-			(Xil_In32(base_addr + 0x0) == 0U) &&
-			(Xil_In32(base_addr + 0x4) == 0U));
-}
-
-static void ack_copy_request(void)
-{
-	sendlen = receivelen;
-	memcpy(send_buf,receivebuf,sendlen);
-}
-
 void msg_cmd_0x30(void)
 {
 	uint8_t cmd_index;
 	uint8_t ch;
 	uint32_t msg_send;
 	uint32_t base_addr = 0U;
+
+	if (!req_len_at_least(8))
+	{
+		ack_fail_request();
+		return;
+	}
+
 	memcpy(&cmd_index,receivebuf+5,1);
 	memcpy(&ch,receivebuf+6,1);
 //	for (int i = 0; i < receivelen; i++)
@@ -634,32 +686,70 @@ void msg_cmd_0x30(void)
 //	}
 	if(cmd_index == 0)
 	{
-		base_addr = get_pc_base_addr(ch);
-		if(base_addr != 0U)
+		base_addr = pixel_compare_axi_base_eth(ch);
+		if(base_addr == 0U)
 		{
-			/* 关比较: 清除 bit0(比较开始) */
-			Xil_Out32(base_addr + STATUS, 0U);
+			ack_fail_request();
+			return;
 		}
+		/* 关比较: 清除 bit0(比较开始) */
+		Xil_Out32(base_addr + STATUS, 0U);
 		ack_copy_request();
 
 	}
 	else if(cmd_index == 1)
 	{
-		base_addr = get_pc_base_addr(ch);
-		if(base_addr != 0U)
+		base_addr = pixel_compare_axi_base_eth(ch);
+		if(base_addr == 0U)
+		{
+			ack_fail_request();
+			return;
+		}
 		{
 			u32 ip_status;
 
 			ip_status = Xil_In32(base_addr + STATUS);
 			if(!CHB(ip_status, BIT(2)))
 			{
-				ack_copy_request();
-				send_buf[2] = 0xff;
-				send_buf[3] = 0xff;
-				send_buf[sendlen-1] = checksum(send_buf,sendlen-1);
+				ack_fail_request();
 			}
 			else
 			{
+
+#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 1U)
+				if (ch == 1U)
+				{
+
+					XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x2);
+					clear_vdma_1();
+					clear_vdma_2();
+					vdma_config_1();
+					vdma_config_2();
+					XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
+				}
+#endif
+#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 2U)
+				if (ch == 2U)
+				{
+					XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x4);
+					clear_vdma_3();
+					clear_vdma_4();
+					vdma_config_3();
+					vdma_config_4();
+					XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
+				}
+#endif
+#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 3U)
+				if (ch == 3U)
+				{
+					XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x8);
+					clear_vdma_5();
+					clear_vdma_6();
+					vdma_config_5();
+					vdma_config_6();
+					XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
+				}
+#endif
 				Xil_Out32(base_addr + STATUS, 0x1);
 				ack_copy_request();
 			}
@@ -668,13 +758,19 @@ void msg_cmd_0x30(void)
 	else if(cmd_index == 2)
 	{
 		uint8_t threshold;
-		memcpy(&threshold,receivebuf+7,1);
-		base_addr = get_pc_base_addr(ch);
-		if(base_addr != 0U)
+		if (!req_len_at_least(9))
 		{
-			Xil_Out32(base_addr + PIXEL_THRESHOLD, threshold);
+			ack_fail_request();
+			return;
 		}
-
+		memcpy(&threshold,receivebuf+7,1);
+		base_addr = pixel_compare_axi_base_eth(ch);
+		if(base_addr == 0U)
+		{
+			ack_fail_request();
+			return;
+		}
+		Xil_Out32(base_addr + PIXEL_THRESHOLD, threshold);
 		ack_copy_request();
 
 	}
@@ -687,11 +783,17 @@ void msg_cmd_0x30(void)
 
 		if (ch < 1U || ch > (uint8_t)CHANNEL_NUM)
 		{
+			ack_fail_request();
 			return;
 		}
-		base_addr = get_passthrough_base_addr(ch);
+#if defined (XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES)
+		base_addr = vdma_passthrough_mon_base_lvds((u8)(ch - 1U));
+#else
+		base_addr = 0U;
+#endif
 		if(base_addr == 0U)
 		{
+			ack_fail_request();
 			return;
 		}
 
@@ -712,10 +814,12 @@ void msg_cmd_0x30(void)
 	{
 		if (ch < 1U || ch > (uint8_t)CHANNEL_NUM)
 		{
+			ack_fail_request();
 			return;
 		}
-		if (get_pc_base_addr(ch) == 0U)
+		if (pixel_compare_axi_base_eth(ch) == 0U)
 		{
+			ack_fail_request();
 			return;
 		}
 		vcmp_m_refresh_channel((u8)(ch - 1U));
@@ -728,111 +832,110 @@ void msg_cmd_0x30(void)
 	}
 	else if(cmd_index == 5)
 	{
-		if(ch == 0xff)
+		if (receivelen < 8)
+		{
+			ack_fail_request();
+			return;
+		}
+		if (ch == 0xFFU)
 		{
 			err_auto_send = 1;
-			sendlen = receivelen;
-			memcpy(send_buf,receivebuf,sendlen);
 			xil_printf("err_auto_send open\r\n");
+			ack_copy_request();
+		}
+		else
+		{
+			ack_fail_request();
 		}
 	}
 	else if(cmd_index == 6)
 	{
-		if(ch == 0x00)
+		if (receivelen < 8)
+		{
+			ack_fail_request();
+			return;
+		}
+		if (ch == 0x00U)
 		{
 			err_auto_send = 0;
-			sendlen = receivelen;
-			memcpy(send_buf,receivebuf,sendlen);
 			xil_printf("err_auto_send close\r\n");
+			ack_copy_request();
+		}
+		else
+		{
+			ack_fail_request();
 		}
 	}
 	else if(cmd_index == 7)
 	{
 		uint32_t pixel;
+		if (receivelen < 11)
+		{
+			ack_fail_request();
+			return;
+		}
 		memcpy(&pixel,receivebuf+7,3);
 		pixel = rbg_swap_rgb(pixel);
-		base_addr = get_pc_base_addr(ch);
-		if(base_addr != 0U)
+		base_addr = pixel_compare_axi_base_eth(ch);
+		if(base_addr == 0U)
 		{
-			Xil_Out32(base_addr + RGB_CNT_PIXEL, pixel);
+			ack_fail_request();
+			return;
 		}
-
+		Xil_Out32(base_addr + RGB_CNT_PIXEL, pixel);
 		ack_copy_request();
 	}
 	else if(cmd_index == 8)
 	{
 		uint32_t pixel;
+		if (receivelen < 11)
+		{
+			ack_fail_request();
+			return;
+		}
 		memcpy(&pixel,receivebuf+7,3);
 		pixel = rbg_swap_rgb(pixel);
-		base_addr = get_pc_base_addr(ch);
-		if(base_addr != 0U)
+		base_addr = pixel_compare_axi_base_eth(ch);
+		if(base_addr == 0U)
 		{
-			Xil_Out32(base_addr + RGB_NOT_PIXEL, pixel);
+			ack_fail_request();
+			return;
 		}
-
+		Xil_Out32(base_addr + RGB_NOT_PIXEL, pixel);
 		ack_copy_request();
 	}
 	else if(cmd_index == 9)
 	{
-		/* ROI：0 起始闭区间。短包：+7..+13 为 u16 小端 x,y,w,h（与上位机 Set Compare Area 一致）。 */
-		uint32_t xs = 0U, xe = 0U, ys = 0U, ye = 0U;
-		uint16_t u16 = 0U;
-
-		if (receivelen >= 23U)
+		/* ROI：0 起始闭区间。+7..+13 为 u16 小端 xs,xe,ys,ye（与上位机 Set Compare Area 一致） */
+		uint16_t xs = 0U, xe = 0U, ys = 0U, ye = 0U;
+		if (receivelen >= 15U)
 		{
-			memcpy(&xs, receivebuf + 7, 4);
-			memcpy(&xe, receivebuf + 11, 4);
-			memcpy(&ys, receivebuf + 15, 4);
-			memcpy(&ye, receivebuf + 19, 4);
-			if (xs > 0U) {
-				xs--;
-			}
-			if (xe > 0U) {
-				xe--;
-			}
-			if (ys > 0U) {
-				ys--;
-			}
-			if (ye > 0U) {
-				ye--;
-			}
+			memcpy(&xs, receivebuf + 7, 2);
+			memcpy(&xe, receivebuf + 9, 2);
+			memcpy(&ys, receivebuf + 11, 2);
+			memcpy(&ye, receivebuf + 13, 2);
 		}
-		else if (receivelen >= 15U)
+		else
 		{
-			uint32_t x0 = 0U, y0 = 0U, w = 0U, h = 0U;
-
-			memcpy(&u16, receivebuf + 7, 2);
-			x0 = u16;
-			memcpy(&u16, receivebuf + 9, 2);
-			y0 = u16;
-			memcpy(&u16, receivebuf + 11, 2);
-			w = u16;
-			memcpy(&u16, receivebuf + 13, 2);
-			h = u16;
-			xs = x0 & 0xFFFFU;
-			ys = y0 & 0xFFFFU;
-			if (w > 0U && h > 0U)
-			{
-				xe = (xs + w - 1U) & 0xFFFFU;
-				ye = (ys + h - 1U) & 0xFFFFU;
-			}
-			else
-			{
-				xe = 0xFFFFU;
-				ye = 0xFFFFU;
-			}
+			ack_fail_request();
+			return;
 		}
-//		xil_printf("ROI xs %lu xe %lu ys %lu ye %lu\r\n", xs, xe, ys,ye);
 
-		base_addr = get_pc_base_addr(ch);
-		if (base_addr != 0U)
+		base_addr = pixel_compare_axi_base_eth(ch);
+		if (base_addr == 0U)
 		{
-			Xil_Out32(base_addr + ROI_X_START, xs & 0xFFFFU);
-			Xil_Out32(base_addr + ROI_X_END, xe & 0xFFFFU);
-			Xil_Out32(base_addr + ROI_Y_START, ys & 0xFFFFU);
-			Xil_Out32(base_addr + ROI_Y_END, ye & 0xFFFFU);
+			ack_fail_request();
+			return;
 		}
+		Xil_Out32(base_addr + ROI_X_START, xs & 0xFFFFU);
+		Xil_Out32(base_addr + ROI_X_END, xe & 0xFFFFU);
+		Xil_Out32(base_addr + ROI_Y_START, ys & 0xFFFFU);
+		Xil_Out32(base_addr + ROI_Y_END, ye & 0xFFFFU);
 		ack_copy_request();
+	}
+	else
+	{
+		ack_fail_request();
 	}
 }
 #endif//#if defined (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES)
@@ -841,7 +944,15 @@ void msg_cmd_0x40(void)
 {
 	uint16_t cmd_index;
 	uint32_t msg_send;
+
+	if (receivelen < 7)
+	{
+		ack_fail_request();
+		return;
+	}
+
 	memcpy(&cmd_index,receivebuf+5,2);
+	sendlen = 0;
 
 	if(cmd_index == 0)
 	{
@@ -898,6 +1009,11 @@ void msg_cmd_0x40(void)
 		{
 			send_arr = "ISSI";
 		}
+		if (send_arr == NULL)
+		{
+			ack_fail_request();
+			return;
+		}
 		bsp_printf("string = %s,len = %d\r\n",send_arr,strlen(send_arr));
 		memcpy(send_buf,receivebuf,7);
 		memcpy(send_buf+7,send_arr,strlen(send_arr));
@@ -922,23 +1038,38 @@ void msg_cmd_0x40(void)
 	if(cmd_index == 6) //cur_ch_set
 	{
 		uint8_t var1;
+		if (!req_len_at_least(9))
+		{
+			ack_fail_request();
+			return;
+		}
 		memcpy(&var1,receivebuf+7,1);
 		current_ch = var1;
 		memcpy(send_buf,receivebuf,7);
-		memcpy(send_buf+7,&msg_send,1);
+		memcpy(send_buf+7,&var1,1);
 		sendlen = 7 + 1 + 1;
 	}
 	if(cmd_index == 7)
 	{
 		uint8_t var1;
+		if (!req_len_at_least(9))
+		{
+			ack_fail_request();
+			return;
+		}
 		memcpy(&var1,receivebuf+7,1);
 		reset_pl = var1;
 		memcpy(send_buf,receivebuf,7);
-		memcpy(send_buf+7,&msg_send,1);
+		memcpy(send_buf+7,&var1,1);
 		sendlen = 7 + 1 + 1;
 	}
 	if(cmd_index == 10) // read global_config
 	{
+		if (!req_len_at_least(8))
+		{
+			ack_fail_request();
+			return;
+		}
 		memcpy(send_buf,receivebuf,7);
 		memcpy(send_buf+7, &global_config, sizeof(config_Settings_t));
 		sendlen = 7 + sizeof(config_Settings_t) + 1;
@@ -948,6 +1079,11 @@ void msg_cmd_0x40(void)
 		int32_t Status;
 		uint8_t sendmsg;
 
+		if (!req_len_at_least((uint16_t)(8U + sizeof(config_Settings_t))))
+		{
+			ack_fail_request();
+			return;
+		}
 		memcpy(&global_config, receivebuf + 7, sizeof(config_Settings_t));
 
 		//
@@ -970,6 +1106,11 @@ void msg_cmd_0x40(void)
 		memcpy(send_buf, receivebuf, 7);
 		memcpy(send_buf + 7, &sendmsg, 1);
 		sendlen = 7 + 1 + 1;
+		if (Status != XST_SUCCESS)
+		{
+			send_buf[2] = 0xFF;
+			send_buf[3] = 0xFF;
+		}
 	}
 	if(cmd_index == 12) // read default_config
 	{
@@ -987,10 +1128,132 @@ void msg_cmd_0x40(void)
 		return;
 	}
 
+	if (sendlen == 0)
+	{
+		ack_fail_request();
+		return;
+	}
+
 	memcpy(send_buf,&sendlen,2);
 	send_buf[sendlen-1] = checksum(send_buf,sendlen-1);
 }
 
+#if defined (XPAR_XV_TPG_NUM_INSTANCES)
+
+void msg_cmd_0x50(void)
+{
+	uint8_t cmd_index;
+	uint8_t ch;
+	XV_tpg *inst;
+
+	if (!req_len_at_least(8))
+	{
+		ack_fail_request();
+		return;
+	}
+
+	memcpy(&cmd_index, receivebuf + 5, 1);
+	memcpy(&ch, receivebuf + 6, 1);
+	inst = tpg_get_instance(ch);
+	if (inst == NULL)
+	{
+		ack_fail_request();
+		return;
+	}
+
+	if (cmd_index == 0U)
+	{
+		uint8_t bckgnd;
+
+		if (receivelen < 9)
+		{
+			ack_fail_request();
+			return;
+		}
+		memcpy(&bckgnd, receivebuf + 7, 1);
+		if (tpg_set_bckgnd(ch, (u32)bckgnd) != XST_SUCCESS)
+		{
+			ack_fail_request();
+			return;
+		}
+		ack_copy_request();
+	}
+	else if (cmd_index == 1U)
+	{
+		uint8_t mode;
+		uint8_t speed = 1U;
+
+		if (receivelen < 9)
+		{
+			ack_fail_request();
+			return;
+		}
+		memcpy(&mode, receivebuf + 7, 1);
+		if (receivelen >= 10)
+		{
+			memcpy(&speed, receivebuf + 8, 1);
+		}
+		if (tpg_set_box_motion(ch, mode, speed) != XST_SUCCESS)
+		{
+			ack_fail_request();
+			return;
+		}
+		ack_copy_request();
+	}
+	else if (cmd_index == 2U)
+	{
+		u8 r;
+		u8 g;
+		u8 b;
+
+		if (receivelen < 11)
+		{
+			ack_fail_request();
+			return;
+		}
+		r = receivebuf[7];
+		g = receivebuf[8];
+		b = receivebuf[9];
+		if (tpg_set_box_color(ch, r, g, b) != XST_SUCCESS)
+		{
+			ack_fail_request();
+			return;
+		}
+		ack_copy_request();
+	}
+	else if (cmd_index == 3U)
+	{
+		uint32_t bckgnd;
+		uint32_t ovrlay;
+		uint32_t speed;
+		u8 r;
+		u8 g;
+		u8 b;
+
+		bckgnd = XV_tpg_Get_bckgndId(inst);
+		ovrlay = XV_tpg_Get_ovrlayId(inst);
+		speed = XV_tpg_Get_motionSpeed(inst);
+		r = (u8)XV_tpg_Get_boxColorR(inst);
+		g = (u8)XV_tpg_Get_boxColorG(inst);
+		b = (u8)XV_tpg_Get_boxColorB(inst);
+
+		memcpy(send_buf, receivebuf, 7);
+		memcpy(send_buf + 7, &bckgnd, 4);
+		memcpy(send_buf + 11, &ovrlay, 4);
+		memcpy(send_buf + 15, &speed, 4);
+		send_buf[19] = r;
+		send_buf[20] = g;
+		send_buf[21] = b;
+		sendlen = 23;
+		memcpy(send_buf, &sendlen, 2);
+		send_buf[sendlen - 1] = checksum(send_buf, sendlen - 1);
+	}
+	else
+	{
+		ack_fail_request();
+	}
+}
+#endif /* XPAR_XV_TPG_NUM_INSTANCES */
 
 void msg_cmd_0x80(void)
 {
@@ -999,8 +1262,7 @@ void msg_cmd_0x80(void)
 	{
 	    for (int i = 0; i < ETH_VIDEO_NUM; i++) // 遍历所有通道
 	    {
-	    	VdmaChannels[i].send_pic_start = 0;
-	    	VdmaChannels[i].send_video_start = 0;
+	    	vdma_lwip_stop_media(i);
 	    }
 		xil_printf("close all video source\r\n");
 	}
@@ -1010,14 +1272,14 @@ void msg_cmd_0x80(void)
 		{
 		    for (int i = 0; i < ETH_VIDEO_NUM; i++) // 遍历所有通道
 		    {
-		    	VdmaChannels[i].send_pic_start = 0;
+		    	vdma_lwip_stop_media(i);
 		    }
 		}
 		else if(receivebuf[5] == 0xff)
 		{
 		    for (int i = 0; i < ETH_VIDEO_NUM; i++) // 遍历所有通道
 		    {
-		    	VdmaChannels[i].send_pic_start = 1;
+		    	vdma_lwip_arm_pic_capture(i);
 		    }
 		}
 		else
@@ -1028,7 +1290,7 @@ void msg_cmd_0x80(void)
 			}
 			else
 			{
-				VdmaChannels[receivebuf[5]-1].send_pic_start = 1;
+				vdma_lwip_arm_pic_capture((int)receivebuf[5] - 1);
 			}
 		}
 	}
@@ -1038,16 +1300,16 @@ void msg_cmd_0x80(void)
 		{
 		    for (int i = 0; i < ETH_VIDEO_NUM; i++) // 遍历所有通道
 		    {
-		    	VdmaChannels[i].send_video_start = 0;
+		    	vdma_lwip_stop_media(i);
 		    }
 		}
 		else if(receivebuf[5] == 0xff)
 		{
 		    for (int i = 0; i < ETH_VIDEO_NUM; i++) // 遍历所有通道
 		    {
-		    	VdmaChannels[i].send_video_start = 1;
-		    	xil_printf("sending video\r\n");
+		    	vdma_lwip_arm_video_stream(i);
 		    }
+		    xil_printf("sending video\r\n");
 		}
 		else
 		{
@@ -1057,7 +1319,8 @@ void msg_cmd_0x80(void)
 			}
 			else
 			{
-				VdmaChannels[receivebuf[5]-1].send_video_start = 1;
+				vdma_lwip_arm_video_stream((int)receivebuf[5] - 1);
+				xil_printf("sending video\r\n");
 			}
 		}
 	}
@@ -1165,7 +1428,7 @@ void err_auto_send_func(u8 ch)
 		return;
 	}
 
-	xil_printf("err_auto_send %u\r\n", (unsigned)ch + 1U);
+//	xil_printf("err_auto_send %u\r\n", (unsigned)ch + 1U);
 
 	sendlen = 8 + (int)sizeof(vcmp_message);
 	memcpy(send_buf, &sendlen, 2);

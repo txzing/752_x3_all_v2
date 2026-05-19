@@ -82,6 +82,105 @@ void tpg_box(XV_tpg *InstancePtr, u32 boxSize, u32 motionSpeed)
 
 }
 
+void tpg_box_static(XV_tpg *InstancePtr, u32 boxSize)
+{
+	XV_tpg_Set_boxSize(InstancePtr, boxSize);
+	XV_tpg_Set_motionSpeed(InstancePtr, 0U);
+	XV_tpg_Set_ovrlayId(InstancePtr, 1U);
+}
+
+void tpg_box_disable(XV_tpg *InstancePtr)
+{
+	XV_tpg_Set_motionSpeed(InstancePtr, 0U);
+	XV_tpg_Set_ovrlayId(InstancePtr, 0U);
+}
+
+XV_tpg *tpg_get_instance(u8 ch)
+{
+	if (ch < 1U)
+	{
+		return NULL;
+	}
+#if (XPAR_XV_TPG_NUM_INSTANCES >= 1U)
+	if (ch == 1U)
+	{
+		return &tpg_inst0;
+	}
+#endif
+#if (XPAR_XV_TPG_NUM_INSTANCES >= 2U)
+	if (ch == 2U)
+	{
+		return &tpg_inst1;
+	}
+#endif
+#if (XPAR_XV_TPG_NUM_INSTANCES >= 3U)
+	if (ch == 3U)
+	{
+		return &tpg_inst2;
+	}
+#endif
+#if (XPAR_XV_TPG_NUM_INSTANCES >= 4U)
+	if (ch == 4U)
+	{
+		return &tpg_inst3;
+	}
+#endif
+	return NULL;
+}
+
+int tpg_set_bckgnd(u8 ch, u32 bckgndId)
+{
+	XV_tpg *inst = tpg_get_instance(ch);
+
+	if (inst == NULL || bckgndId == 0U || bckgndId >= (u32)XTPG_BKGND_LAST)
+	{
+		return XST_FAILURE;
+	}
+	XV_tpg_Set_bckgndId(inst, bckgndId);
+	return XST_SUCCESS;
+}
+
+int tpg_set_box_motion(u8 ch, u8 mode, u8 motion_speed)
+{
+	XV_tpg *inst = tpg_get_instance(ch);
+	u32 speed = (motion_speed == 0U) ? 1U : (u32)motion_speed;
+
+	if (inst == NULL)
+	{
+		return XST_FAILURE;
+	}
+	if (mode == 0U)
+	{
+		tpg_box_disable(inst);
+	}
+	else if (mode == 1U)
+	{
+		tpg_box_static(inst, 50U);
+	}
+	else if (mode == 2U)
+	{
+		tpg_box(inst, 50U, speed);
+	}
+	else
+	{
+		return XST_FAILURE;
+	}
+	return XST_SUCCESS;
+}
+
+int tpg_set_box_color(u8 ch, u8 r, u8 g, u8 b)
+{
+	XV_tpg *inst = tpg_get_instance(ch);
+
+	if (inst == NULL)
+	{
+		return XST_FAILURE;
+	}
+	XV_tpg_Set_boxColorR(inst, (u32)r);
+	XV_tpg_Set_boxColorG(inst, (u32)g);
+	XV_tpg_Set_boxColorB(inst, (u32)b);
+	return XST_SUCCESS;
+}
 
 int tpg_config(void)
 {

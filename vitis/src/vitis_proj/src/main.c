@@ -92,11 +92,11 @@ int main()
 #endif // XPAR_XV_TPG_NUM_INSTANCES
 
 #if defined (XPAR_XAXIVDMA_NUM_INSTANCES)
-    clear_vdma_instance(XPAR_AXI_VDMA_LWIP_DEVICE_ID);
     clear_display();
     vdma_config();
 #if defined (UDP_UPDATE) || defined (TCP_UPDATE) || defined (TCP_COMMAND_SRV) || defined (UDP_COMMAND_SRV)
 #if defined (UDP_VIDEO) || defined (TCP_VIDEO)
+    clear_vdma_instance(XPAR_AXI_VDMA_LWIP_DEVICE_ID);
     vdma_udp_init();
     /* 按默认 current_ch 与 monitor/缓存分辨率对齐 S2MM，避免一直用静态初始化里的 1920x1080 */
     vdma_lwip_apply_channel_geometry(current_ch);

@@ -82,10 +82,10 @@ static void vcmp_m_fill_from_base(u32 ba, u8 ch)
 	vcmp_m[ch].rgb_pixel_total = Xil_In32(ba + RGB_PIXEL_TOTAL);
 	vcmp_m[ch].rgb_not_pixel = rbg_swap_rgb(Xil_In32(ba + RGB_NOT_PIXEL));
 	/* ROI：寄存器低 16 位有效，高 16 位读回保留为 0（与 axis_pixel_compare 一致） */
-	vcmp_m[ch].roi_x_start = (Xil_In32(ba + ROI_X_START) & 0xFFFFU) + 1;
-	vcmp_m[ch].roi_x_end = (Xil_In32(ba + ROI_X_END) & 0xFFFFU) + 1;
-	vcmp_m[ch].roi_y_start = (Xil_In32(ba + ROI_Y_START) & 0xFFFFU) + 1;
-	vcmp_m[ch].roi_y_end = (Xil_In32(ba + ROI_Y_END) & 0xFFFFU) + 1	;
+	vcmp_m[ch].roi_x_start = (Xil_In32(ba + ROI_X_START) & 0xFFFFU);
+	vcmp_m[ch].roi_x_end = (Xil_In32(ba + ROI_X_END) & 0xFFFFU);
+	vcmp_m[ch].roi_y_start = (Xil_In32(ba + ROI_Y_START) & 0xFFFFU);
+	vcmp_m[ch].roi_y_end = (Xil_In32(ba + ROI_Y_END) & 0xFFFFU);
 }
 
 void vcmp_m_refresh_channel(u8 ch)
@@ -95,6 +95,26 @@ void vcmp_m_refresh_channel(u8 ch)
 		return;
 	}
 	vcmp_m_fill_from_base(PC_inst[ch].BaseAddress, ch);
+}
+
+u32 pixel_compare_axi_base_eth(u8 ch_1based)
+{
+	u8 idx;
+
+	if (ch_1based < 1U)
+	{
+		return 0U;
+	}
+	idx = ch_1based - 1U;
+	if (idx >= (u8)XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES)
+	{
+		return 0U;
+	}
+	if (PC_inst[idx].BaseAddress != 0U)
+	{
+		return (u32)PC_inst[idx].BaseAddress;
+	}
+	return (u32)XAxisPixelCompare_ConfigTable[idx].S00_axi_BaseAddr;
 }
 
 void pixel_err_handel(void)
@@ -108,7 +128,7 @@ void pixel_err_handel(void)
 			continue;
 		}
 
-		xil_printf("port ch[%d] err!\r\n", (int)ch + 1);
+		xil_printf("cp err_buf ch[%d] err!\r\n", (int)ch + 1);
 		memcpy(currentChannel->Frame_Err_Buffers[ch],
 		       (void *)pixel_err_snapshot_src(ch), FRAME_BUFFER_SIZE0);
 		Xil_DCacheFlushRange(currentChannel->Frame_Err_Buffers[ch], FRAME_BUFFER_SIZE0);
@@ -160,10 +180,10 @@ void PixelCompareIntrHandler(void *CallbackRef)
 			xil_printf("-RGB_CNT_PIXEL: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + RGB_CNT_PIXEL)));
 			xil_printf("-RGB_PIXEL_TOTAL: %d -\r\n", Xil_In32(PC_p->BaseAddress + RGB_PIXEL_TOTAL));
 			xil_printf("-RGB_NOT_PIXEL: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + RGB_NOT_PIXEL)));
-			xil_printf("-ROI_X_START: %d -\r\n", (Xil_In32(PC_p->BaseAddress + ROI_X_START) + 1) & 0xFFFFU);
-			xil_printf("-ROI_X_END: %d -\r\n", (Xil_In32(PC_p->BaseAddress + ROI_X_END) + 1) & 0xFFFFU);
-			xil_printf("-ROI_Y_START: %d -\r\n", (Xil_In32(PC_p->BaseAddress + ROI_Y_START) + 1) & 0xFFFFU);
-			xil_printf("-ROI_Y_END: %d -\r\n", (Xil_In32(PC_p->BaseAddress + ROI_Y_END) + 1) & 0xFFFFU);
+//			xil_printf("-ROI_X_START: %d -\r\n", (Xil_In32(PC_p->BaseAddress + ROI_X_START) + 1) & 0xFFFFU);
+//			xil_printf("-ROI_X_END: %d -\r\n", (Xil_In32(PC_p->BaseAddress + ROI_X_END) + 1) & 0xFFFFU);
+//			xil_printf("-ROI_Y_START: %d -\r\n", (Xil_In32(PC_p->BaseAddress + ROI_Y_START) + 1) & 0xFFFFU);
+//			xil_printf("-ROI_Y_END: %d -\r\n", (Xil_In32(PC_p->BaseAddress + ROI_Y_END) + 1) & 0xFFFFU);
 		}
 		Xil_Out32(PC_p->BaseAddress + INTR_CLEAR, 0x1);
 	}

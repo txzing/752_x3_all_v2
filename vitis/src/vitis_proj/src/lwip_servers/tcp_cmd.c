@@ -75,13 +75,20 @@ static void dispatch_command(uint16_t cmd)
     case 0x30: msg_cmd_0x30(); break;
 #endif
     case 0x40: msg_cmd_0x40(); break;
-    default: break;
+#if defined (XPAR_XV_TPG_NUM_INSTANCES)
+    case 0x50: msg_cmd_0x50(); break;
+#endif
+    default: ack_fail_request(); break;
     }
 }
 
 static void send_tcp_response(struct tcp_pcb *pcb, const char *ctx)
 {
     err_t err;
+    if (sendlen < 8)
+    {
+        return;
+    }
     if (tcp_sndbuf(pcb) >= sendlen)
     {
         err = tcp_write(pcb, send_buf, sendlen, TCP_WRITE_FLAG_COPY);

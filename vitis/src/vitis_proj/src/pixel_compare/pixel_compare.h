@@ -64,6 +64,9 @@ int PixelCompare_init(void);
 uint32_t rbg_swap_rgb(uint32_t pixel);
 void vcmp_m_refresh_channel(u8 ch);
 
+/* 以太网命令 ch 为 1..N；无效通道返回 0 */
+u32 pixel_compare_axi_base_eth(u8 ch_1based);
+
 
 #endif
 #endif

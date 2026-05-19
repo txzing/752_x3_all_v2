@@ -34,6 +34,7 @@ void app_info(void)
 	xil_printf("  y   - TPG box pattern\r\n");
 #endif
 	xil_printf("  k/K - test RELAY_CUTOFF\r\n");
+	xil_printf("  e/E - set default eth config\r\n");
 	xil_printf("  r   - reset LVDS (GPIO)\r\n");
 	xil_printf("  a   - (reserved)\r\n");
 #if defined (XPAR_XAXIS_SWITCH_NUM_INSTANCES) && (XPAR_XAXIS_SWITCH_NUM_INSTANCES >= 1U)
@@ -49,9 +50,6 @@ void app_info(void)
 	xil_printf("  0/1 - SerDes stream_id 0/1 (current_ch, reg 0x0050)\r\n");
 	xil_printf("  7/8 - axis pixel compare ON / OFF\r\n");
 	xil_printf("  c   - clear display + VDMA re-init\r\n");
-#if defined (BSP_HAS_VDMA) && (XPAR_XAXIVDMA_NUM_INSTANCES >= 3U)
-	xil_printf("  z   - VDMA 1 & 2: read geom -> 1280x640 -> apply (log)\r\n");
-#endif
 	xil_printf("  f/F - SerDes / pipeline status (current_ch)\r\n");
 	xil_printf("--- current_ch (I2C): %u ---\r\n", (unsigned)current_ch);
 	xil_printf("----------------------\r\n");
@@ -118,15 +116,15 @@ static void uart_debug_dump_pixel_compare(void)
 	{
 		UINTPTR ba = XAxisPixelCompare_ConfigTable[i].S00_axi_BaseAddr;
 
-		(void)snprintf(label, sizeof label, "pc_out_%u", (unsigned)i);
+		(void)snprintf(label, sizeof label, "pc_out_%u", i);
 		video_resolution_print(label, (u32)ba);
 		{
 			const u32 st = Xil_In32(ba + STATUS);
-			xil_printf("-STATUS[%u]: %u (en=%u err=%u strm=%u) -\r\n", (unsigned)i,
-				   (unsigned int)st,
-				   (unsigned int)(st & 1U),
-				   (unsigned int)((st >> 1) & 1U),
-				   (unsigned int)((st >> 2) & 1U));
+			xil_printf("-STATUS[%u]: %u (en=%u err=%u strm=%u) -\r\n", i,
+				   st,
+				   (st & 1U),
+				   ((st >> 1) & 1U),
+				   ((st >> 2) & 1U));
 		}
 	}
 }
@@ -182,6 +180,20 @@ void uart_receive_process(void)
 			xil_printf("------------test RELAY_CUTOFF------------\r\n");
 			usleep(100*1000);
 			XGpioPs_WritePin(&Gpio, RELAY_CUTOFF, 1) ; // RELAY_CUTOFF: 0-keep; 1-cutoff
+		}
+		else if((UserInput == 'e') || (UserInput == 'E'))
+		{
+			xil_printf("------------now set default eth config ------------\r\n");
+
+			ret32 = saveconfig(&default_config);
+			if (ret32 != XST_SUCCESS)
+			{
+				xil_printf("--------saveconfig fail!---------\r\n");
+			}
+			else
+			{
+				xil_printf("--------saveconfig ok!---------\r\n");
+			}
 		}
 		else if(UserInput == 'r')
 		{
@@ -248,6 +260,12 @@ void uart_receive_process(void)
 
 		else if(UserInput == '7')
 		{
+
+			xil_printf("------------clear display------------\r\n");
+			XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0xf);
+		    clear_display();
+		    vdma_config();
+			XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
 			xil_printf("XPAR_AXIS_PIXEL_COMPARE ON\r\n");
 #if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 1U)
 			Xil_Out32(XPAR_LVDS_S0_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + STATUS, 0x1);

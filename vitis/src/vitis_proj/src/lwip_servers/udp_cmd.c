@@ -56,13 +56,22 @@ static void dispatch_command(uint16_t cmd)
     case 0x30: msg_cmd_0x30(); break;
 #endif
     case 0x40: msg_cmd_0x40(); break;
-    default: break;
+#if defined (XPAR_XV_TPG_NUM_INSTANCES)
+    case 0x50: msg_cmd_0x50(); break;
+#endif
+    default: ack_fail_request(); break;
     }
 }
 
 static void send_udp_response(void)
 {
-    struct pbuf *pbuf2sent = pbuf_alloc(PBUF_TRANSPORT, sendlen, PBUF_RAM);
+    struct pbuf *pbuf2sent;
+
+    if (sendlen < 8)
+    {
+        return;
+    }
+    pbuf2sent = pbuf_alloc(PBUF_TRANSPORT, sendlen, PBUF_RAM);
     if (!pbuf2sent)
     {
         bsp_printf("udp_cmd Error allocating pbuf\r\n");
