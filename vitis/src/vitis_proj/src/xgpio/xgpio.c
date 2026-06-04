@@ -28,9 +28,9 @@ int xgpio_setup(void)
 	}
 	XGpio_SetDataDirection(&XGpioOutput_oldi, 1, 0x0);
 	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
-	usleep(10*1000);
-	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0xf);
-	usleep(10*1000);
+	usleep(50*1000);
+	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0xff);
+	usleep(50*1000);
 	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
 	return Status ;
 }

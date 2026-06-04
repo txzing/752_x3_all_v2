@@ -1,14 +1,30 @@
 
 `timescale 1 ns / 1 ps
 
+//******************************************************************************
+// Module: AXI_LITE_REG_v1_0_S00_AXI
+// Parent IP: axis_pixel_compare v2.19
+// Last updated: 2026-06-02
+//
+// Version history:
+//   Date       Ver   Change
+//   ---------- ----- ----------------------------------------------------------
+//   2026-05-13 2.5   Base AXI-Lite slave; slv_reg0..15 user map
+//   2026-05-22 2.9   Full register map comments (offsets 0x00..0x58)
+//   2026-06-01 2.9   ROI slv_reg16..19 reset from C_RST_ROI_* on power-on
+//   2026-06-01 2.9   Point sample slv_reg20/21 (W), slv_reg22 (R from HW)
+//   2026-06-01 2.9   slv_reg15 ignore-centre note; threshold shared slv_reg10
+//   2026-06-01 2.9   RTL comments English only; source file saved as GB2312
+//******************************************************************************
+
 	module AXI_LITE_REG_v1_0_S00_AXI #
 	(
 		// Users to add parameters here
-		// AXI slv_reg16..19 reset → readback before first SW write (0-based inclusive ROI).
+		// Overridden by parent ROI_RST_*; defaults match 0..99 inclusive ROI if standalone.
 		parameter [15:0] C_RST_ROI_XS = 16'd0,
-		parameter [15:0] C_RST_ROI_XE = 16'd100,
+		parameter [15:0] C_RST_ROI_XE = 16'd99,
 		parameter [15:0] C_RST_ROI_YS = 16'd0,
-		parameter [15:0] C_RST_ROI_YE = 16'd100,
+		parameter [15:0] C_RST_ROI_YE = 16'd99,
 
 		// User parameters ends
 		// Do not modify the parameters beyond this line
@@ -39,12 +55,16 @@
         output reg [23:0] rgb_cnt_pixel,
         input wire [31:0] rgb_pixle_total,
         output reg [23:0] rgb_not_pixel,
-        // RGB hit-count ROI (slv_reg16..19): lower 16 bits, 0-based inclusive [x_start,x_end]×[y_start,y_end].
+        // RGB hit-count ROI (slv_reg16..19): lower 16 bits, 0-based inclusive [x_start,x_end] x [y_start,y_end].
         // Must match col_cnt / line_cnt indexing in axis_pixel_compare (see RTL comments).
         output reg [15:0] roi_x_start,
         output reg [15:0] roi_x_end,
         output reg [15:0] roi_y_start,
         output reg [15:0] roi_y_end,
+        // Point sample (slv_reg20/21 W, slv_reg22 R): 0-based pixel col/line, latched video RGB
+        output reg [15:0] point_x,
+        output reg [15:0] point_y,
+        input  wire [23:0] point_pixel,
 		// User ports ends
 		// Do not modify the ports beyond this line
 
@@ -674,34 +694,47 @@
 	// Implement memory mapped register select and read logic generation
 	// Slave register read enable is asserted when valid address is available
 	// and the slave is ready to accept the read address.
+	//
+	// Register map (byte offset = index<<2). W=PS writable, R=read-only from HW.
+	//   0x00 col, 0x04 line, 0x08 fps - stream stats (from axis_pixel_compare)
+	//   0x0C STATUS: [0]enable [1]frame_error [2]stream_valid
+	//   0x10 INTR_CLEAR (W bit0 pulse), 0x14 fps_total_cnt
+	//   0x18 ref hold, 0x1C video hold, 0x20 err ref, 0x24 err video - error snapshot
+	//   0x28 PIXEL_THRESHOLD (slv_reg10): per-channel tolerance (frame-diff + RGB stats)
+	//   0x2C err_col, 0x30 err_line
+	//   0x34 RGB_CNT_PIXEL (slv_reg13 W): target colour for RGB hit band
+	//   0x38 RGB_PIXEL_TOTAL (R): previous-frame hit count (latched at SOF in parent)
+	//   0x3C RGB_NOT_PIXEL (slv_reg15 W): ignore centre; |video-mask|<=TH per ch skips frame-diff
+	//   0x40..0x4C ROI xs/xe/ys/ye (slv_reg16..19, 0-based inclusive)
+	//   0x50 point_x, 0x54 point_y (slv_reg20/21 W), 0x58 point_pixel (slv_reg22 R)
 	assign slv_reg_rden = axi_arready & S_AXI_ARVALID & ~axi_rvalid;
 	always @(*)
 	begin
 	      // Address decoding for reading registers
 	      case ( axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] )
-            5'h00   : reg_data_out <= col;   //+0x00
-	        5'h01   : reg_data_out <= line;  //+0x04
-	        5'h02   : reg_data_out <= fps;   //+0x08
-	        5'h03   : reg_data_out <= {'d0,stream_valid, intr_level, axis_compare_enable};
-	        5'h04   : reg_data_out <= slv_reg4;
-	        5'h05   : reg_data_out <= fps_total_cnt;
-	        5'h06   : reg_data_out <= s_axis_tdata_1;
-	        5'h07   : reg_data_out <= s_axis_tdata_0;
-	        5'h08   : reg_data_out <= error_data_hold;
-	        5'h09   : reg_data_out <= stream_in_data_hold;
-	        5'h0A   : reg_data_out <= {24'd0, pixel_threshold[7:0]}; //+0x28
-	        5'h0B   : reg_data_out <= err_col;
-	        5'h0C   : reg_data_out <= err_line;
-	        5'h0D   : reg_data_out <= {8'd0, rgb_cnt_pixel[23:0]}; // target RGB for hit-count (slv_reg13)
-	        5'h0E   : reg_data_out <= rgb_pixle_total;             // latched hit count last frame
-	        5'h0F   : reg_data_out <= {8'd0, rgb_not_pixel[23:0]}; // mask colour (slv_reg15)
-	        5'h10   : reg_data_out <= roi_x_start; // ROI x_start (pixels, inclusive)
-	        5'h11   : reg_data_out <= roi_x_end  ; // ROI x_end   (pixels, inclusive)
-	        5'h12   : reg_data_out <= roi_y_start; // ROI y_start (lines, inclusive)
-	        5'h13   : reg_data_out <= roi_y_end  ; // ROI y_end   (lines, inclusive)
-	        5'h14   : reg_data_out <= slv_reg20;
-	        5'h15   : reg_data_out <= slv_reg21;
-	        5'h16   : reg_data_out <= slv_reg22;
+            5'h00   : reg_data_out <= col;   //+0x00  R  column count (pixels)
+	        5'h01   : reg_data_out <= line;  //+0x04  R  line_cnt at SOF (0-based; SW may +1)
+	        5'h02   : reg_data_out <= fps;   //+0x08  R  frames/sec
+	        5'h03   : reg_data_out <= {'d0,stream_valid, intr_level, axis_compare_enable}; //+0x0C
+	        5'h04   : reg_data_out <= slv_reg4;  //+0x10  W  bit0=intr_clear
+	        5'h05   : reg_data_out <= fps_total_cnt; //+0x14  R
+	        5'h06   : reg_data_out <= s_axis_tdata_1; //+0x18  R  live ref half-word snapshot
+	        5'h07   : reg_data_out <= s_axis_tdata_0; //+0x1C  R  live video half-word snapshot
+	        5'h08   : reg_data_out <= error_data_hold; //+0x20  R  latched ref @ first error
+	        5'h09   : reg_data_out <= stream_in_data_hold; //+0x24  R  latched video @ first error
+	        5'h0A   : reg_data_out <= {24'd0, pixel_threshold[7:0]}; //+0x28  W slv_reg10
+	        5'h0B   : reg_data_out <= err_col;  //+0x2C  R  error column beat index (parent may scale by PPC)
+	        5'h0C   : reg_data_out <= err_line; //+0x30  R  error line
+	        5'h0D   : reg_data_out <= {8'd0, rgb_cnt_pixel[23:0]}; //+0x34  W slv_reg13 target RGB
+	        5'h0E   : reg_data_out <= rgb_pixle_total; //+0x38  R  RGB hits last frame
+	        5'h0F   : reg_data_out <= {8'd0, rgb_not_pixel[23:0]}; //+0x3C  W slv_reg15 ignore colour
+	        5'h10   : reg_data_out <= roi_x_start; //+0x40  W slv_reg16 ROI x start
+	        5'h11   : reg_data_out <= roi_x_end  ; //+0x44  W slv_reg17 ROI x end (inclusive)
+	        5'h12   : reg_data_out <= roi_y_start; //+0x48  W slv_reg18 ROI y start
+	        5'h13   : reg_data_out <= roi_y_end  ; //+0x4C  W slv_reg19 ROI y end (inclusive)
+	        5'h14   : reg_data_out <= {16'd0, point_x};    //+0x50  W slv_reg20 sample X
+	        5'h15   : reg_data_out <= {16'd0, point_y};    //+0x54  W slv_reg21 sample Y
+	        5'h16   : reg_data_out <= {8'd0, point_pixel}; //+0x58  R  video RGB @ (point_x,point_y)
 	        5'h17   : reg_data_out <= slv_reg23;
 	        5'h18   : reg_data_out <= slv_reg24;
 	        5'h19   : reg_data_out <= slv_reg25;
@@ -758,12 +791,10 @@
 	end    
 
 
-// slv_reg3 寄存器
-// bit[1]：intr_level（中断标志
-// bit[0]：axis_compare_enable（写1使能图像对比模块)
-
+	// slv_reg3 readback [2:0]: bit0 compare_enable, bit1 frame_error(intr_level), bit2 stream_valid
 	assign axis_compare_enable = slv_reg3[0];
 
+	// slv_reg10: per-channel tolerance; frame-diff |ref-video|>TH; RGB |video-target|<=TH
 	always @( posedge S_AXI_ACLK )
 	begin
 	  if ( S_AXI_ARESETN == 1'b0 )
@@ -776,6 +807,7 @@
 	    end
 	end    
 
+	// slv_reg13 target colour; slv_reg15 ignore centre - skip diff when |video-mask|<=TH; RGB stats ignore mask
 	always @( posedge S_AXI_ACLK )
 	begin
 	  if ( S_AXI_ARESETN == 1'b0 )
@@ -790,7 +822,7 @@
 	    end
 	end
 
-	// ROI limits to axis stream clock domain (register again in axis_pixel_compare on aclk).
+	// slv_reg16..19 -> ROI outputs to axis_pixel_compare (re-registered on aclk)
 	always @( posedge S_AXI_ACLK )
 	begin
 	  if ( S_AXI_ARESETN == 1'b0 )
@@ -806,6 +838,21 @@
 			roi_x_end    <= slv_reg17[15:0];
 			roi_y_start  <= slv_reg18[15:0];
 			roi_y_end    <= slv_reg19[15:0];
+	    end
+	end
+
+	// slv_reg20/21: point sample coords; slv_reg22 readback from axis point_pixel (writes to slv_reg22 ignored)
+	always @( posedge S_AXI_ACLK )
+	begin
+	  if ( S_AXI_ARESETN == 1'b0 )
+	    begin
+			point_x <= 16'd0;
+			point_y <= 16'd0;
+	    end
+	  else
+	    begin
+			point_x <= slv_reg20[15:0];
+			point_y <= slv_reg21[15:0];
 	    end
 	end
 	

@@ -1,21 +1,6 @@
 #include "../bsp.h"
 #if defined (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES)
 
-static Pc_Config s_pc_cfg_from_bsp;
-
-Pc_Config *Pc_Config_LookupConfig(u16 DeviceId)
-{
-	const XAxisPixelCompare_Config *x = XAxisPixelCompare_LookupConfig(DeviceId);
-
-	if (x == NULL) {
-		return NULL;
-	}
-	s_pc_cfg_from_bsp.DeviceId = x->DeviceId;
-	s_pc_cfg_from_bsp.BaseAddress = x->S00_axi_BaseAddr;
-	s_pc_cfg_from_bsp.Interrupt_ID = x->IntrId;
-	return &s_pc_cfg_from_bsp;
-}
-
 int Pc_Config_Initialize(Pc_Config *InstancePtr, u16 DeviceId)
 {
 	const XAxisPixelCompare_Config *x;
@@ -40,6 +25,8 @@ int Pc_Config_Initialize(Pc_Config *InstancePtr, u16 DeviceId)
 
 volatile u8 pixel_err[XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES] = {0};
 volatile u8 pixel_err_cnt[XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES] = {0};
+volatile u8 pixel_cp_start[XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES] = {0};
+volatile u8 pixel_cp_start_cnt[XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES] = {0};
 volatile u8 err_auto_send = 0;
 Pc_Config PC_inst[XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES] =  {0};
 vcmp_message  vcmp_m[XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES] = {0};
@@ -58,14 +45,9 @@ static void vcmp_m_fill_from_base(u32 ba, u8 ch)
 	vcmp_m[ch].channel = ch + 1U;
 #if defined (XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES)
 	mon_ba = vdma_passthrough_mon_base_lvds(ch);
-	if (mon_ba != 0U && ch < (u8)XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES)
-	{
-		/* 与 user_app.c video_resolution_print(LVDS_in_*) 一致：REG0/1/2 = 宽/高/频率 */
-		vcmp_m[ch].Width = Xil_In32(mon_ba + S_AXI_PASSTHROUGH_MONITOR_REG0_OFFSET);
-		vcmp_m[ch].Height = Xil_In32(mon_ba + S_AXI_PASSTHROUGH_MONITOR_REG1_OFFSET);
-		vcmp_m[ch].fps = Xil_In32(mon_ba + S_AXI_PASSTHROUGH_MONITOR_REG2_OFFSET);
-	}
-	else
+	if (mon_ba == 0U
+	    || vdma_passthrough_read_mon(mon_ba, &vcmp_m[ch].Width, &vcmp_m[ch].Height,
+					 &vcmp_m[ch].fps) == 0)
 #endif
 	{
 		vcmp_m[ch].Width = Xil_In32(ba + COL);
@@ -73,39 +55,49 @@ static void vcmp_m_fill_from_base(u32 ba, u8 ch)
 		vcmp_m[ch].fps = Xil_In32(ba + FPS);
 	}
 	vcmp_m[ch].fps_total_cnt = Xil_In32(ba + FPS_TOTAL_CNT);
-	vcmp_m[ch].error_pixel_hold = rbg_swap_rgb(Xil_In32(ba + ERROE_DATA_HOLD));
-	vcmp_m[ch].pixel_hold = rbg_swap_rgb(Xil_In32(ba + STREAM_IN_DATA_HOLD));
+	vcmp_m[ch].error_pixel_hold = rgb_host_from_reg_rbg(Xil_In32(ba + ERROE_DATA_HOLD));
+	vcmp_m[ch].pixel_hold = rgb_host_from_reg_rbg(Xil_In32(ba + STREAM_IN_DATA_HOLD));
 	vcmp_m[ch].pixel_threshold = Xil_In32(ba + PIXEL_THRESHOLD);
 	vcmp_m[ch].error_col = Xil_In32(ba + ERR_COL);
 	vcmp_m[ch].error_line = Xil_In32(ba + ERR_LINE);
-	vcmp_m[ch].rgb_cnt_pixel = rbg_swap_rgb(Xil_In32(ba + RGB_CNT_PIXEL));
+	vcmp_m[ch].rgb_cnt_pixel = rgb_host_from_reg_rbg(Xil_In32(ba + RGB_CNT_PIXEL));
 	vcmp_m[ch].rgb_pixel_total = Xil_In32(ba + RGB_PIXEL_TOTAL);
-	vcmp_m[ch].rgb_not_pixel = rbg_swap_rgb(Xil_In32(ba + RGB_NOT_PIXEL));
+	vcmp_m[ch].rgb_not_pixel = rgb_host_from_reg_rbg(Xil_In32(ba + RGB_NOT_PIXEL));
 	/* ROI：寄存器低 16 位有效，高 16 位读回保留为 0（与 axis_pixel_compare 一致） */
-	vcmp_m[ch].roi_x_start = (Xil_In32(ba + ROI_X_START) & 0xFFFFU);
-	vcmp_m[ch].roi_x_end = (Xil_In32(ba + ROI_X_END) & 0xFFFFU);
-	vcmp_m[ch].roi_y_start = (Xil_In32(ba + ROI_Y_START) & 0xFFFFU);
-	vcmp_m[ch].roi_y_end = (Xil_In32(ba + ROI_Y_END) & 0xFFFFU);
+	vcmp_m[ch].roi_x_start = (Xil_In32(ba + ROI_X_START));
+	vcmp_m[ch].roi_x_end = (Xil_In32(ba + ROI_X_END));
+	vcmp_m[ch].roi_y_start = (Xil_In32(ba + ROI_Y_START));
+	vcmp_m[ch].roi_y_end = (Xil_In32(ba + ROI_Y_END));
+	vcmp_m[ch].point_x = (Xil_In32(ba + POINT_X));
+	vcmp_m[ch].point_y = (Xil_In32(ba + POINT_Y));
+	vcmp_m[ch].point_pixel = rgb_host_from_reg_rbg(Xil_In32(ba + POINT_PIXEL));
 }
 
 void vcmp_m_refresh_channel(u8 ch)
 {
+	u32 ba;
+
 	if (ch >= XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES)
 	{
 		return;
 	}
-	vcmp_m_fill_from_base(PC_inst[ch].BaseAddress, ch);
+	ba = pixel_compare_axi_base_eth((u8)(ch + 1U));
+	if (ba == 0U)
+	{
+		return;
+	}
+	vcmp_m_fill_from_base(ba, ch);
 }
 
-u32 pixel_compare_axi_base_eth(u8 ch_1based)
+u32 pixel_compare_axi_base_eth(u8 ch_based)
 {
 	u8 idx;
 
-	if (ch_1based < 1U)
+	if (ch_based < 1U)
 	{
 		return 0U;
 	}
-	idx = ch_1based - 1U;
+	idx = ch_based - 1U;
 	if (idx >= (u8)XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES)
 	{
 		return 0U;
@@ -119,7 +111,7 @@ u32 pixel_compare_axi_base_eth(u8 ch_1based)
 
 void pixel_err_handel(void)
 {
-	VdmaChannel *const currentChannel = &VdmaChannels[ETH_VIDEO_NUM - 1U];
+	VdmaChannel *const currentChannel = &VC_inst;
 
 	for (u8 ch = 0U; ch < XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES; ch++)
 	{
@@ -171,19 +163,27 @@ void PixelCompareIntrHandler(void *CallbackRef)
 		{
 			pixel_err[ch] = 1U;
 			vcmp_m_fill_from_base(PC_p->BaseAddress, ch);
-
-			xil_printf("PCITR %d\r\n", (int)ch + 1);
-			xil_printf("-PIXEL_POINT: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + PIXEL_POINT)));
-			xil_printf("-STREAM_IN_DATA_HOLD: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + STREAM_IN_DATA_HOLD)));
-			xil_printf("-ERR_COL: %d -\r\n", Xil_In32(PC_p->BaseAddress + ERR_COL));
-			xil_printf("-ERR_LINE: %d -\r\n", Xil_In32(PC_p->BaseAddress + ERR_LINE));
-			xil_printf("-RGB_CNT_PIXEL: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + RGB_CNT_PIXEL)));
-			xil_printf("-RGB_PIXEL_TOTAL: %d -\r\n", Xil_In32(PC_p->BaseAddress + RGB_PIXEL_TOTAL));
-			xil_printf("-RGB_NOT_PIXEL: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + RGB_NOT_PIXEL)));
-//			xil_printf("-ROI_X_START: %d -\r\n", (Xil_In32(PC_p->BaseAddress + ROI_X_START) + 1) & 0xFFFFU);
-//			xil_printf("-ROI_X_END: %d -\r\n", (Xil_In32(PC_p->BaseAddress + ROI_X_END) + 1) & 0xFFFFU);
-//			xil_printf("-ROI_Y_START: %d -\r\n", (Xil_In32(PC_p->BaseAddress + ROI_Y_START) + 1) & 0xFFFFU);
-//			xil_printf("-ROI_Y_END: %d -\r\n", (Xil_In32(PC_p->BaseAddress + ROI_Y_END) + 1) & 0xFFFFU);
+			xil_printf("PCITR %d\r\n", vcmp_m[ch].channel);
+		//	xil_printf("status %x\r\n", vcmp_m[ch].status);
+		//	xil_printf("Width %d\r\n", vcmp_m[ch].Width);
+		//	xil_printf("Height %d\r\n", vcmp_m[ch].Height);
+		//	xil_printf("fps %d\r\n", vcmp_m[ch].fps);
+		//	xil_printf("fps_total_cnt %d\r\n", vcmp_m[ch].fps_total_cnt);
+			xil_printf("error_pixel_hold %8x\r\n", vcmp_m[ch].error_pixel_hold);
+			xil_printf("pixel_hold %8x\r\n", vcmp_m[ch].pixel_hold);
+			xil_printf("pixel_threshold %d\r\n", vcmp_m[ch].pixel_threshold);
+			xil_printf("error_col %d\r\n", vcmp_m[ch].error_col);
+			xil_printf("error_line %d\r\n", vcmp_m[ch].error_line);
+		//	xil_printf("rgb_cnt_pixel %8x\r\n", vcmp_m[ch].rgb_cnt_pixel);
+		//	xil_printf("rgb_pixel_total %d\r\n", vcmp_m[ch].rgb_pixel_total);
+		//	xil_printf("rgb_not_pixel %8x\r\n", vcmp_m[ch].rgb_not_pixel);
+		//	xil_printf("roi_x_start %d\r\n", vcmp_m[ch].roi_x_start);
+		//	xil_printf("roi_x_end %d\r\n", vcmp_m[ch].roi_x_end);
+		//	xil_printf("roi_y_start %d\r\n", vcmp_m[ch].roi_y_start);
+		//	xil_printf("roi_y_end %d\r\n", vcmp_m[ch].roi_y_end);
+		//	xil_printf("point_x %d\r\n", vcmp_m[ch].point_x);
+		//	xil_printf("point_y %d\r\n", vcmp_m[ch].point_y);
+		//	xil_printf("point_pixel %8x\r\n", vcmp_m[ch].point_pixel);
 		}
 		Xil_Out32(PC_p->BaseAddress + INTR_CLEAR, 0x1);
 	}
@@ -212,6 +212,8 @@ int PixelCompare_init(void)
 
 		INTC_CONNECT_ENABLE(IntcInstPtr, PC_inst[Index].Interrupt_ID);
 		pixel_err_cnt[Index] = 0U;
+		pixel_cp_start[Index] = 0U;
+		pixel_cp_start_cnt[Index] = 0U;
 	}
 
 	return XST_SUCCESS;
@@ -219,8 +221,27 @@ int PixelCompare_init(void)
 
 uint32_t rbg_swap_rgb(uint32_t pixel)
 {
-	/* Keep high byte R unchanged, swap low-byte G/B. */
+	/* Host 0x00RRGGBB -> HW RBG register (R@[23:16], B@[15:8], G@[7:0]). */
 	return (pixel & 0x00FF0000U) | ((pixel & 0x0000FF00U) >> 8) | ((pixel & 0x000000FFU) << 8);
+}
+
+uint32_t rgb_host_from_reg_rbg(uint32_t reg_rbg)
+{
+	const uint32_t r = (reg_rbg >> 16) & 0xFFU;
+	const uint32_t b = (reg_rbg >> 8) & 0xFFU;
+	const uint32_t g = reg_rbg & 0xFFU;
+
+	/* LE 线上字节顺序 R,G,B，与上位机 Set/Get Statistics Pixel 一致 */
+	return r | (g << 8) | (b << 16);
+}
+
+uint32_t rgb_from_reg_rbg(uint32_t reg_rbg)
+{
+	const uint32_t r = (reg_rbg >> 16) & 0xFFU;
+	const uint32_t b = (reg_rbg >> 8) & 0xFFU;
+	const uint32_t g = reg_rbg & 0xFFU;
+
+	return (r << 16) | (g << 8) | b;
 }
 
 #endif

@@ -4,44 +4,180 @@
 
 #if defined (UDP_VIDEO) || defined (TCP_VIDEO)
 
-VdmaChannel VdmaChannels[ETH_VIDEO_NUM] =
+#define MAX_ITERATIONS 3 // 每个通道运行的最大次数
+volatile u32 iterationCounts = 0; // 每个通道的计数器
+
+static void vdma_lwip_program_s2mm(VdmaChannel *vc, u32 want_w, u32 h);
+static void WriteCallBack(void *CallbackRef, u32 Mask);
+static void WriteErrorCallBack(void *CallbackRef, u32 Mask);
+
+VdmaChannel VC_inst =
 {
-#if (ETH_VIDEO_NUM >= 1U)
-    {
-    	.channel_ID = 1,
-        .DeviceID = XPAR_AXI_VDMA_LWIP_DEVICE_ID,
-		.S2MM_INTR_ID = XPAR_FABRIC_AXI_VDMA_LWIP_S2MM_INTROUT_INTR,
-        .FrameBuffers = {FRAME_BUFFER_1, FRAME_BUFFER_2, FRAME_BUFFER_3},
-		.UDP_IMG_PACKEG_SIZE = 1200,
-		.VIDEO_FLAG = SEND_VIDEO,
-	    .send_pic_start = 0,
-	    .video_sending = 0,
-	    .send_video_start = 0,
-		.send_err_start = {0},
-        .Stride = 1920,
-        .Width = 1920,
-        .Height = 1080
-//        .Stride = 3840,
-//        .Width = 3840,
-//        .Height = 2160
-//        .Stride = 1920,
-//        .Width = 1920,
-//        .Height = 720
-    },
-#endif
+	.channel_ID = 1,
+	.DeviceID = XPAR_AXI_VDMA_LWIP_DEVICE_ID,
+	.S2MM_INTR_ID = XPAR_FABRIC_AXI_VDMA_LWIP_S2MM_INTROUT_INTR,
+	.FrameBuffers = {FRAME_BUFFER_1, FRAME_BUFFER_2, FRAME_BUFFER_3},
+	.UDP_IMG_PACKEG_SIZE = 1200,
+	.VIDEO_FLAG = SEND_VIDEO,
+	.send_pic_start = 0,
+	.video_sending = 0,
+	.send_video_start = 0,
+	.send_err_start = {0},
+	.Stride = 1920,
+	.Width = 1920,
+	.Height = 1080
+//	.Stride = 3840,
+//	.Width = 3840,
+//	.Height = 2160
+//	.Stride = 1920,
+//	.Width = 1920,
+//	.Height = 720
 };
 
+
+int vdma_udp_init(void)
+{
+	// 初始化VDMA通道
+    int Status = Vdma_Lwip_Video_Init(&VC_inst);
+    if (Status != XST_SUCCESS)
+    {
+        xil_printf("VDMA Initialization failed\r\n");
+        return XST_FAILURE;
+    }
+
+    xil_printf("VDMA Channels initialized and ready.\r\n");
+    return Status;
+}
+
+int Vdma_Lwip_Video_Init(VdmaChannel *VC_inst)
+{
+    int Status;
+	INTC *IntcInstPtr = &InterruptController;
+	XAxiVdma_Config *Config;
+	//
+	Config = XAxiVdma_LookupConfig(VC_inst->DeviceID);
+	if (Config == NULL)
+	{
+		xil_printf("LWIP VDMA: LookupConfig failed\r\n");
+		return XST_FAILURE;
+	}
+
+	Status = XAxiVdma_CfgInitialize(&VC_inst->Vdma, Config, Config->BaseAddress);
+	if (Status != XST_SUCCESS)
+	{
+		xil_printf("LWIP VDMA %d: CfgInitialize failed\r\n");
+		return XST_FAILURE;
+	}
+
+	XAxiVdma_SetCallBack(&VC_inst->Vdma, XAXIVDMA_HANDLER_GENERAL,WriteCallBack, VC_inst, XAXIVDMA_WRITE);
+	XAxiVdma_SetCallBack(&VC_inst->Vdma, XAXIVDMA_HANDLER_ERROR,WriteErrorCallBack, VC_inst, XAXIVDMA_WRITE);
+
+
+	Status = INTC_CONNECT(IntcInstPtr, VC_inst->S2MM_INTR_ID,
+			 (XInterruptHandler)XAxiVdma_WriteIntrHandler, &VC_inst->Vdma);
+	if (Status != XST_SUCCESS)
+	{
+		xil_printf("Failed write channel connect intc %d\r\n", Status);
+		return XST_FAILURE;
+	}
+
+	INTC_CONNECT_ENABLE(IntcInstPtr, VC_inst->S2MM_INTR_ID);
+
+	XAxiVdma_IntrEnable(&VC_inst->Vdma, XAXIVDMA_IXR_ALL_MASK, XAXIVDMA_WRITE);
+
+	//init channel
+	VC_inst->WrIndex = 0;
+	VC_inst->RdIndex = 0;
+#if defined (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES)
+	for(u8 ch = 0; ch < XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES; ch++)
+	{
+		VC_inst->Frame_Err_Buffers[ch] = FRAME_ERR_BUFFER - (FRAME_BUFFER_SIZE0*ch);
+	    memset(VC_inst->Frame_Err_Buffers[ch],0xff,FRAME_BUFFER_SIZE0);
+		Xil_DCacheFlushRange(VC_inst->Frame_Err_Buffers[ch], FRAME_BUFFER_SIZE0);
+		VC_inst->send_err_start[ch] = 0;
+	}
+#endif
+	VC_inst->WriteError = 0;
+	VC_inst->WriteOneFrameEnd = -1;
+
+	vdma_lwip_program_s2mm(VC_inst, VC_inst->Width, VC_inst->Height);
+
+	xil_printf("LWIP VDMA: Initialized successfully\r\n");
+
+    return XST_SUCCESS;
+}
+
+static void vdma_lwip_program_s2mm(VdmaChannel *vc, u32 w, u32 h)
+{
+	if (vc->Width == w && vc->Height == h && vc->FrameLength == (w * h * 3U))
+	{
+		return;
+	}
+
+	vc->Width = w;
+	vc->Height = h;
+	vc->Stride = w;
+	vc->FrameLength = w * h * 3U;
+	vc->pkg_cnt = 1U;
+	vc->udp_send_times =  (u16)(((vc->FrameLength + (vc->UDP_IMG_PACKEG_SIZE - 1U)) / vc->UDP_IMG_PACKEG_SIZE));
+	xil_printf("now vdma_lwip_program_s2mm :stride = %d, w = %d, h = %d\r\n",vc->Stride,vc->Width,vc->Height);
+	vdma_write_stop(&vc->Vdma);
+	XAxiVdma_IntrDisable(&vc->Vdma, XAXIVDMA_IXR_ALL_MASK, XAXIVDMA_WRITE);
+	vdma_write_init(vc->DeviceID, &vc->Vdma, w * 3U, h, w * 3U,
+			vc->FrameBuffers[0], vc->FrameBuffers[1], vc->FrameBuffers[2]);
+	XAxiVdma_IntrEnable(&vc->Vdma, XAXIVDMA_IXR_ALL_MASK, XAXIVDMA_WRITE);
+	(void)vdma_write_start(&vc->Vdma);
+}
+
+void MonitorAndExitAfterIterations(void)
+{
+
+	if (iterationCounts < MAX_ITERATIONS)
+	{
+		if(VC_inst.WriteOneFrameEnd >= 0)
+		{
+#if (DEBUG_PRINT == 1U)
+			// 打印当前通道状态
+			DEBUG_PRINTF("Channel %d: WriteEnd=%d, WriteError=%d, WrIndex=%d, RdIndex=%d\r\n",
+					VC_inst.DeviceID, VC_inst.WriteOneFrameEnd, VC_inst.WriteError,
+					VC_inst.WrIndex, VC_inst.RdIndex);
+
+			// 检查是否达到最大运行次数
+			if (iterationCounts >= MAX_ITERATIONS)
+			{
+				DEBUG_PRINTF("Channel %d: Reached max iterations (%d), exiting.\r\n",
+						VC_inst.DeviceID, MAX_ITERATIONS);
+				return; // 全部通道完成后退出
+			}
+#endif
+			// 清除完成标志
+			VC_inst.WriteOneFrameEnd = -1;
+			// 增加计数器
+			iterationCounts++;
+		}
+	}
+}
+
+/*****************************************************************************/
 /*
- * WriteCallBack —— S2MM（写 DDR）侧「通用」中断回调，由 Xilinx 驱动在帧计数等事件时调用。
- * @param CallbackRef  指向本通道的 VdmaChannel（注册回调时传入）。
- * @param Mask         本次中断原因位掩码（如 XAXIVDMA_IXR_FRMCNT_MASK）。
- * 作用：在帧写完成时轮转 WrIndex/RdIndex，并 XAxiVdma_StartParking 切到下一缓冲。
- */
+ * Call back function for write channel
+ *
+ * This callback handles frame count interrupts and manages the write/read
+ * buffer indices for each channel.
+ *
+ * @param	CallbackRef is the reference pointer to the channel (VdmaChannel)
+ * @param	Mask is the interrupt mask passed from the driver
+ *
+ * @return	None
+ *
+ ******************************************************************************/
 static void WriteCallBack(void *CallbackRef, u32 Mask)
 {
     if (CallbackRef == NULL)
     {
+#if (DEBUG_PRINT == 1U)
         DEBUG_PRINTF("WriteCallBack: CallbackRef is NULL\r\n");
+#endif
         return;
     }
 
@@ -68,30 +204,39 @@ static void WriteCallBack(void *CallbackRef, u32 Mask)
         }
 
         int Status = XAxiVdma_StartParking(&Channel->Vdma, Channel->WrIndex, XAXIVDMA_WRITE);
+        Channel->WriteOneFrameEnd = hold_rd;
+#if (DEBUG_PRINT == 1U)
         if (Status != XST_SUCCESS)
         {
             DEBUG_PRINTF("Channel %d: Failed to start parking. Status=%d\r\n",
                          Channel->DeviceID, Status);
             return;
         }
-
-        Channel->WriteOneFrameEnd = hold_rd;
-
         DEBUG_PRINTF("Channel %d: Frame write complete. New WrIndex=%d, RdIndex=%d\r\n",
                      Channel->DeviceID, Channel->WrIndex, Channel->RdIndex);
+#endif
     }
 }
 
+/*****************************************************************************/
 /*
- * WriteErrorCallBack —— S2MM 写通道「错误」中断回调。
- * @param CallbackRef  指向 VdmaChannel。
- * @param Mask         中断掩码；若含 XAXIVDMA_IXR_ERROR_MASK 则累计 WriteError 并尝试恢复 parking。
- */
+ * Call back function for write error
+ *
+ * This callback handles error interrupts for the write channel.
+ *
+ * @param	CallbackRef is the reference pointer to the channel (VdmaChannel)
+ * @param	Mask is the interrupt mask passed from the driver
+ *
+ * @return	None
+ *
+ ******************************************************************************/
 static void WriteErrorCallBack(void *CallbackRef, u32 Mask)
 {
     if (CallbackRef == NULL)
     {
+#if (DEBUG_PRINT == 1U)
         DEBUG_PRINTF("WriteErrorCallBack: CallbackRef is NULL\r\n");
+#endif
         return;
     }
 
@@ -100,110 +245,20 @@ static void WriteErrorCallBack(void *CallbackRef, u32 Mask)
     if (Mask & XAXIVDMA_IXR_ERROR_MASK)
     {
         Channel->WriteError++;
-
+        int Status = XAxiVdma_StartParking(&Channel->Vdma, Channel->WrIndex, XAXIVDMA_WRITE);
+#if (DEBUG_PRINT == 1U)
         DEBUG_PRINTF("Channel %d: Write error occurred! Error count=%d\r\n",
                      Channel->DeviceID, Channel->WriteError);
-
-        int Status = XAxiVdma_StartParking(&Channel->Vdma, Channel->WrIndex, XAXIVDMA_WRITE);
         if (Status != XST_SUCCESS)
         {
             DEBUG_PRINTF("WriteErrorCallBack Channel %d: Failed to start parking. Status=%d\r\n",
                          Channel->DeviceID, Status);
             return;
         }
-    }
-}
-
-/*
- * MultiVdmaInit —— 初始化多路 UDP/TCP 视频用的 VdmaChannels[]（驱动 API 路径，非寄存器 poke）。
- * @param VdmaChannels  通道数组首指针（与 ETH_VIDEO_NUM 一致）。
- * @param NumChannels   通道个数。
- * @return XST_SUCCESS 全部成功；否则在首处失败点返回 XST_FAILURE。
- */
-int MultiVdmaInit(VdmaChannel *VdmaChannels, int NumChannels)
-{
-    int Status;
-	INTC *IntcInstPtr = &InterruptController;
-    for (int i = 0; i < NumChannels; i++)
-    {
-        XAxiVdma_Config *Config;
-
-        Config = XAxiVdma_LookupConfig(VdmaChannels[i].DeviceID);
-        if (Config == NULL)
-        {
-            xil_printf("VDMA %d: LookupConfig failed\r\n", i);
-            return XST_FAILURE;
-        }
-
-        Status = XAxiVdma_CfgInitialize(&VdmaChannels[i].Vdma, Config, Config->BaseAddress);
-        if (Status != XST_SUCCESS)
-        {
-            xil_printf("VDMA %d: CfgInitialize failed\r\n", i);
-            return XST_FAILURE;
-        }
-
-		vdma_write_stop(&VdmaChannels[i].Vdma);
-		XAxiVdma_IntrDisable(&VdmaChannels[i].Vdma, XAXIVDMA_IXR_ALL_MASK, XAXIVDMA_WRITE);
-
-		vdma_write_init(VdmaChannels[i].DeviceID, &VdmaChannels[i].Vdma, VdmaChannels[i].Width * 3, VdmaChannels[i].Height, VdmaChannels[i].Stride * 3,
-						VdmaChannels[i].FrameBuffers[0], VdmaChannels[i].FrameBuffers[1], VdmaChannels[i].FrameBuffers[2]);
-
-		XAxiVdma_SetCallBack(&VdmaChannels[i].Vdma, XAXIVDMA_HANDLER_GENERAL,WriteCallBack, (void *)&VdmaChannels[i], XAXIVDMA_WRITE);
-		XAxiVdma_SetCallBack(&VdmaChannels[i].Vdma, XAXIVDMA_HANDLER_ERROR,WriteErrorCallBack, (void *)&VdmaChannels[i], XAXIVDMA_WRITE);
-
-
-		Status = INTC_CONNECT(IntcInstPtr, VdmaChannels[i].S2MM_INTR_ID,
-		         (XInterruptHandler)XAxiVdma_WriteIntrHandler, &VdmaChannels[i].Vdma);
-		if (Status != XST_SUCCESS)
-		{
-			xil_printf("Failed write channel connect intc %d\r\n", Status);
-			return XST_FAILURE;
-		}
-
-		INTC_CONNECT_ENABLE(IntcInstPtr, VdmaChannels[i].S2MM_INTR_ID);
-
-		XAxiVdma_IntrEnable(&VdmaChannels[i].Vdma, XAXIVDMA_IXR_ALL_MASK, XAXIVDMA_WRITE);
-
-        //init channel
-        VdmaChannels[i].WrIndex = 0;
-        VdmaChannels[i].RdIndex = 0;
-#if defined (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES)
-    	for (u8 ch = 0; ch < Err_Buffers_CNT; ch++)
-    	{
-    		VdmaChannels[i].Frame_Err_Buffers[ch] = FRAME_ERR_BUFFER - (FRAME_BUFFER_SIZE0*ch);
-    		VdmaChannels[i].send_err_start[ch] = 0;
-    	}
 #endif
-        VdmaChannels[i].WriteError = 0;
-        VdmaChannels[i].WriteOneFrameEnd = -1;
-        VdmaChannels[i].FrameLength = VdmaChannels[i].Width * VdmaChannels[i].Height * 3;
-        VdmaChannels[i].pkg_cnt = 1;
-        VdmaChannels[i].udp_send_times = (VdmaChannels[i].FrameLength/VdmaChannels[i].UDP_IMG_PACKEG_SIZE);
-		vdma_write_start(&VdmaChannels[i].Vdma);
-
-        xil_printf("VDMA %d: Initialized successfully\r\n", i);
     }
-
-    return XST_SUCCESS;
 }
 
-/*
- * vdma_udp_init —— 对外入口：调用 MultiVdmaInit 完成 LWIP 视频相关 VDMA 写通道初始化。
- * @return 与 MultiVdmaInit 相同。
- */
-int vdma_udp_init(void)
-{
-	// 初始化VDMA通道
-    int Status = MultiVdmaInit(VdmaChannels, ETH_VIDEO_NUM);
-    if (Status != XST_SUCCESS)
-    {
-        xil_printf("VDMA Initialization failed\r\n");
-        return XST_FAILURE;
-    }
-
-    xil_printf("VDMA Channels initialized and ready.\r\n");
-    return Status;
-}
 
 /*---------------------------------------------------------------------------
  * LWIP 上传用 VDMA（S2MM）：按「当前视频通道」的实际分辨率配置，避免固定 1080p
@@ -220,8 +275,17 @@ static u32 s_lwip_ch_w[CHANNEL_NUM];
 static u32 s_lwip_ch_h[CHANNEL_NUM];
 static u8 s_pending_lwip_ch; /* 待切换的视频通道 1..CHANNEL_NUM，0 表示无 */
 
-/* 读 passthrough 监视器：mon+0 为水平 beat、mon+4 为垂直行；RGB888 连续总线固定按 2 像素/beat 换算宽度。 */
-int vdma_passthrough_read_rgb_dims(u32 mon_base, u32 *out_w, u32 *out_h)
+#if defined (XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES)
+u32 vdma_passthrough_mon_base_lvds(u8 lvds_idx_based)
+{
+	if (lvds_idx_based >= (u8)XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES)
+	{
+		return 0U;
+	}
+	return (u32)XAxisPassthroughMonitor_ConfigTable[lvds_idx_based].S_axi_lite_BaseAddr;
+}
+
+int vdma_passthrough_read_mon(u32 mon_base, u32 *out_w, u32 *out_h, u32 *out_fps)
 {
 	u32 w1;
 	u32 h1;
@@ -236,25 +300,29 @@ int vdma_passthrough_read_rgb_dims(u32 mon_base, u32 *out_w, u32 *out_h)
 	{
 		return 0;
 	}
-
 	*out_w = w1;
 	*out_h = h1;
+	if (out_fps != NULL)
+	{
+		*out_fps = Xil_In32(mon_base + 8U);
+	}
 	return 1;
 }
+#endif
 
 /* 在 display_fresh / retune 等路径检测到分辨率后写入，供 LWIP 读 monitor 失败时回退 */
-void vdma_lwip_note_channel_resolution(u8 lvds_idx_0based, u32 w, u32 h)
+void vdma_lwip_note_channel_resolution(u8 lvds_idx_based, u32 w, u32 h)
 {
-	if (lvds_idx_0based >= CHANNEL_NUM || w < 10U || h < 10U)
+	if (lvds_idx_based >= CHANNEL_NUM || w < 10U || h < 10U)
 	{
 		return;
 	}
-	s_lwip_ch_w[lvds_idx_0based] = w;
-	s_lwip_ch_h[lvds_idx_0based] = h;
+	s_lwip_ch_w[lvds_idx_based] = w;
+	s_lwip_ch_h[lvds_idx_based] = h;
 }
 
 /* 读指定 LVDS 通道宽高：monitor 实时值 > s_lwip_ch_* 缓存 > 默认 1920x1080 */
-int vdma_lwip_get_channel_dims(u8 lvds_idx_0based, u32 *out_w, u32 *out_h)
+int vdma_lwip_get_channel_dims(u8 lvds_idx_based, u32 *out_w, u32 *out_h)
 {
 	u32 w = 1920U;
 	u32 h = 1080U;
@@ -262,24 +330,24 @@ int vdma_lwip_get_channel_dims(u8 lvds_idx_0based, u32 *out_w, u32 *out_h)
 	u32 rw;
 	u32 rh;
 
-	if (lvds_idx_0based >= CHANNEL_NUM || out_w == NULL || out_h == NULL)
+	if (lvds_idx_based >= CHANNEL_NUM || out_w == NULL || out_h == NULL)
 	{
 		return 0;
 	}
 #if defined (XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES)
-	mon = vdma_passthrough_mon_base_lvds(lvds_idx_0based);
+	mon = vdma_passthrough_mon_base_lvds(lvds_idx_based);
 #else
 	mon = 0U;
 #endif
-	if (mon != 0U && vdma_passthrough_read_rgb_dims(mon, &rw, &rh) != 0)
+	if (mon != 0U && vdma_passthrough_read_mon(mon, &rw, &rh, NULL) != 0)
 	{
 		w = rw;
 		h = rh;
 	}
-	else if (s_lwip_ch_w[lvds_idx_0based] > 0U && s_lwip_ch_h[lvds_idx_0based] > 0U)
+	else if (s_lwip_ch_w[lvds_idx_based] > 0U && s_lwip_ch_h[lvds_idx_based] > 0U)
 	{
-		w = s_lwip_ch_w[lvds_idx_0based];
-		h = s_lwip_ch_h[lvds_idx_0based];
+		w = s_lwip_ch_w[lvds_idx_based];
+		h = s_lwip_ch_h[lvds_idx_based];
 	}
 	*out_w = w;
 	*out_h = h;
@@ -289,7 +357,7 @@ int vdma_lwip_get_channel_dims(u8 lvds_idx_0based, u32 *out_w, u32 *out_h)
 /* 按 eth_video_ch 重配 LWIP S2MM 的宽高与 stride，并刷新 FrameLength / udp_send_times；会停 DMA 再启 */
 void vdma_lwip_apply_channel_geometry(u8 eth_video_ch)
 {
-	VdmaChannel *vc = &VdmaChannels[0];
+	VdmaChannel *vc = &VC_inst;
 	u8 idx;
 	u32 w;
 	u32 h;
@@ -301,25 +369,19 @@ void vdma_lwip_apply_channel_geometry(u8 eth_video_ch)
 	idx = (u8)(eth_video_ch - 1U);
 	(void)vdma_lwip_get_channel_dims(idx, &w, &h);
 
+	if (vc->Width == w && vc->Height == h && vc->FrameLength == (w * h * 3U))
+	{
+		return;
+	}
+
 	vc->Width = w;
 	vc->Height = h;
 	vc->Stride = w;
 
-	vdma_write_stop(&vc->Vdma);
-	XAxiVdma_IntrDisable(&vc->Vdma, XAXIVDMA_IXR_ALL_MASK, XAXIVDMA_WRITE);
-	vdma_write_init(vc->DeviceID, &vc->Vdma, (short)(vc->Width * 3U), (short)vc->Height,
-			(short)(vc->Stride * 3U), vc->FrameBuffers[0], vc->FrameBuffers[1],
-			vc->FrameBuffers[2]);
-	XAxiVdma_IntrEnable(&vc->Vdma, XAXIVDMA_IXR_ALL_MASK, XAXIVDMA_WRITE);
+	vdma_lwip_program_s2mm(vc, w, h);
 	vc->WrIndex = 0;
 	vc->RdIndex = 0;
 	vc->WriteOneFrameEnd = 0;
-	vc->FrameLength = vc->Width * vc->Height * 3U;
-	vc->pkg_cnt = 1;
-	vc->udp_send_times = (u16)(vc->FrameLength / (u32)vc->UDP_IMG_PACKEG_SIZE);
-	(void)vdma_write_start(&vc->Vdma);
-	xil_printf("LWIP VDMA S2MM ch%u: %ux%u (stride px %u)\r\n", (unsigned)eth_video_ch,
-			(unsigned)w, (unsigned)h, (unsigned)vc->Stride);
 }
 
 /* 请求切到指定视频通道；仅写入 pending，真正切换在 try 里做 */
@@ -342,7 +404,7 @@ void vdma_lwip_try_pending_channel_switch(void)
 	{
 		return;
 	}
-	v = &VdmaChannels[0];
+	v = &VC_inst;
 	/* 整图发送中：等 handle_channel_transfer 发完再切 */
 	if (v->send_pic_start != 0U)
 	{
@@ -365,15 +427,11 @@ void vdma_lwip_try_pending_channel_switch(void)
 	vdma_lwip_apply_channel_geometry(p);
 }
 
-void vdma_lwip_arm_pic_capture(int eth_video_ch_idx)
+void vdma_lwip_arm_pic_capture(void)
 {
 	VdmaChannel *vc;
 
-	if (eth_video_ch_idx < 0 || eth_video_ch_idx >= ETH_VIDEO_NUM)
-	{
-		return;
-	}
-	vc = &VdmaChannels[eth_video_ch_idx];
+	vc = &VC_inst;
 	vc->VIDEO_FLAG = SEND_PIC;
 	vc->send_pic_start = 1U;
 	vc->send_video_start = 0U;
@@ -383,15 +441,11 @@ void vdma_lwip_arm_pic_capture(int eth_video_ch_idx)
 	vc->WriteOneFrameEnd = -1;
 }
 
-void vdma_lwip_arm_video_stream(int eth_video_ch_idx)
+void vdma_lwip_arm_video_stream(void)
 {
 	VdmaChannel *vc;
 
-	if (eth_video_ch_idx < 0 || eth_video_ch_idx >= ETH_VIDEO_NUM)
-	{
-		return;
-	}
-	vc = &VdmaChannels[eth_video_ch_idx];
+	vc = &VC_inst;
 	vc->VIDEO_FLAG = SEND_VIDEO;
 	vc->send_pic_start = 0U;
 	vc->send_video_start = 1U;
@@ -400,15 +454,11 @@ void vdma_lwip_arm_video_stream(int eth_video_ch_idx)
 	vc->WriteOneFrameEnd = -1;
 }
 
-void vdma_lwip_stop_media(int eth_video_ch_idx)
+void vdma_lwip_stop_media(void)
 {
 	VdmaChannel *vc;
 
-	if (eth_video_ch_idx < 0 || eth_video_ch_idx >= ETH_VIDEO_NUM)
-	{
-		return;
-	}
-	vc = &VdmaChannels[eth_video_ch_idx];
+	vc = &VC_inst;
 	vc->send_pic_start = 0U;
 	vc->send_video_start = 0U;
 	vc->video_sending = 0U;
@@ -416,146 +466,8 @@ void vdma_lwip_stop_media(int eth_video_ch_idx)
 	vc->WriteOneFrameEnd = -1;
 }
 
-#define MAX_ITERATIONS 3 // 每个通道运行的最大次数
-volatile u32 iterationCounts[ETH_VIDEO_NUM] = {0}; // 每个通道的计数器
-/*
- * MonitorAndExitAfterIterations —— 轮询各通道 WriteOneFrameEnd，用于调试/演示「写满若干帧后退出」。
- * 依赖 iterationCounts[] 与 MAX_ITERATIONS；与正式产品路径无强绑定，可按需调用或删除。
- */
-void MonitorAndExitAfterIterations(void)
-{
-
-	for (int i = 0; i < ETH_VIDEO_NUM; i++)
-	{
-		if (iterationCounts[i] < MAX_ITERATIONS)
-		{
-			if(VdmaChannels[i].WriteOneFrameEnd >= 0)
-			{
-				// 打印当前通道状态
-				DEBUG_PRINTF("Channel %d: WriteEnd=%d, WriteError=%d, WrIndex=%d, RdIndex=%d\r\n",
-						VdmaChannels[i].DeviceID, VdmaChannels[i].WriteOneFrameEnd, VdmaChannels[i].WriteError,
-						VdmaChannels[i].WrIndex, VdmaChannels[i].RdIndex);
-
-				// 清除完成标志
-				VdmaChannels[i].WriteOneFrameEnd = -1;
-
-				// 增加计数器
-				iterationCounts[i]++;
-
-				// 检查是否达到最大运行次数
-				if (iterationCounts[i] >= MAX_ITERATIONS)
-				{
-					DEBUG_PRINTF("Channel %d: Reached max iterations (%d), exiting.\r\n",
-							VdmaChannels[i].DeviceID, MAX_ITERATIONS);
-					return; // 全部通道完成后退出
-				}
-			}
-		}
-	}
-}
 #endif //#if defined (UDP_VIDEO) || defined (TCP_VIDEO)
 
-
-/*
- * vdma_version —— 读取指定 XAxiVdma 实例的 IP 版本寄存器（封装 XAxiVdma_GetVersion）。
- */
-u32 vdma_version(XAxiVdma *Vdma)
-{
-	return XAxiVdma_GetVersion(Vdma);
-}
-
-/*
- * vdma_read_start —— 启动 MM2S（读）DMA 传输（XAxiVdma_DmaStart READ）。
- */
-int vdma_read_start(XAxiVdma *Vdma)
-{
-	int Status;
-
-	// MM2S Startup
-	Status = XAxiVdma_DmaStart(Vdma, XAXIVDMA_READ);
-	if (Status != XST_SUCCESS)
-	{
-	   xil_printf("Start read transfer failed %d\n\r", Status);
-	   return XST_FAILURE;
-	}
-
-	return XST_SUCCESS;
-}
-
-/*
- * vdma_read_stop —— 停止 MM2S 读通道。
- */
-int vdma_read_stop(XAxiVdma *Vdma)
-{
-	XAxiVdma_DmaStop(Vdma, XAXIVDMA_READ);
-	return XST_SUCCESS;
-}
-
-/*
- * vdma_read_init —— 临时栈上 XAxiVdma：Lookup/CfgInit、配置读通道、设单帧地址并启动读。
- * 参数为 Xilinx 驱动语义下的 Hori/Vert/Stride（字节 stride 等），与下方寄存器 poke 路径不同。
- */
-int vdma_read_init(short DeviceID,short HoriSizeInput,short VertSizeInput,short Stride,unsigned int FrameStoreStartAddr)
-{
-	XAxiVdma Vdma;
-	XAxiVdma_Config *Config;
-	XAxiVdma_DmaSetup ReadCfg;
-	int Status;
-
-
-	Config = XAxiVdma_LookupConfig(DeviceID);
-	if (NULL == Config) {
-		xil_printf("XAxiVdma_LookupConfig failure\r\n");
-		return XST_FAILURE;
-	}
-
-	Status = XAxiVdma_CfgInitialize(&Vdma, Config, Config->BaseAddress);
-	if (Status != XST_SUCCESS) {
-		xil_printf("XAxiVdma_CfgInitialize failure\r\n");
-		return XST_FAILURE;
-	}
-
-	
-
-	ReadCfg.EnableCircularBuf = 1;
-	ReadCfg.EnableFrameCounter = 0;
-	ReadCfg.FixedFrameStoreAddr = 0;
-
-	ReadCfg.EnableSync = 1;
-	ReadCfg.PointNum = 1;
-
-	ReadCfg.FrameDelay = 0;
-
-	ReadCfg.VertSizeInput = VertSizeInput;
-	ReadCfg.HoriSizeInput = HoriSizeInput;
-	ReadCfg.Stride = Stride;
-
-	Status = XAxiVdma_DmaConfig(&Vdma, XAXIVDMA_READ, &ReadCfg);
-	if (Status != XST_SUCCESS) {
-			xdbg_printf(XDBG_DEBUG_ERROR,
-				"Read channel config failed %d\r\n", Status);
-
-			return XST_FAILURE;
-	}
-
-
-	ReadCfg.FrameStoreStartAddr[0] = FrameStoreStartAddr;
-
-	Status = XAxiVdma_DmaSetBufferAddr(&Vdma, XAXIVDMA_READ, ReadCfg.FrameStoreStartAddr);
-	if (Status != XST_SUCCESS) {
-			xdbg_printf(XDBG_DEBUG_ERROR,"Read channel set buffer address failed %d\r\n", Status);
-			return XST_FAILURE;
-	}
-
-
-	Status = vdma_read_start(&Vdma);
-	if (Status != XST_SUCCESS) {
-		   xil_printf("error starting VDMA..!");
-		   return Status;
-	}
-	return XST_SUCCESS;
-
-}
 
 /*
  * vdma_write_start —— 启动 S2MM（写）DMA 传输。
@@ -652,18 +564,10 @@ int vdma_write_init(short DeviceID,XAxiVdma *Vdma,short HoriSizeInput,short Vert
 /*===========================================================================
  * 本文件「直接写寄存器」配置 VDMA 的入口与数据流
  *---------------------------------------------------------------------------
- *  1) 对外入口：vdma_config_0() … vdma_config_7()（名字里的数字 = 第几个 AXI VDMA IP，
- *     与 BSP 里 AXI VDMA 实例 0、1… 顺序一致）。
- *  2) 每个入口只做一件事：调用 vdma_config_instance() → vdma_program_triple_buffer_geom()，
- *     把「基址 + 三帧缓冲指针 + VdmaTripleGeom」传进去。**真正写寄存器的步骤全部集中在该函数内**。
- *  3) 常用名词：
- *     - S2MM：PS/PL 把图像写入 DDR（写通道）；MM2S：从 DDR 读出到显示链路（读通道）。
- *  4) 帧首址寄存器写法（与最初 vdma_config 里 #if 1 / #else 相同，全工程一般一致）：
- *     在下方改宏 VDMA_POKE_FB_ADDR_32BIT：1=32 位三连地址；0=64 位 LSW+MSW（PG020）。
- *  5) 编译期默认几何：改表 kVdmaRegGeometry[实例][时序列]，或改宏 VDMA_ROW1080 等；首次 vdma_config_instance
- *     会装入 s_vdma_runtime_geom。运行期改分辨率：vdma_get_triple_geom → 改字段 → vdma_set_triple_geom_apply；
- *     恢复编译表：vdma_reload_triple_geom_defaults。
- *  6) 想改清屏 memset 大小：见 vdma_clear_fb_triple（仍按 R1080 / R4K 等编译宏定尺寸，与运行时几何无关）。
+ *  1) 对外入口：vdma_config() / vdma_config_instance(id) / vdma_lvds_path_op()。
+ *  2) 写寄存器集中在 vdma_program_triple_buffer_geom()。
+ *  3) S2MM=写 DDR，MM2S=读 DDR。运行期几何：vdma_get/set_triple_geom_apply。
+ *  4) 清屏见 vdma_clear_fb_triple / clear_vdma_instance。
  *===========================================================================*/
 /*
  * vivado中配置32位宽地址vdma
@@ -694,41 +598,41 @@ static u8 vdma_timing_slot(void)
 static const VdmaTripleGeom kVdmaRegGeometry[XPAR_XAXIVDMA_NUM_INSTANCES][3] =
 {
 #if (XPAR_XAXIVDMA_NUM_INSTANCES >= 1U)
-	{ VDMA_ROW1080, VDMA_ROW4K, VDMA_ROW_MAIN720 },
+	{ VDMA_ROW_1080, VDMA_ROW_4K, VDMA_ROW_8K },
 #endif
 #if (XPAR_XAXIVDMA_NUM_INSTANCES >= 2U)
-	{ VDMA_ROW1080, VDMA_ROW4K, VDMA_ROW_MAIN720 },
+	{ VDMA_ROW_1080, VDMA_ROW_4K, VDMA_ROW_8K },
 #endif
 #if (XPAR_XAXIVDMA_NUM_INSTANCES >= 3U)
-	{ VDMA_ROW1080, VDMA_ROW4K, VDMA_ROW_MAIN720 },
+	{ VDMA_ROW_1080, VDMA_ROW_4K, VDMA_ROW_8K },
 #endif
 #if (XPAR_XAXIVDMA_NUM_INSTANCES >= 4U)
-	{ VDMA_ROW1080, VDMA_ROW4K, VDMA_ROW_MAIN720 },
+	{ VDMA_ROW_1080, VDMA_ROW_4K, VDMA_ROW_8K },
 #endif
 #if (XPAR_XAXIVDMA_NUM_INSTANCES >= 5U)
-	{ VDMA_ROW1080, VDMA_ROW4K, VDMA_ROW_MAIN720 },
+	{ VDMA_ROW_1080, VDMA_ROW_4K, VDMA_ROW_8K },
 #endif
 #if (XPAR_XAXIVDMA_NUM_INSTANCES >= 6U)
-	{ VDMA_ROW1080, VDMA_ROW4K, VDMA_ROW_MAIN720 },
+	{ VDMA_ROW_1080, VDMA_ROW_4K, VDMA_ROW_8K },
 #endif
 #if (XPAR_XAXIVDMA_NUM_INSTANCES >= 7U)
-	{ VDMA_ROW1080, VDMA_ROW4K, VDMA_ROW_MAIN720 },
+	{ VDMA_ROW_1080, VDMA_ROW_4K, VDMA_ROW_8K },
 #endif
 #if (XPAR_XAXIVDMA_NUM_INSTANCES >= 8U)
-	{ VDMA_ROW1080, VDMA_ROW4K, VDMA_ROW_MAIN720 },
+	{ VDMA_ROW_1080, VDMA_ROW_4K, VDMA_ROW_8K },
 #endif
 #if (XPAR_XAXIVDMA_NUM_INSTANCES >= 9U)
-	{ VDMA_ROW1080, VDMA_ROW4K, VDMA_ROW_MAIN720 },
+	{ VDMA_ROW_1080, VDMA_ROW_4K, VDMA_ROW_8K },
 #endif
 #if (XPAR_XAXIVDMA_NUM_INSTANCES >= 10U)
-	{ VDMA_ROW1080, VDMA_ROW4K, VDMA_ROW_MAIN720 },
+	{ VDMA_ROW_1080, VDMA_ROW_4K, VDMA_ROW_8K },
 #endif
 };
 
 /*
  * 寄存器路径下每路 VDMA 的「当前几何」镜像：
  * - 首次 vdma_config_instance(id) 从 kVdmaRegGeometry[id][vdma_timing_slot()] 拷贝进来并置 inited；
- * - vdma_set_triple_geom_apply / vdma_reload_triple_geom_defaults 会更新本镜像并写硬件；
+ * - vdma_set_triple_geom_apply 会更新本镜像并写硬件；
  * - vdma_get_triple_geom：已 inited 则读镜像，否则读编译表（与即将首次装入的值一致）。
  */
 static VdmaTripleGeom s_vdma_runtime_geom[XPAR_XAXIVDMA_NUM_INSTANCES];
@@ -857,18 +761,6 @@ void vdma_config_instance(u8 id)
 					table->id);
 }
 
-/* UART 调试：打印一路 VdmaTripleGeom（与 vdma.h 中字段含义一致） */
-void uart_print_vdma_triple_geom(const char *stage, u8 id, const VdmaTripleGeom *g)
-{
-	xil_printf("  [%s] VDMA%u: bpp=%u off_s2mm=0x%08x off_mm2s=0x%08x\r\n",
-		   stage, (unsigned)id, g->bytePerPixels,
-		   (unsigned)g->off_s2mm, (unsigned)g->off_mm2s);
-	xil_printf("    S2MM stride(px)=%u width=%u height=%u\r\n",
-		   (unsigned)g->s_stride, (unsigned)g->s_width, (unsigned)g->s_height);
-	xil_printf("    MM2S stride(px)=%u width=%u height=%u\r\n",
-		   (unsigned)g->m_stride, (unsigned)g->m_width, (unsigned)g->m_height);
-}
-
 /*
  * vdma_get_triple_geom —— 读出指定实例当前使用的 VdmaTripleGeom，便于在本地修改后再写回。
  * @param id   与 vdma_init_table / vdma_config_instance 一致，0 .. NUM_INSTANCES-1。
@@ -923,37 +815,13 @@ int vdma_set_triple_geom_apply(u8 id, const VdmaTripleGeom *geom)
 	return XST_SUCCESS;
 }
 
-/*
- * vdma_reload_triple_geom_defaults —— 丢弃该路运行时对几何的修改，从 kVdmaRegGeometry[id][vdma_timing_slot()]
- * 重新拷贝并写寄存器，效果等价于「恢复编译期表里当前时序槽那一列」后再配置。
- * @param id  实例下标。
- * @return    XST_SUCCESS / XST_FAILURE（id 越界）。
- */
-int vdma_reload_triple_geom_defaults(u8 id)
-{
-	const Vdma_Init_Table *table;
-	u8 tm;
-
-	if (id >= XPAR_XAXIVDMA_NUM_INSTANCES)
-	{
-		return XST_FAILURE;
-	}
-	table = &vdma_init_table[id];
-	tm = vdma_timing_slot();
-	s_vdma_runtime_geom[id] = kVdmaRegGeometry[id][tm];
-	s_vdma_runtime_geom_inited[id] = 1U;
-	vdma_program_triple_buffer_geom(table->baseAddr,
-					table->frameBuffers[0], table->frameBuffers[1],
-					table->frameBuffers[2], &s_vdma_runtime_geom[id],
-					table->id);
-	return XST_SUCCESS;
-}
-
 int vdma_apply_detected_rgb_geom(u8 first_vdma_id, u8 num_vdma, u32 mon_base)
 {
-	u32 w1, h1;
-	u32 w, h;
+	u32 w;
+	u32 h;
 	u32 fps_cnt;
+	u32 w1;
+	u32 h1;
 	VdmaTripleGeom g;
 
 	if (mon_base == 0U || num_vdma == 0U)
@@ -961,22 +829,20 @@ int vdma_apply_detected_rgb_geom(u8 first_vdma_id, u8 num_vdma, u32 mon_base)
 		return 0;
 	}
 
-	usleep(80 * 1000U);
-	w1 = Xil_In32(mon_base);
-	h1 = Xil_In32(mon_base + 4U);
-	if ((w1 < 10U) || (h1 < 10U))
+	usleep(100*1000);
+	if (vdma_passthrough_read_mon(mon_base, &w, &h, &fps_cnt) == 0)
 	{
 		return 0;
 	}
-	fps_cnt = Xil_In32(mon_base + 8U);
 	if (fps_cnt < 10U)
 	{
 		xil_printf(
 			"WARN passthrough mon@0x%08x: fps=%u < 10 (abnormal), geom raw %ux%u\r\n",
-			(unsigned)mon_base, (unsigned)fps_cnt, (unsigned)w1, (unsigned)h1);
+			(unsigned)mon_base, (unsigned)fps_cnt, (unsigned)w, (unsigned)h);
+		return 0;
 	}
-	w = w1;
-	h = h1;
+	w1 = w;
+	h1 = h;
 
 #if (defined (UDP_VIDEO) || defined (TCP_VIDEO)) && defined (XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES)
 	for (u8 lvds = 0U; lvds < CHANNEL_NUM; lvds++)
@@ -1049,42 +915,30 @@ void clear_vdma_instance(u8 id)
 			     table->frameBuffers[2], table->id);
 }
 
-#if (XPAR_XAXIVDMA_NUM_INSTANCES >= 1U)
-void vdma_config_0(void) { vdma_config_instance(0U); }
-void clear_vdma_0(void) { clear_vdma_instance(0U); }
-#endif
-#if (XPAR_XAXIVDMA_NUM_INSTANCES >= 2U)
-void vdma_config_1(void) { vdma_config_instance(1U); }
-void clear_vdma_1(void) { clear_vdma_instance(1U); }
-#endif
-#if (XPAR_XAXIVDMA_NUM_INSTANCES >= 3U)
-void vdma_config_2(void) { vdma_config_instance(2U); }
-void clear_vdma_2(void) { clear_vdma_instance(2U); }
-#endif
-#if (XPAR_XAXIVDMA_NUM_INSTANCES >= 4U)
-void vdma_config_3(void) { vdma_config_instance(3U); }
-void clear_vdma_3(void) { clear_vdma_instance(3U); }
-#endif
-#if (XPAR_XAXIVDMA_NUM_INSTANCES >= 5U)
-void vdma_config_4(void) { vdma_config_instance(4U); }
-void clear_vdma_4(void) { clear_vdma_instance(4U); }
-#endif
-#if (XPAR_XAXIVDMA_NUM_INSTANCES >= 6U)
-void vdma_config_5(void) { vdma_config_instance(5U); }
-void clear_vdma_5(void) { clear_vdma_instance(5U); }
-#endif
-#if (XPAR_XAXIVDMA_NUM_INSTANCES >= 7U)
-void vdma_config_6(void) { vdma_config_instance(6U); }
-void clear_vdma_6(void) { clear_vdma_instance(6U); }
-#endif
-#if (XPAR_XAXIVDMA_NUM_INSTANCES >= 8U)
-void vdma_config_7(void) { vdma_config_instance(7U); }
-void clear_vdma_7(void) { clear_vdma_instance(7U); }
-#endif
-#if (XPAR_XAXIVDMA_NUM_INSTANCES >= 9U)
-void vdma_config_8(void) { vdma_config_instance(8U); }
-void clear_vdma_8(void) { clear_vdma_instance(8U); }
-#endif
+/* lvds: 0-based；with_config=1 清屏+默认几何，0 仅清屏。GPIO 掩码与 cable-up/down 一致 */
+void vdma_lvds_path_op(u8 lvds, u8 with_config)
+{
+	u8 v0;
+
+	if (lvds >= CHANNEL_NUM)
+	{
+		return;
+	}
+	v0 = (u8)((2U * lvds) + 1U);
+	if ((u8)XPAR_XAXIVDMA_NUM_INSTANCES < (u8)(v0 + 2U))
+	{
+		return;
+	}
+	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, with_config ? (8U << lvds) : (9U << lvds));
+	clear_vdma_instance(v0);
+	clear_vdma_instance((u8)(v0 + 1U));
+	if (with_config != 0U)
+	{
+		vdma_config_instance(v0);
+		vdma_config_instance((u8)(v0 + 1U));
+	}
+	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0U);
+}
 
 /*
  * vdma_config —— 按表依次配置。

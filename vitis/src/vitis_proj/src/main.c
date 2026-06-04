@@ -177,6 +177,10 @@ int main()
 
     	display_fresh();
 
+#if defined (BSP_HAS_VDMA) && defined (XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES) \
+	&& defined (XPAR_XAXIS_SWITCH_NUM_INSTANCES)
+    	switch_run();
+#endif
     }
 
 	// never reached

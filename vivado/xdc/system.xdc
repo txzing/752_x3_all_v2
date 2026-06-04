@@ -72,7 +72,7 @@ set_property -dict {PACKAGE_PIN AB14 IOSTANDARD LVCMOS33} [get_ports {gpio_tri_i
 ################################################################################################
 create_clock -period 20.000 [get_ports ch0_clkin0_p]
 create_clock -period 20.000 [get_ports ch0_clkin1_p]
-
+#B65
 set_property ODT RTT_48 [get_ports ch0_clkin0_p]
 set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports ch0_clkin0_p]
 set_property PACKAGE_PIN M6 [get_ports ch0_clkin0_p]
@@ -141,7 +141,7 @@ set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports {ch0_datain1_n[3]}]
 
 create_clock -period 20.000 [get_ports ch1_clkin0_p]
 create_clock -period 20.000 [get_ports ch1_clkin1_p]
-
+#B66
 set_property ODT RTT_48 [get_ports ch1_clkin0_p]
 set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports ch1_clkin0_p]
 set_property PACKAGE_PIN C3 [get_ports ch1_clkin0_p]
@@ -209,7 +209,7 @@ set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports {ch1_datain1_n[3]}]
 ################################################################################################
 create_clock -period 12.000 [get_ports ch2_clkin0_p]
 create_clock -period 12.000 [get_ports ch2_clkin1_p]
-
+#B65
 set_property ODT RTT_48 [get_ports ch2_clkin0_p]
 set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports ch2_clkin0_p]
 set_property PACKAGE_PIN L3 [get_ports ch2_clkin0_p]
@@ -356,7 +356,7 @@ set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports {ch2_datain1_n[3]}]
 #set_false_path -from [get_clocks -of_objects [get_pins system_i/lvds4x2_1to7_3/inst/rx_inst/rx_clkgen/rx_plle2_adv_inst/CLKFBOUT]] -to [get_clocks -of_objects [get_pins system_i/lvds4x2_1to7_0/inst/rx_inst/rx_clkgen/rx_plle2_adv_inst/CLKFBOUT]]
 #set_false_path -from [get_clocks -of_objects [get_pins system_i/lvds4x2_1to7_3/inst/rx_inst/rx_clkgen/rx_plle2_adv_inst/CLKFBOUT]] -to [get_clocks -of_objects [get_pins system_i/lvds4x2_1to7_1/inst/rx_inst/rx_clkgen/rx_plle2_adv_inst/CLKFBOUT]]
 #set_false_path -from [get_clocks -of_objects [get_pins system_i/lvds4x2_1to7_3/inst/rx_inst/rx_clkgen/rx_plle2_adv_inst/CLKFBOUT]] -to [get_clocks -of_objects [get_pins system_i/lvds4x2_1to7_2/inst/rx_inst/rx_clkgen/rx_plle2_adv_inst/CLKFBOUT]]
-
+#0和2同一个bank65,1单独一个bank66
 set_property LOC BITSLICE_CONTROL_X0Y11 [get_cells system_i/lvds4x2_1to7_2/inst/icontrol]
 set_property LOC BITSLICE_CONTROL_X0Y12 [get_cells system_i/lvds4x2_1to7_0/inst/icontrol]
 set_property LOC BITSLICE_CONTROL_X0Y19 [get_cells system_i/lvds4x2_1to7_1/inst/icontrol]

@@ -61,7 +61,7 @@
 
 /*---------------------------------------------------------------------------
  *  对外 API：实例 id 与三帧 FRAME_BUFFER 一一对应（vdma_init_table）。
- *  寄存器顺序见 vdma_program_triple_buffer()；vdma_config_n / clear_vdma_n 为薄封装。
+ *  寄存器顺序见 vdma_program_triple_buffer()；运行期见 vdma_config_instance / clear_vdma_instance。
  *---------------------------------------------------------------------------*/
 
 typedef struct {
@@ -94,9 +94,9 @@ typedef enum {
 	VDMA_TIMING_SLOT_FALLBACK = 2,
 } VdmaTimingSlot;
 
-#define VDMA_ROW1080	{3, 0, 0, 1920U, 1920U, 1080U, 1920U, 1920U, 1080U }
-#define VDMA_ROW4K		{3, 0, 0, 3840U, 3840U, 2160U, 3840U, 3840U, 2160U }
-#define VDMA_ROW_MAIN720	{3, 0, 0, 1920U, 1920U, 720U, 1920U, 1920U, 720U }
+#define VDMA_ROW_1080	{3, 0, 0, 1920U, 1920U, 1080U, 1920U, 1920U, 1080U }
+#define VDMA_ROW_4K		{3, 0, 0, 3840U, 3840U, 2160U, 3840U, 3840U, 2160U }
+#define VDMA_ROW_8K		{3, 0, 0, 7680U, 7680U, 4320U, 7680U, 7680U, 4320U }
 
 static const Vdma_Init_Table vdma_init_table[] = {
 #if (XPAR_XAXIVDMA_NUM_INSTANCES >= 1U)
@@ -138,29 +138,23 @@ static const Vdma_Init_Table vdma_init_table[] = {
 };
 
 
-/* ---------------------------------------------------------------------------
- * 运行时分辨率（寄存器直写路径）：读/写 VdmaTripleGeom 镜像并刷新硬件。
- * - vdma_get_triple_geom：取当前几何（已配置则镜像，否则为编译表默认列）。
- * - vdma_set_triple_geom_apply：写入新几何并立即 vdma_program_triple_buffer_geom。
- * - vdma_reload_triple_geom_defaults：从 kVdmaRegGeometry 当前时序槽恢复并写寄存器。
- * 清屏 clear_vdma_* / vdma_clear_fb_triple 仍只认编译宏 R1080、R4K 等，不随本组 API 变化。
- *--------------------------------------------------------------------------- */
-void uart_print_vdma_triple_geom(const char *stage, u8 id, const VdmaTripleGeom *g);
 int vdma_get_triple_geom(u8 id, VdmaTripleGeom *out);
 int vdma_set_triple_geom_apply(u8 id, const VdmaTripleGeom *geom);
-int vdma_reload_triple_geom_defaults(u8 id);
-
-int vdma_read_init(short DeviceID,short HoriSizeInput,short VertSizeInput,short Stride,unsigned int FrameStoreStartAddr);
 int vdma_write_init(short DeviceID,XAxiVdma *Vdma,short HoriSizeInput,short VertSizeInput,short Stride,unsigned int FrameStoreStartAddr0,
 					unsigned int FrameStoreStartAddr1,unsigned int FrameStoreStartAddr2);
 int vdma_write_start(XAxiVdma *Vdma);
 int vdma_write_stop(XAxiVdma *Vdma);
-u32 vdma_version(XAxiVdma *Vdma);
 void vdma_config(void);
 void clear_display(void);
 int vdma_apply_detected_rgb_geom(u8 first_vdma_id, u8 num_vdma, u32 mon_base);
 void vdma_config_instance(u8 id);
 void clear_vdma_instance(u8 id);
+void vdma_lvds_path_op(u8 lvds, u8 with_config);
+
+#if defined (XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES)
+u32 vdma_passthrough_mon_base_lvds(u8 lvds_idx_based);
+int vdma_passthrough_read_mon(u32 mon_base, u32 *out_w, u32 *out_h, u32 *out_fps);
+#endif
 
 #if (XPAR_XAXIVDMA_NUM_INSTANCES >= 1U)
 extern	XAxiVdma Vdma0;
@@ -172,20 +166,16 @@ extern	XAxiVdma Vdma1;
 
 #if defined (UDP_VIDEO) || defined (TCP_VIDEO)
 int vdma_udp_init(void);
-
-/* LWIP 上传：按通道分辨率与延迟切换（实现见 vdma.c 同文件内注释块） */
-int vdma_passthrough_read_rgb_dims(u32 mon_base, u32 *out_w, u32 *out_h);
-void vdma_lwip_note_channel_resolution(u8 lvds_idx_0based, u32 w, u32 h);
-int vdma_lwip_get_channel_dims(u8 lvds_idx_0based, u32 *out_w, u32 *out_h);
+void MonitorAndExitAfterIterations(void);
+void vdma_lwip_note_channel_resolution(u8 lvds_idx_based, u32 w, u32 h);
+int vdma_lwip_get_channel_dims(u8 lvds_idx_based, u32 *out_w, u32 *out_h);
 void vdma_lwip_apply_channel_geometry(u8 eth_video_ch);
 void vdma_lwip_request_channel_switch(u8 eth_video_ch);
 void vdma_lwip_try_pending_channel_switch(void);
 /* 0x80 抓图：丢弃待发旧帧，等下一帧完整写入后再分包上传 */
-void vdma_lwip_arm_pic_capture(int eth_video_ch_idx);
-void vdma_lwip_arm_video_stream(int eth_video_ch_idx);
-void vdma_lwip_stop_media(int eth_video_ch_idx);
-
-#define ETH_VIDEO_NUM 1
+void vdma_lwip_arm_pic_capture(void);
+void vdma_lwip_arm_video_stream(void);
+void vdma_lwip_stop_media(void);
 
 /*
 易于切换：
@@ -235,8 +225,8 @@ typedef struct {
     u16 udp_send_times;     //一帧发送总包数
 } VdmaChannel;
 
-extern VdmaChannel VdmaChannels[ETH_VIDEO_NUM];
-extern volatile u32 iterationCounts[ETH_VIDEO_NUM]; // 每个通道的计数器
+extern VdmaChannel VC_inst;
+extern volatile u32 iterationCounts; // 每个通道的计数器
 #endif //#if defined (UDP_VIDEO) || defined (TCP_VIDEO)
 
 #endif //#if defined (XPAR_XAXIVDMA_NUM_INSTANCES)

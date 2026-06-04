@@ -294,6 +294,13 @@ int lwip_common_init(struct netif *netif)
 	bsp_printf(TXT_RED "now use TCP_VIDEO\r\n" TXT_RST);
 #endif
 
+#if defined (UDP_VIDEO) || (defined TCP_VIDEO)
+	VC_inst.send_pic_start = 0;
+	VC_inst.video_sending = 0;
+	VC_inst.send_video_start = 0;
+	err_ch = current_ch;
+#endif
+
 	return XST_SUCCESS;
 }
 
@@ -715,42 +722,8 @@ void msg_cmd_0x30(void)
 			}
 			else
 			{
-
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 1U)
-				if (ch == 1U)
-				{
-
-					XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x2);
-					clear_vdma_1();
-					clear_vdma_2();
-					vdma_config_1();
-					vdma_config_2();
-					XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
-				}
-#endif
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 2U)
-				if (ch == 2U)
-				{
-					XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x4);
-					clear_vdma_3();
-					clear_vdma_4();
-					vdma_config_3();
-					vdma_config_4();
-					XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
-				}
-#endif
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 3U)
-				if (ch == 3U)
-				{
-					XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x8);
-					clear_vdma_5();
-					clear_vdma_6();
-					vdma_config_5();
-					vdma_config_6();
-					XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
-				}
-#endif
-				Xil_Out32(base_addr + STATUS, 0x1);
+				pixel_cp_start[ch - 1] = 1U;
+				pixel_cp_start_cnt[ch - 1] = 0U;
 				ack_copy_request();
 			}
 		}
@@ -797,9 +770,11 @@ void msg_cmd_0x30(void)
 			return;
 		}
 
-		col = Xil_In32(base_addr + COL);
-		line = Xil_In32(base_addr + LINE);
-		fps = Xil_In32(base_addr + FPS);
+		if (vdma_passthrough_read_mon(base_addr, &col, &line, &fps) == 0)
+		{
+			ack_fail_request();
+			return;
+		}
 
 		memcpy(send_buf,receivebuf,7);
 		memcpy(send_buf+7,&col,4);
@@ -866,42 +841,28 @@ void msg_cmd_0x30(void)
 			ack_fail_request();
 		}
 	}
-	else if(cmd_index == 7)
+	else if (cmd_index == 7 || cmd_index == 8)
 	{
 		uint32_t pixel;
+		uint32_t pixel_swap;
+		u32 reg_off = (cmd_index == 7) ? RGB_CNT_PIXEL : RGB_NOT_PIXEL;
+
 		if (receivelen < 11)
 		{
 			ack_fail_request();
 			return;
 		}
-		memcpy(&pixel,receivebuf+7,3);
-		pixel = rbg_swap_rgb(pixel);
+		pixel = ((uint32_t)receivebuf[7] << 16) |
+		        ((uint32_t)receivebuf[8] << 8) |
+		        (uint32_t)receivebuf[9];
+		pixel_swap = rbg_swap_rgb(pixel);
 		base_addr = pixel_compare_axi_base_eth(ch);
-		if(base_addr == 0U)
+		if (base_addr == 0U)
 		{
 			ack_fail_request();
 			return;
 		}
-		Xil_Out32(base_addr + RGB_CNT_PIXEL, pixel);
-		ack_copy_request();
-	}
-	else if(cmd_index == 8)
-	{
-		uint32_t pixel;
-		if (receivelen < 11)
-		{
-			ack_fail_request();
-			return;
-		}
-		memcpy(&pixel,receivebuf+7,3);
-		pixel = rbg_swap_rgb(pixel);
-		base_addr = pixel_compare_axi_base_eth(ch);
-		if(base_addr == 0U)
-		{
-			ack_fail_request();
-			return;
-		}
-		Xil_Out32(base_addr + RGB_NOT_PIXEL, pixel);
+		Xil_Out32(base_addr + reg_off, pixel_swap);
 		ack_copy_request();
 	}
 	else if(cmd_index == 9)
@@ -921,16 +882,47 @@ void msg_cmd_0x30(void)
 			return;
 		}
 
+		if (xs > xe || ys > ye)
+		{
+			ack_fail_request();
+			return;
+		}
+
 		base_addr = pixel_compare_axi_base_eth(ch);
 		if (base_addr == 0U)
 		{
 			ack_fail_request();
 			return;
 		}
+		xil_printf("xs %d xe %d  ys %d ye %d\r\n",xs, xe,  ys, ye);
 		Xil_Out32(base_addr + ROI_X_START, xs & 0xFFFFU);
 		Xil_Out32(base_addr + ROI_X_END, xe & 0xFFFFU);
 		Xil_Out32(base_addr + ROI_Y_START, ys & 0xFFFFU);
 		Xil_Out32(base_addr + ROI_Y_END, ye & 0xFFFFU);
+		ack_copy_request();
+	}
+	else if(cmd_index == 0xa)
+	{
+		uint16_t p_x = 0U, p_y = 0U;
+		if (receivelen >= 16U)
+		{
+			memcpy(&p_x, receivebuf + 7, 2);
+			memcpy(&p_y, receivebuf + 11, 2);
+		}
+		else
+		{
+			ack_fail_request();
+			return;
+		}
+		xil_printf("p_x %d p_y %d\r\n",p_x,p_y);
+		base_addr = pixel_compare_axi_base_eth(ch);
+		if (base_addr == 0U)
+		{
+			ack_fail_request();
+			return;
+		}
+		Xil_Out32(base_addr + POINT_X, p_x & 0xFFFFU);
+		Xil_Out32(base_addr + POINT_Y, p_y & 0xFFFFU);
 		ack_copy_request();
 	}
 	else
@@ -1260,94 +1252,58 @@ void msg_cmd_0x80(void)
 #if defined (UDP_VIDEO) || defined (TCP_VIDEO)
 	if(receivebuf[6] == 0x00)  //Turn off the image display of the host computer
 	{
-	    for (int i = 0; i < ETH_VIDEO_NUM; i++) // 遍历所有通道
-	    {
-	    	vdma_lwip_stop_media(i);
-	    }
+		vdma_lwip_stop_media();
 		xil_printf("close all video source\r\n");
 	}
 	else if( receivebuf[6] == 0x01)  //send picture
 	{
 		if(receivebuf[5] == 0x00)
 		{
-		    for (int i = 0; i < ETH_VIDEO_NUM; i++) // 遍历所有通道
-		    {
-		    	vdma_lwip_stop_media(i);
-		    }
+			vdma_lwip_stop_media();
 		}
 		else if(receivebuf[5] == 0xff)
 		{
-		    for (int i = 0; i < ETH_VIDEO_NUM; i++) // 遍历所有通道
-		    {
-		    	vdma_lwip_arm_pic_capture(i);
-		    }
+			vdma_lwip_arm_pic_capture();
 		}
 		else
 		{
-			if(receivebuf[5] > ETH_VIDEO_NUM)
-			{
-				xil_printf("pic source cmd error\r\n");
-			}
-			else
-			{
-				vdma_lwip_arm_pic_capture((int)receivebuf[5] - 1);
-			}
+			vdma_lwip_arm_pic_capture();
 		}
 	}
 	else if(receivebuf[6] == 0x02)  //send video
 	{
 		if(receivebuf[5] == 0x00)
 		{
-		    for (int i = 0; i < ETH_VIDEO_NUM; i++) // 遍历所有通道
-		    {
-		    	vdma_lwip_stop_media(i);
-		    }
+			vdma_lwip_stop_media();
 		}
 		else if(receivebuf[5] == 0xff)
 		{
-		    for (int i = 0; i < ETH_VIDEO_NUM; i++) // 遍历所有通道
-		    {
-		    	vdma_lwip_arm_video_stream(i);
-		    }
+			vdma_lwip_arm_video_stream();
 		    xil_printf("sending video\r\n");
 		}
 		else
 		{
-			if(receivebuf[5] > ETH_VIDEO_NUM)
-			{
-				xil_printf("video source cmd error\r\n");
-			}
-			else
-			{
-				vdma_lwip_arm_video_stream((int)receivebuf[5] - 1);
-				xil_printf("sending video\r\n");
-			}
+			xil_printf("sending video cmd err\r\n");
 		}
+
 	}
 	else if( receivebuf[6] == 0x03)  //send err_picture
 	{
 #if defined (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES)
 		if(receivebuf[5] == 0x00)
 		{
-		    for (u8 i = 0; i < ETH_VIDEO_NUM; i++) // 遍历所有通道
-		    {
-		    	for(u8 ch = 0; ch < XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES; ch++)
-		    	{
-		    		VdmaChannels[i].send_err_start[ch] = 0;
-		    	}
-
-		    }
+			for(u8 ch = 0; ch < XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES; ch++)
+			{
+				VC_inst.send_err_start[ch] = 0;
+			}
 		}
 		else if(receivebuf[5] == 0xff)
 		{
-		    for (int i = 0; i < ETH_VIDEO_NUM; i++) // 遍历所有通道
-		    {
-		    	for(u8 ch = 0; ch < XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES; ch++)
-		    	{
-		    		VdmaChannels[i].send_err_start[ch] = 1;
-		    	}
-		    	xil_printf("sending all ch err_pic\r\n");
-		    }
+			for(u8 ch = 0; ch < XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES; ch++)
+			{
+				VC_inst.send_err_start[ch] = 1;
+			}
+			xil_printf("sending all ch err_pic\r\n");
 		}
 		else
 		{
@@ -1355,60 +1311,29 @@ void msg_cmd_0x80(void)
 			{
 				xil_printf("pic source cmd error\r\n");
 			}
-			else if(receivebuf[5] == 1)
+			else
 			{
-				VdmaChannels[0].send_err_start[0] = 1;
-				xil_printf("sending ch 1 err_pic\r\n");
+				VC_inst.send_err_start[receivebuf[5] - 1] = 1;
+				xil_printf("sending ch %d err_pic\r\n",receivebuf[5]);
 			}
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 2U)
-			else if(receivebuf[5] == 2)
-			{
-				VdmaChannels[0].send_err_start[1] = 1;
-				xil_printf("sending ch 2 err_pic\r\n");
-			}
-#endif
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 3U)
-			else if(receivebuf[5] == 3)
-			{
-				VdmaChannels[0].send_err_start[2] = 1;
-				xil_printf("sending ch 3 err_pic\r\n");
-			}
-#endif
 		}
 #endif
 	}
 	else if(receivebuf[6] == 0x04)  //switch video
 	{
 #if defined (XPAR_XAXIS_SWITCH_NUM_INSTANCES) && (XPAR_XAXIS_SWITCH_NUM_INSTANCES >= 1U)
-		if(receivebuf[5] <= (XPAR_AXIS_SWITCH_0_NUM_SI))
+		if(receivebuf[5] <= CHANNEL_NUM)
 		{
 
-			xil_printf("------------swictch video source------------\r\n");
-			/* 先 request 登记目标通道；try 在空闲或本帧发完后才真正切轴+重配 LWIP VDMA，避免传输出错 */
-			if (receivebuf[5] >= 1U && receivebuf[5] <= CHANNEL_NUM)
+			xil_printf("------------swictch video source %d------------\r\n",receivebuf[5]);
+			if (receivebuf[5] >= 1U)
 			{
-				vdma_lwip_request_channel_switch(receivebuf[5]);
-				vdma_lwip_try_pending_channel_switch();
+				switch_ch = receivebuf[5];
 			}
 		}
 		else
 		{
 			xil_printf("video switch video cmd error\r\n");
-		}
-		xil_printf("--- current_ch (I2C): %u ---\r\n", (unsigned)current_ch);
-		iterationCounts[0] = 0;
-#endif
-	}
-	else if(receivebuf[6] == 0x05)  //tpg control
-	{
-#if defined (XPAR_XV_TPG_NUM_INSTANCES)
-		if(receivebuf[5] == 0x00)
-		{
-		    XV_tpg_Set_motionSpeed(&tpg_inst0, 0);
-		}
-		else if(receivebuf[5] == 0xff)
-		{
-			tpg_box(&tpg_inst0, 50, 1);
 		}
 #endif
 	}

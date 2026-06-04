@@ -208,7 +208,7 @@ extern INTC InterruptController;	/* Instance of the Interrupt Controller */
 #define BSP_HAS_AXI_TIMER		1
 #endif
 
-#if defined (BSP_CFG_EEPROM) && defined (BSP_HAS_PS_I2C)
+#if defined (BSP_CFG_EEPROM)
 #define BSP_HAS_EEPROM			1
 #endif
 

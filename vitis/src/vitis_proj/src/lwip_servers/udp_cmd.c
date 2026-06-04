@@ -164,16 +164,6 @@ int start_udp_cmd_application(void)
 //	bsp_printf("UDP server started @ port %d\n\r", UDP_CMD_SVR_PORT);
 
 //	IP4_ADDR(&target_addr, 192,168,1,77);
-
-#if defined (UDP_VIDEO)
-    for (int i = 0; i < ETH_VIDEO_NUM; i++) // 遍历所有通道
-    {
-    	VdmaChannels[i].send_pic_start = 0;
-    	VdmaChannels[i].video_sending = 0;
-    	VdmaChannels[i].send_video_start = 0;
-    }
-#endif
-
 	return 0;
 }
 

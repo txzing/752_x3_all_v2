@@ -3,7 +3,7 @@
   <spirit:vendor>xilinx.com</spirit:vendor>
   <spirit:library>user</spirit:library>
   <spirit:name>axis_pixel_compare</spirit:name>
-  <spirit:version>2.7</spirit:version>
+  <spirit:version>2.19</spirit:version>
   <spirit:busInterfaces>
     <spirit:busInterface>
       <spirit:name>m_axis</spirit:name>
@@ -432,7 +432,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>955f5233</spirit:value>
+            <spirit:value>ae6f3c87</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -448,7 +448,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>955f5233</spirit:value>
+            <spirit:value>ae6f3c87</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -476,7 +476,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>4e1f7a06</spirit:value>
+            <spirit:value>7394d555</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -1073,7 +1073,7 @@
       <spirit:file>
         <spirit:name>hdl/axis_pixel_compare.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_63d5822d</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_314166d6</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
@@ -1091,7 +1091,7 @@
     <spirit:fileSet>
       <spirit:name>xilinx_xpgui_1_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>xgui/axis_pixel_compare_v2_5.tcl</spirit:name>
+        <spirit:name>xgui/axis_pixel_compare_v2_19.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
         <spirit:userFileType>CHECKSUM_654e38ec</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
@@ -1132,7 +1132,7 @@
       </spirit:file>
     </spirit:fileSet>
   </spirit:fileSets>
-  <spirit:description>axis_pixel_compare</spirit:description>
+  <spirit:description>AXI-Stream frame compare, RGB ROI statistics, point sample; AXI-Lite control (v2.19).</spirit:description>
   <spirit:parameters>
     <spirit:parameter>
       <spirit:name>WIDTH</spirit:name>
@@ -1269,8 +1269,10 @@
         <xilinx:canUpgradeFrom>xilinx.com:user:axis_pixel_compare:2.1</xilinx:canUpgradeFrom>
         <xilinx:canUpgradeFrom>xilinx.com:user:axis_pixel_compare:2.2</xilinx:canUpgradeFrom>
         <xilinx:canUpgradeFrom>xilinx.com:user:axis_pixel_compare:2.4</xilinx:canUpgradeFrom>
+        <xilinx:canUpgradeFrom>xilinx.com:user:axis_pixel_compare:2.7</xilinx:canUpgradeFrom>
+        <xilinx:canUpgradeFrom>xilinx.com:user:axis_pixel_compare:2.8</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
-      <xilinx:coreCreationDateTime>2026-05-15T01:34:22Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2026-06-02T12:56:13Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@12d6b3e1_ARCHIVE_LOCATION">d:/workdir/cariad/for_ip/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@60e4bb79_ARCHIVE_LOCATION">d:/workdir/cariad/for_ip/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
@@ -2034,13 +2036,183 @@
         <xilinx:tag xilinx:name="ui.data.coregen.dd@3142de73_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@2bfaa047_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@4ad03a55_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4c81b4d1_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4fcafbd_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@716ae5b2_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7798c299_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@63fd566b_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@360781bc_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@70cd7d0a_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@61080aaf_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7ff257ff_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1bf31084_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@40bf86b4_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5339be90_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5970d048_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@21001256_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@59059846_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@257272b1_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2667e79_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6d9f4f73_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6d20f62c_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@25d02db4_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6ad4f32d_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@31031644_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@46dc99e5_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@291e87ac_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3667d1aa_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@76b1d4a2_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@382e8527_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@58f48c9d_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3da664bc_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1debbdcf_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5bd946e7_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@44ff311c_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2f18a557_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@697f53ad_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1e10090d_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@18372270_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@50d95bd4_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@40c714d4_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@75e591d1_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@46b10953_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3b47883b_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4ef03e1a_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@162b228f_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7c323a5e_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@227bd19a_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6740200_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@160685b4_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@46ea6650_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@620e2e62_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3cd8079c_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@217fe824_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@a6237eb_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3d5eba44_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@24a9536d_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@65d849d4_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@54920a8a_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@168d0300_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@68afa205_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5a31f7f9_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2b3aa099_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2041f612_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1a98824e_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2ff41362_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4ece09be_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5c358986_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1dab12a3_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@195478a3_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3b03da0_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@60b88262_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5f5ef310_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@34200e1e_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@68e30595_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4b2095be_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5ebee3fd_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@411d678e_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2b9cde2_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@545774bf_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@196c1c59_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2793761_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6db0faa7_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7fcfff8_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@761dc9b3_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3337efe_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1ad8156f_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7ec3542f_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5dfb73b4_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3e4deb39_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@50504e59_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@79269dd_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4ea968ff_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/two_dp_rx_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1911c268_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7c1407a9_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@267b6b5d_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@740f01b_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@416e1f3d_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@121d9194_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@35fdab93_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1aa86b17_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2a5266c2_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7c6bbde7_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5f81aad1_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@394e8f8d_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5670a657_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@38aa9fb5_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@20b47d29_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3db7f561_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@66ee7a82_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@17674473_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@124a2cb4_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@300fd1ec_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@19a75f4d_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7a49b3da_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@179bd971_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1ce136d8_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@11d12f8a_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3d845b9d_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@442af7be_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6375ee3e_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2e602f92_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7538fa87_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@779d4705_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2caba3f1_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@51a70359_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@51de8af5_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3b482833_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1204e32a_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@40e7e07c_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@722dd507_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@a37bc4d_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@42fe88f3_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2d8b5422_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7e90090_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5c3aa00_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2d5ee9fc_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@276d8bab_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@191afdc3_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@44f04f49_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6710508_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4fff0098_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3bbb4d24_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@146d7121_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@70353e37_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@15bba858_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@21bd23c0_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4f2b6dfe_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3714dc50_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1feaeb7b_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@35bf8f09_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@65de9e30_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@397aa178_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@172916d4_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7d380fda_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@48281706_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@16d00744_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@40aa0c6d_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@73e6a495_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@18ea0fc6_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3e9971f8_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5bb53424_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@325fad17_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@249e917c_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6fc424f_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@51e5b665_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@705127d7_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@74e26ae5_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7ec33b2b_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@63e6b6d1_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4015721a_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2ba8e110_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@426d6117_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_pixel_compare</xilinx:tag>
       </xilinx:tags>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2020.1</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="3f564a8a"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="ed1368d5"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="7fd14586"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="e25a527a"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="5706a6eb"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="14237f0d"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="140a4849"/>

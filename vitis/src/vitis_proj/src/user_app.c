@@ -11,8 +11,8 @@ u32 ret32;
 u8 ret8;
 u8 UserInput;
 u8 current_ch;
+u8 switch_ch;
 u8 lock_status[CHANNEL_NUM] = {0};
-static u8 s2mm_retune_ticks[CHANNEL_NUM];
 u8 reconfig_flag[CHANNEL_NUM] = {0};
 u8 clear_flag[CHANNEL_NUM] = {0};
 
@@ -23,7 +23,7 @@ void app_info(void)
 	xil_printf("\r\n%s, UTC %s\r\n",__DATE__,__TIME__);
 #if defined (UDP_UPDATE) || defined (TCP_UPDATE) || defined (TCP_COMMAND_SRV) || defined (UDP_COMMAND_SRV)
 	xil_printf("Now Board ip:\r\n");
-	print_config(&config);
+	print_config(&global_config);
 #endif
 	xil_printf("----------------------\r\n");
 	xil_printf("UART commands:\r\n");
@@ -39,13 +39,7 @@ void app_info(void)
 	xil_printf("  a   - (reserved)\r\n");
 #if defined (XPAR_XAXIS_SWITCH_NUM_INSTANCES) && (XPAR_XAXIS_SWITCH_NUM_INSTANCES >= 1U)
 	xil_printf("  s   - switch video source, then");
-#if (XPAR_XAXIS_SWITCH_NUM_INSTANCES >= 3U)
 	xil_printf(" 1 / 2 / 3\r\n");
-#elif (XPAR_XAXIS_SWITCH_NUM_INSTANCES >= 2U)
-	xil_printf(" 1 / 2\r\n");
-#else
-	xil_printf(" 1\r\n");
-#endif
 #endif
 	xil_printf("  0/1 - SerDes stream_id 0/1 (current_ch, reg 0x0050)\r\n");
 	xil_printf("  7/8 - axis pixel compare ON / OFF\r\n");
@@ -74,16 +68,6 @@ u8 uart_RecvByte(UINTPTR BaseAddress)
 }
 
 #if defined (XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES)
-u32 vdma_passthrough_mon_base_lvds(u8 lvds_idx_0based)
-{
-	if (lvds_idx_0based >= (u8)XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES)
-	{
-		return 0U;
-	}
-	return (u32)XAxisPassthroughMonitor_ConfigTable[lvds_idx_0based].S_axi_lite_BaseAddr;
-}
-
-/* 串口 d/D：按 BSP 中 passthrough monitor 实例数循环打印（基址由 vdma.c 统一映射） */
 static void uart_debug_dump_passthrough_monitors(void)
 {
 	u8 i;
@@ -198,14 +182,34 @@ void uart_receive_process(void)
 		else if(UserInput == 'r')
 		{
 			xil_printf("------------reset lvds------------\r\n");
-			XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0xf);
-			usleep(10*1000);
+			XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0xff);
+			usleep(20*1000);
+			XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
+		}
+		else if(UserInput == 'c')
+		{
+			xil_printf("------------clear display------------\r\n");
+			XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0xff);
+		    clear_display();
+		    vdma_config();
 			XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
 		}
 		else if (UserInput == 'a')
 		{
 
 		    xil_printf("--------------------------------------------\r\n");
+			xil_printf("-PIXEL_POINT: %x -\r\n", rgb_from_reg_rbg(Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + PIXEL_POINT)));
+			xil_printf("-STREAM_IN_DATA_HOLD: %x -\r\n", rgb_from_reg_rbg(Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + STREAM_IN_DATA_HOLD)));
+			xil_printf("-ERR_COL: %d -\r\n", Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + ERR_COL));
+			xil_printf("-ERR_LINE: %d -\r\n", Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + ERR_LINE));
+			xil_printf("-RGB_CNT_PIXEL: %x -\r\n", rgb_from_reg_rbg(Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + RGB_CNT_PIXEL)));
+			xil_printf("-RGB_PIXEL_TOTAL: %d -\r\n", Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + RGB_PIXEL_TOTAL));
+			xil_printf("-RGB_NOT_PIXEL: %x -\r\n", rgb_from_reg_rbg(Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + RGB_NOT_PIXEL)));
+			xil_printf("-ROI_X_START: %d -\r\n", (Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + ROI_X_START)) & 0xFFFFU);
+			xil_printf("-ROI_X_END: %d -\r\n", (Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + ROI_X_END)) & 0xFFFFU);
+			xil_printf("-ROI_Y_START: %d -\r\n", (Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + ROI_Y_START)) & 0xFFFFU);
+			xil_printf("-ROI_Y_END: %d -\r\n", (Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + ROI_Y_END)) & 0xFFFFU);
+
 		}
 		else if(UserInput == 's')
 		{
@@ -214,37 +218,16 @@ void uart_receive_process(void)
 			UserInput = uart_RecvByte(UART_BASEADDR);
 			if(UserInput == '1')
 			{
-				AxisSwitch(XPAR_AXIS_SWITCH_0_DEVICE_ID, &AxisSwitch0, 0, 0); //
-				AxisSwitch(XPAR_AXIS_SWITCH_1_DEVICE_ID, &AxisSwitch1, 0, 0); //
-				AxisSwitch(XPAR_AXIS_SWITCH_2_DEVICE_ID, &AxisSwitch2, 0, 1);
-				AxisSwitch(XPAR_AXIS_SWITCH_3_DEVICE_ID, &AxisSwitch3, 0, 1);
-				current_ch = 1;
-				xil_printf("---------swictch 1---------\r\n");
+				switch_ch = 1;
 			}
-			#if (XPAR_XAXIS_SWITCH_NUM_INSTANCES >= 2U)
 			else if(UserInput == '2')
 			{
-				AxisSwitch(XPAR_AXIS_SWITCH_0_DEVICE_ID, &AxisSwitch0, 1, 0); //
-				AxisSwitch(XPAR_AXIS_SWITCH_1_DEVICE_ID, &AxisSwitch1, 0, 1);
-				AxisSwitch(XPAR_AXIS_SWITCH_2_DEVICE_ID, &AxisSwitch2, 0, 0);
-				AxisSwitch(XPAR_AXIS_SWITCH_3_DEVICE_ID, &AxisSwitch3, 0, 1);
-				current_ch = 2;
-				xil_printf("---------swictch 2---------\r\n");
+				switch_ch = 2;
 			}
-			#endif
-			#if (XPAR_XAXIS_SWITCH_NUM_INSTANCES >= 3U)
 			else if(UserInput == '3')
 			{
-				AxisSwitch(XPAR_AXIS_SWITCH_0_DEVICE_ID, &AxisSwitch0, 2, 0); //
-				AxisSwitch(XPAR_AXIS_SWITCH_1_DEVICE_ID, &AxisSwitch1, 0, 1);
-				AxisSwitch(XPAR_AXIS_SWITCH_2_DEVICE_ID, &AxisSwitch2, 0, 1);
-				AxisSwitch(XPAR_AXIS_SWITCH_3_DEVICE_ID, &AxisSwitch3, 0, 0);
-				current_ch = 3;
-				xil_printf("---------swictch 3---------\r\n");
+				switch_ch = 3;
 			}
-			#endif
-			xil_printf("--- current_ch (I2C): %u ---\r\n", (unsigned)current_ch);
-			iterationCounts[0] = 0;
 		}
 		else if(UserInput == '0')
 		{
@@ -260,44 +243,20 @@ void uart_receive_process(void)
 
 		else if(UserInput == '7')
 		{
-
-			xil_printf("------------clear display------------\r\n");
-			XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0xf);
-		    clear_display();
-		    vdma_config();
-			XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
-			xil_printf("XPAR_AXIS_PIXEL_COMPARE ON\r\n");
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 1U)
-			Xil_Out32(XPAR_LVDS_S0_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + STATUS, 0x1);
-#endif
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 2U)
-			Xil_Out32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + STATUS, 0x1);
-#endif
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 3U)
-			Xil_Out32(XPAR_LVDS_S2_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + STATUS, 0x1);
-#endif
+			for (u8 ch = 0; ch < XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES; ch++)
+			{
+				pixel_cp_start[ch] = 1U;
+				pixel_cp_start_cnt[ch] = 0U;
+			}
 		}
 		else if(UserInput == '8')
 		{
 			xil_printf("XPAR_AXIS_PIXEL_COMPARE OFF\r\n");
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 1U)
-			Xil_Out32(XPAR_LVDS_S0_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + STATUS, 0x0);
-#endif
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 2U)
-			Xil_Out32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + STATUS, 0x0);
-#endif
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 3U)
-			Xil_Out32(XPAR_LVDS_S2_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + STATUS, 0x0);
-#endif
-		}
-
-		else if(UserInput == 'c')
-		{
-			xil_printf("------------clear display------------\r\n");
-			XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0xf);
-		    clear_display();
-		    vdma_config();
-			XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
+			xil_printf("XPAR_AXIS_PIXEL_COMPARE OFF\r\n");
+			for (u8 ch = 0; ch < XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES; ch++)
+			{
+				Xil_Out32(XAxisPixelCompare_ConfigTable[ch].S00_axi_BaseAddr + STATUS, 0x0);
+			}
 		}
 		else if((UserInput == 'f') || (UserInput == 'F'))
 		{
@@ -349,12 +308,6 @@ void uart_receive_process(void)
 	}
 }
 
-/*
- * Passthrough Monitor（+0x0 水平 beat，+0x4 垂直行）反映链路上当前视频尺寸；
- * vdma_apply_detected_rgb_geom 据此只调 MM2S 读向几何（m_*），S2MM 写 DDR 侧 s_* 保持
- * 固定 1920×1080 画布布局，以兼容不超过该尺寸的所有源。
- * 返回 0 表示读数仍为 0（调用方安排重试）。
- */
 #if defined (BSP_HAS_VDMA) && defined (XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES)
 
 #if defined (XPAR_XAXIS_SWITCH_NUM_INSTANCES)
@@ -362,61 +315,59 @@ void uart_receive_process(void)
  * 将显示/采集路径切到视频通道 1..CHANNEL_NUM（与 UART s+数字 策略一致）。
  * 若定义了 UDP/TCP 视频，会复位 iterationCounts 调试计数；供 vdma_lwip_try_pending_channel_switch 在帧间隙调用。
  */
-void board_apply_video_channel_switch(u8 eth_video_ch)
+void switch_run(void)
 {
-	if (eth_video_ch < 1U || eth_video_ch > CHANNEL_NUM)
+	if(switch_ch != current_ch)
+	{
+		if (VC_inst.send_pic_start != 0U)
+		{
+			return;
+		}
+		/* 视频当前帧分包发送中 */
+		if (VC_inst.video_sending != 0U)
+		{
+			return;
+		}
+		board_apply_video_channel_switch(switch_ch);
+		vdma_lwip_apply_channel_geometry(switch_ch);
+	}
+}
+
+void board_apply_video_channel_switch(u8 switch_ch)
+{
+	if (switch_ch < 1U || switch_ch > CHANNEL_NUM)
 	{
 		return;
 	}
-	if (eth_video_ch == 1U)
+	if (switch_ch == 1U)
 	{
 		AxisSwitch(XPAR_AXIS_SWITCH_0_DEVICE_ID, &AxisSwitch0, 0, 0);
 		AxisSwitch(XPAR_AXIS_SWITCH_1_DEVICE_ID, &AxisSwitch1, 0, 0);
-#if (XPAR_XAXIS_SWITCH_NUM_INSTANCES >= 3U)
 		AxisSwitch(XPAR_AXIS_SWITCH_2_DEVICE_ID, &AxisSwitch2, 0, 1);
-#endif
-#if (XPAR_XAXIS_SWITCH_NUM_INSTANCES >= 4U)
 		AxisSwitch(XPAR_AXIS_SWITCH_3_DEVICE_ID, &AxisSwitch3, 0, 1);
-#endif
-		current_ch = 1U;
-		xil_printf("---------swictch 1---------\r\n");
 	}
-#if (XPAR_XAXIS_SWITCH_NUM_INSTANCES >= 2U)
-	else if (eth_video_ch == 2U)
+	else if (switch_ch == 2U)
 	{
 		AxisSwitch(XPAR_AXIS_SWITCH_0_DEVICE_ID, &AxisSwitch0, 1, 0);
 		AxisSwitch(XPAR_AXIS_SWITCH_1_DEVICE_ID, &AxisSwitch1, 0, 1);
-#if (XPAR_XAXIS_SWITCH_NUM_INSTANCES >= 3U)
 		AxisSwitch(XPAR_AXIS_SWITCH_2_DEVICE_ID, &AxisSwitch2, 0, 0);
-#endif
-#if (XPAR_XAXIS_SWITCH_NUM_INSTANCES >= 4U)
 		AxisSwitch(XPAR_AXIS_SWITCH_3_DEVICE_ID, &AxisSwitch3, 0, 1);
-#endif
-		current_ch = 2U;
-		xil_printf("---------swictch 2---------\r\n");
 	}
-#endif
-#if (XPAR_XAXIS_SWITCH_NUM_INSTANCES >= 3U)
-	else if (eth_video_ch == 3U)
+	else if (switch_ch == 3U)
 	{
 		AxisSwitch(XPAR_AXIS_SWITCH_0_DEVICE_ID, &AxisSwitch0, 2, 0);
 		AxisSwitch(XPAR_AXIS_SWITCH_1_DEVICE_ID, &AxisSwitch1, 0, 1);
 		AxisSwitch(XPAR_AXIS_SWITCH_2_DEVICE_ID, &AxisSwitch2, 0, 1);
-#if (XPAR_XAXIS_SWITCH_NUM_INSTANCES >= 4U)
 		AxisSwitch(XPAR_AXIS_SWITCH_3_DEVICE_ID, &AxisSwitch3, 0, 0);
-#endif
-		current_ch = 3U;
-		xil_printf("---------swictch 3---------\r\n");
 	}
-#endif
 	else
 	{
 		return;
 	}
-	xil_printf("--- current_ch (I2C): %u ---\r\n", (unsigned)current_ch);
+	current_ch = switch_ch;
+	xil_printf("--- current_ch (I2C): %u ---\r\n", current_ch);
 #if defined (UDP_VIDEO) || defined (TCP_VIDEO)
-	extern volatile u32 iterationCounts[]; /* ETH_VIDEO_NUM==1，与 vdma.c 中定义对应 */
-	iterationCounts[0] = 0U;
+	iterationCounts = 0U;
 #endif
 }
 #else /* no axis switch IP */
@@ -438,112 +389,63 @@ void board_apply_video_channel_switch(u8 eth_video_ch)
  * 热轮询跟踪其防抖变化后，调用 vdma_apply_detected_rgb_geom 仅更新 MM2S 的 m_*，不改 S2MM。
  *
  * 与 display_fresh 中 lock_status / reconfig_flag 配合：
- * - cable up：reconfig_flag==1 一拍内 vdma_config_* + 首次 apply；monitor 未就绪则
- *   s2mm_retune_try_ch 依托 s2mm_retune_ticks 周期重试。
- * - reconfig_flag>=2：s2mm_hot_runtime_geom_poll_ch 做运行时热轮询。
- *
- * s2mm_ch_to_vdma_apply_range：每路 LVDS/pixel 通道对应 PL 上需一并更新 MM2S 几何的
- * 连续 VDMA 实例号区间（与原先 cable-up 分支内硬编码一致），供 retune 与热轮询共用。
+ * - cable up：reconfig_flag==1 时 vdma_lvds_path_op(ch,1) + s2mm_hot_seed_from_mon。
+ * - reconfig_flag>=2：s2mm_hot_runtime_geom_poll_ch 防抖后 apply MM2S。
  *---------------------------------------------------------------------------*/
 
-/*
- * 将 pixel_compare 通道索引 ch（0 起）映射到本路需同步更新「MM2S 读几何」的
- * 连续 VDMA 实例 [first, first+num)。与 XPAR_XAXIVDMA_NUM_INSTANCES、通道数相关；失败返回 0。
- */
-static u8 s2mm_ch_to_vdma_apply_range(u8 ch, u8 *out_first, u8 *out_num)
+s2mm_hot_ch_t s2mm_hot[CHANNEL_NUM];
+
+static u8 s2mm_resolve_ch(u8 ch, u32 *out_mon, u8 *out_first, u8 *out_num)
 {
-	if (ch >= CHANNEL_NUM || out_first == NULL || out_num == NULL)
+	if (ch >= CHANNEL_NUM || out_mon == NULL || out_first == NULL || out_num == NULL)
 	{
 		return 0U;
 	}
-	if (ch == 0U)
+	*out_mon = vdma_passthrough_mon_base_lvds(ch);
+	if (*out_mon == 0U || (u8)XPAR_XAXIVDMA_NUM_INSTANCES < (u8)((2U * ch) + 3U))
 	{
-#if (XPAR_XAXIVDMA_NUM_INSTANCES >= 3U)
-		*out_first = 1U;
-		*out_num = 2U;
-		return 1U;
-#else
 		return 0U;
-#endif
 	}
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 2U)
-	if (ch == 1U)
-	{
-#if (XPAR_XAXIVDMA_NUM_INSTANCES >= 5U)
-		*out_first = 3U;
-		*out_num = 2U;
-		return 1U;
-#else
-		return 0U;
-#endif
-	}
-#endif
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 3U)
-	if (ch == 2U)
-	{
-#if (XPAR_XAXIVDMA_NUM_INSTANCES >= 7U)
-		*out_first = 5U;
-		*out_num = 2U;
-		return 1U;
-#else
-		return 0U;
-#endif
-	}
-#endif
-	return 0U;
+	*out_first = (u8)((2U * ch) + 1U);
+	*out_num = 2U;
+	return 1U;
 }
 
-/* 热轮询：最近一次已据此配置 MM2S 的 monitor 宽高（表征 S2MM 链路上稳定输入尺寸） */
-static u32 s2mm_hot_applied_w[CHANNEL_NUM];
-static u32 s2mm_hot_applied_h[CHANNEL_NUM];
-/* 防抖：当前候选宽高及已连续相同的读数次数 */
-static u32 s2mm_hot_stable_w[CHANNEL_NUM];
-static u32 s2mm_hot_stable_h[CHANNEL_NUM];
-static u8 s2mm_hot_stable_n[CHANNEL_NUM];
-
-/* 拔线 / 失锁：清 S2MM 热轮询状态，避免旧值阻止下次 cable-up 后的检测 */
 static void s2mm_hot_reset_ch(u8 ch)
 {
 	if (ch >= CHANNEL_NUM)
 	{
 		return;
 	}
-	s2mm_hot_applied_w[ch] = 0U;
-	s2mm_hot_applied_h[ch] = 0U;
-	s2mm_hot_stable_w[ch] = 0U;
-	s2mm_hot_stable_h[ch] = 0U;
-	s2mm_hot_stable_n[ch] = 0U;
+	s2mm_hot[ch].applied_w = 0U;
+	s2mm_hot[ch].applied_h = 0U;
+	s2mm_hot[ch].stable_w = 0U;
+	s2mm_hot[ch].stable_h = 0U;
+	s2mm_hot[ch].stable_n = 0U;
 }
 
-/*
- * cable up 末尾或 retune 成功后：将当前 monitor 读数记入 s2mm_hot_applied_*，
- * 避免下一周期热轮询把同一稳定尺寸误判为变化而重复 vdma_apply（内含较长 usleep）。
- */
 static void s2mm_hot_seed_from_mon(u8 ch, u32 mon_base)
 {
 	u32 sw;
 	u32 sh;
+	s2mm_hot_ch_t *st;
 
 	if (ch >= CHANNEL_NUM || mon_base == 0U)
 	{
 		return;
 	}
-	if (vdma_passthrough_read_rgb_dims(mon_base, &sw, &sh) == 0)
+	if (vdma_passthrough_read_mon(mon_base, &sw, &sh, NULL) == 0)
 	{
 		return;
 	}
-	s2mm_hot_applied_w[ch] = sw;
-	s2mm_hot_applied_h[ch] = sh;
-	s2mm_hot_stable_w[ch] = sw;
-	s2mm_hot_stable_h[ch] = sh;
-	s2mm_hot_stable_n[ch] = S2MM_HOT_GEOM_STABLE_TICKS;
+	st = &s2mm_hot[ch];
+	st->applied_w = sw;
+	st->applied_h = sh;
+	st->stable_w = sw;
+	st->stable_h = sh;
+	st->stable_n = S2MM_HOT_GEOM_STABLE_TICKS;
 }
 
-/*
- * 链路保持 lock 且 reconfig_flag>=2：每周期轻读 monitor，经 S2MM_HOT_GEOM_STABLE_TICKS
- * 次一致后认为 S2MM 输入侧尺寸稳定；若与 s2mm_hot_applied_* 不同则调用
- * vdma_apply_detected_rgb_geom 重配 MM2S（必要时含 LWIP 预览几何），S2MM 1920×1080 不变。
- */
 static void s2mm_hot_runtime_geom_poll_ch(u8 ch)
 {
 	u32 mon_base;
@@ -551,87 +453,42 @@ static void s2mm_hot_runtime_geom_poll_ch(u8 ch)
 	u8 num_vdma;
 	u32 rw;
 	u32 rh;
+	s2mm_hot_ch_t *st;
 
-	/* reconfig_flag<2：仍在 cable-up 那一拍或计数中，几何由上面 reconfig_flag==1 分支负责 */
 	if (ch >= CHANNEL_NUM || lock_status[ch] == 0U || reconfig_flag[ch] < 2U)
 	{
 		return;
 	}
-	mon_base = vdma_passthrough_mon_base_lvds(ch);
-	if (mon_base == 0U || s2mm_ch_to_vdma_apply_range(ch, &first_id, &num_vdma) == 0U)
+	if (s2mm_resolve_ch(ch, &mon_base, &first_id, &num_vdma) == 0U
+	    || vdma_passthrough_read_mon(mon_base, &rw, &rh, NULL) == 0)
 	{
 		return;
 	}
-	if (vdma_passthrough_read_rgb_dims(mon_base, &rw, &rh) == 0)
+	st = &s2mm_hot[ch];
+	if (rw == st->stable_w && rh == st->stable_h)
 	{
-		return;
-	}
-
-	if (rw == s2mm_hot_stable_w[ch] && rh == s2mm_hot_stable_h[ch])
-	{
-		if (s2mm_hot_stable_n[ch] < 255U)
+		if (st->stable_n < 255U)
 		{
-			s2mm_hot_stable_n[ch]++;
+			st->stable_n++;
 		}
 	}
 	else
 	{
-		s2mm_hot_stable_w[ch] = rw;
-		s2mm_hot_stable_h[ch] = rh;
-		s2mm_hot_stable_n[ch] = 1U;
+		st->stable_w = rw;
+		st->stable_h = rh;
+		st->stable_n = 1U;
 	}
-	if (s2mm_hot_stable_n[ch] < S2MM_HOT_GEOM_STABLE_TICKS)
+	if (st->stable_n < S2MM_HOT_GEOM_STABLE_TICKS || (rw == st->applied_w && rh == st->applied_h))
 	{
 		return;
 	}
-	if (rw == s2mm_hot_applied_w[ch] && rh == s2mm_hot_applied_h[ch])
-	{
-		return;
-	}
-
 	if (vdma_apply_detected_rgb_geom(first_id, num_vdma, mon_base) != 0)
 	{
-		s2mm_hot_applied_w[ch] = rw;
-		s2mm_hot_applied_h[ch] = rh;
+		st->applied_w = rw;
+		st->applied_h = rh;
 	}
 }
 
-/*
- * cable up 首次 vdma_apply 读 monitor 失败时 s2mm_retune_ticks = S2MM_RETUNE_MAX_TICKS；
- * 本函数在 ticks>0 时每 display_fresh 周期重试，成功后清零并 s2mm_hot_seed_from_mon。
- */
-static void s2mm_retune_try_ch(u8 ch)
-{
-	u32 mon_base;
-	u8 first_id;
-	u8 num_vdma;
-
-	if (ch >= CHANNEL_NUM || lock_status[ch] == 0U || s2mm_retune_ticks[ch] == 0U)
-	{
-		return;
-	}
-	mon_base = vdma_passthrough_mon_base_lvds(ch);
-	if (mon_base == 0U)
-	{
-		s2mm_retune_ticks[ch] = 0U;
-		return;
-	}
-	if (s2mm_ch_to_vdma_apply_range(ch, &first_id, &num_vdma) == 0U)
-	{
-		s2mm_retune_ticks[ch] = 0U;
-		return;
-	}
-
-	if (vdma_apply_detected_rgb_geom(first_id, num_vdma, mon_base) != 0)
-	{
-		s2mm_retune_ticks[ch] = 0U;
-		s2mm_hot_seed_from_mon(ch, mon_base);
-	}
-	else
-	{
-		s2mm_retune_ticks[ch]--;
-	}
-}
 #endif /* BSP_HAS_VDMA && XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES */
 
 void Disp_State_Detect(u8 channel)
@@ -649,7 +506,6 @@ void Disp_State_Detect(u8 channel)
     }
     idx = channel - 1;
     static u8 unlock_cnt[CHANNEL_NUM] = {0};
-    static u8 stream_switch_notified[CHANNEL_NUM] = {0};
 
 	ret32 = xgpio_i2c_reg16_read(channel, 0x90 >> 1, 0x0013, &ret8, STRETCH_ON);//GMSL2 link locked @ bit3
 	gmsl_locked = CHB(ret8, BIT(3));
@@ -660,16 +516,8 @@ void Disp_State_Detect(u8 channel)
 	if (gmsl_locked && !video_locked)
 	{
 		stream_id ^= 1;
-		if (!stream_switch_notified[idx])
-		{
-			xil_printf("channel %d now stream_id: %d\r\n",channel, stream_id);
-			stream_switch_notified[idx] = 1;
-		}
+		xil_printf("channel %d now stream_id: %d\r\n",channel, stream_id);
 		xgpio_i2c_reg16_write(channel, 0x90>>1, 0x0050, stream_id, STRETCH_ON);
-	}
-	else if (!gmsl_locked)
-	{
-		stream_switch_notified[idx] = 0;
 	}
 
     if ((gmsl_locked == 0) || (video_locked == 0))
@@ -713,14 +561,38 @@ void display_fresh(void)
 					pixel_err_cnt[ch] = 0U;
 					pixel_err[ch] = 0U;
 #if defined (UDP_VIDEO) || defined (TCP_VIDEO)
-					VdmaChannels[0].send_err_start[ch] = 0U;
-					VdmaChannels[0].pkg_cnt = 1U;
+					VC_inst.send_err_start[ch] = 0U;
+					VC_inst.pkg_cnt = 1U;
 #endif
 				}
 			}
 			else
 			{
 				pixel_err_cnt[ch] = 0U;
+			}
+
+			if(pixel_cp_start[ch] == 1U)
+			{
+				u32 base_addr;
+				if(pixel_cp_start_cnt[ch] == 1U)
+				{
+					vdma_lvds_path_op(ch, 1U);
+//					xil_printf("----------pixel_cp_start_%d_cnt %d-----------\r\n",ch+1,pixel_cp_start_cnt[ch]);
+					pixel_cp_start_cnt[ch] = pixel_cp_start_cnt[ch] + 1;
+				}
+				else if(pixel_cp_start_cnt[ch] == 6U)
+				{
+					pixel_cp_start[ch] = 0U;
+					pixel_cp_start_cnt[ch] = 0U;
+					base_addr = pixel_compare_axi_base_eth(ch + 1);
+					Xil_Out32(base_addr + STATUS, 0x1);
+					xil_printf("----------pixel_cp_%d_start-----------\r\n",ch+1);
+				}
+				else
+				{
+					pixel_cp_start_cnt[ch] = pixel_cp_start_cnt[ch] + 1;
+				}
+
 			}
 
 		    Disp_State_Detect(ch + 1);
@@ -736,54 +608,14 @@ void display_fresh(void)
 		        {
 		        	xil_printf("----------cable %d down-----------\r\n",ch+1);
 #if defined (BSP_HAS_VDMA) && defined (XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES)
-		        	/* 失锁：停止 S2MM cable-up 重试计数，并丢弃热轮询缓存 */
-		        	s2mm_retune_ticks[ch] = 0U;
 		        	s2mm_hot_reset_ch(ch);
 #endif
-		        	if (ch == 0)
-		        	{
-		        		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x2);
-		        		clear_vdma_1();
-		        		clear_vdma_2();
-		        		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
+		        	vdma_lvds_path_op(ch, 0U);
 #if defined (UDP_COMMAND_SRV) && defined (UDP_VIDEO)
-		        		if (err_auto_send)
-		        		{
-		        			vcmp_m_refresh_channel(ch);
-		        			err_auto_send_func(ch);
-		        		}
-#endif
-		        	}
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 2U)
-		        	else if (ch == 1)
+		        	if (err_auto_send)
 		        	{
-		        		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x4);
-		        		clear_vdma_3();
-		        		clear_vdma_4();
-		        		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
-#if defined (UDP_COMMAND_SRV) && defined (UDP_VIDEO)
-		        		if (err_auto_send)
-		        		{
-		        			vcmp_m_refresh_channel(ch);
-		        			err_auto_send_func(ch);
-		        		}
-#endif
-		        	}
-#endif
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 3U)
-		        	else if (ch == 2)
-		        	{
-		        		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x8);
-		        		clear_vdma_5();
-		        		clear_vdma_6();
-		        		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
-#if defined (UDP_COMMAND_SRV) && defined (UDP_VIDEO)
-		        		if (err_auto_send)
-		        		{
-		        			vcmp_m_refresh_channel(ch);
-		        			err_auto_send_func(ch);
-		        		}
-#endif
+		        		vcmp_m_refresh_channel(ch);
+		        		err_auto_send_func(ch);
 		        	}
 #endif
 		        }
@@ -803,63 +635,9 @@ void display_fresh(void)
 
 
 		        	xil_printf("----------cable %d up-----------\r\n",ch+1);
-	            	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x1);
-	            	usleep(10*1000);
-	            	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
-		        	if (ch == 0)
-		        	{
-		        		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x2);
-		        		vdma_config_1();
-		        		vdma_config_2();
-		        		if (vdma_apply_detected_rgb_geom(1U, 2U,
-		        			vdma_passthrough_mon_base_lvds(0U)) != 0)
-		        		{
-		        			s2mm_retune_ticks[ch] = 0U;
-		        		}
-		        		else
-		        		{
-		        			s2mm_retune_ticks[ch] = S2MM_RETUNE_MAX_TICKS;
-		        		}
-		        		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
-		        	}
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 2U)
-		        	else if (ch == 1)
-		        	{
-		        		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x4);
-		        		vdma_config_3();
-		        		vdma_config_4();
-		        		if (vdma_apply_detected_rgb_geom(3U, 2U,
-		        			vdma_passthrough_mon_base_lvds(1U)) != 0)
-		        		{
-		        			s2mm_retune_ticks[ch] = 0U;
-		        		}
-		        		else
-		        		{
-		        			s2mm_retune_ticks[ch] = S2MM_RETUNE_MAX_TICKS;
-		        		}
-		        		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
-		        	}
-#endif
-#if (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES >= 3U)
-		        	else if (ch == 2)
-		        	{
-		        		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x8);
-		        		vdma_config_5();
-		        		vdma_config_6();
-		        		if (vdma_apply_detected_rgb_geom(5U, 2U,
-		        			vdma_passthrough_mon_base_lvds(2U)) != 0)
-		        		{
-		        			s2mm_retune_ticks[ch] = 0U;
-		        		}
-		        		else
-		        		{
-		        			s2mm_retune_ticks[ch] = S2MM_RETUNE_MAX_TICKS;
-		        		}
-		        		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
-		        	}
-#endif
+		        	iterationCounts = 0U;
+		        	vdma_lvds_path_op(ch, 1U);
 #if defined (BSP_HAS_VDMA) && defined (XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES)
-		        	/* 与上一步 vdma_apply 对齐，防止热轮询下一拍重复触发 */
 		        	s2mm_hot_seed_from_mon(ch, vdma_passthrough_mon_base_lvds(ch));
 #endif
 		        }
@@ -867,8 +645,6 @@ void display_fresh(void)
 		        clear_flag[ch] = 0;
 		    }
 #if defined (BSP_HAS_VDMA) && defined (XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES)
-		    /* 先 cable-up monitor 未就绪重试；再运行时跟踪 S2MM 稳定输入并更新 MM2S */
-		    s2mm_retune_try_ch(ch);
 		    s2mm_hot_runtime_geom_poll_ch(ch);
 #endif
 		}

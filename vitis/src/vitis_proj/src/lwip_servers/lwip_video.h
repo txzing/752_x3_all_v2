@@ -24,10 +24,11 @@ typedef struct __attribute__((packed))
 
 
 extern packet_header packet_p;
+extern u8 err_ch;
 
 void lwip_video_transfer(void);
 int handle_err_pic_transfer(int channel);
-int handle_channel_transfer(int channel);
+int handle_channel_transfer(void);
 
 
 #endif //#if defined (UDP_VIDEO) || defined (TCP_VIDEO)

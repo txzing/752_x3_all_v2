@@ -55,7 +55,6 @@ extern int receivelen;
 extern int sendlen;
 extern uint16_t msg_len;
 extern uint16_t msg_cmd;
-extern u8 current_ch;
 #endif
 
 extern struct netif server_netif;

@@ -340,15 +340,6 @@ int start_tcp_cmd_application(void)
     }
 #endif
 
-#if defined (TCP_VIDEO)
-    for (int i = 0; i < ETH_VIDEO_NUM; i++) // 遍历所有通道
-    {
-    	VdmaChannels[i].send_pic_start = 0;
-    	VdmaChannels[i].send_video_start = 0;
-    	VdmaChannels[i].video_sending = 0;
-    }
-#endif
-
     return 0;
 }
 

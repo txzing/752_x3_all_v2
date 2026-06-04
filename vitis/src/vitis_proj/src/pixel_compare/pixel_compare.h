@@ -47,26 +47,33 @@ typedef struct __attribute__((packed))
  u32 roi_x_end;
  u32 roi_y_start;
  u32 roi_y_end;
+ u32 point_x;
+ u32 point_y;
+ u32 point_pixel;
 }vcmp_message;
 
 
 extern volatile u8 pixel_err[XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES];
 extern volatile u8 pixel_err_cnt[XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES];
+extern volatile u8 pixel_cp_start[XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES];
+extern volatile u8 pixel_cp_start_cnt[XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES];
 extern volatile u8 err_auto_send;
 extern vcmp_message  vcmp_m[XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES];
 
 
-Pc_Config *Pc_Config_LookupConfig(u16 DeviceId);
 int Pc_Config_Initialize(Pc_Config *InstancePtr, u16 DeviceId);
 
 void PixelCompareIntrHandler(void *CallbackRef);
 int PixelCompare_init(void);
 uint32_t rbg_swap_rgb(uint32_t pixel);
+/* RBG 寄存器值 -> 上位机协议（LE 线上字节顺序 R,G,B） */
+uint32_t rgb_host_from_reg_rbg(uint32_t reg_rbg);
+/* RBG 寄存器值 -> 调试显示 0x00RRGGBB */
+uint32_t rgb_from_reg_rbg(uint32_t reg_rbg);
 void vcmp_m_refresh_channel(u8 ch);
 
 /* 以太网命令 ch 为 1..N；无效通道返回 0 */
-u32 pixel_compare_axi_base_eth(u8 ch_1based);
-
+u32 pixel_compare_axi_base_eth(u8 ch_based);
 
 #endif
 #endif

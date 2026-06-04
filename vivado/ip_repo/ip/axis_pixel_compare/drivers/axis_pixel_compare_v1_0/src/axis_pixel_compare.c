@@ -2,9 +2,9 @@
  * @file axis_pixel_compare.c
  * @brief Driver helper implementations.
  *
- * Version: 2.5 (must match spirit:version in component.xml and OPTION VERSION in
+ * Version: 2.19 (must match spirit:version in component.xml and OPTION VERSION in
  *          drivers/axis_pixel_compare_v1_0/data/axis_pixel_compare.mdd)
- * Revision date: 2026-05-13
+ * Revision date: 2026-06-02
  *
  * Revision highlights:
  * - XAxisPixelCompare_LookupConfig() walks XAxisPixelCompare_ConfigTable[]
