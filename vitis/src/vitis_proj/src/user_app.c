@@ -198,18 +198,6 @@ void uart_receive_process(void)
 		{
 
 		    xil_printf("--------------------------------------------\r\n");
-			xil_printf("-PIXEL_POINT: %x -\r\n", rgb_from_reg_rbg(Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + PIXEL_POINT)));
-			xil_printf("-STREAM_IN_DATA_HOLD: %x -\r\n", rgb_from_reg_rbg(Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + STREAM_IN_DATA_HOLD)));
-			xil_printf("-ERR_COL: %d -\r\n", Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + ERR_COL));
-			xil_printf("-ERR_LINE: %d -\r\n", Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + ERR_LINE));
-			xil_printf("-RGB_CNT_PIXEL: %x -\r\n", rgb_from_reg_rbg(Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + RGB_CNT_PIXEL)));
-			xil_printf("-RGB_PIXEL_TOTAL: %d -\r\n", Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + RGB_PIXEL_TOTAL));
-			xil_printf("-RGB_NOT_PIXEL: %x -\r\n", rgb_from_reg_rbg(Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + RGB_NOT_PIXEL)));
-			xil_printf("-ROI_X_START: %d -\r\n", (Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + ROI_X_START)) & 0xFFFFU);
-			xil_printf("-ROI_X_END: %d -\r\n", (Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + ROI_X_END)) & 0xFFFFU);
-			xil_printf("-ROI_Y_START: %d -\r\n", (Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + ROI_Y_START)) & 0xFFFFU);
-			xil_printf("-ROI_Y_END: %d -\r\n", (Xil_In32(XPAR_LVDS_S1_AXIS_PIXEL_COMPARE_0_S00_AXI_BASEADDR + ROI_Y_END)) & 0xFFFFU);
-
 		}
 		else if(UserInput == 's')
 		{

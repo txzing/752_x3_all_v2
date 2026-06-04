@@ -66,10 +66,10 @@ int Pc_Config_Initialize(Pc_Config *InstancePtr, u16 DeviceId);
 void PixelCompareIntrHandler(void *CallbackRef);
 int PixelCompare_init(void);
 uint32_t rbg_swap_rgb(uint32_t pixel);
-/* RBG 寄存器值 -> 上位机协议（LE 线上字节顺序 R,G,B） */
-uint32_t rgb_host_from_reg_rbg(uint32_t reg_rbg);
-/* RBG 寄存器值 -> 调试显示 0x00RRGGBB */
+/* RBG 寄存器值 -> 上位机 0x00RRGGBB（与 rbg_swap_rgb / cmd 7、8 一致） */
 uint32_t rgb_from_reg_rbg(uint32_t reg_rbg);
+/* 同 rgb_from_reg_rbg，保留旧名 */
+uint32_t rgb_host_from_reg_rbg(uint32_t reg_rbg);
 void vcmp_m_refresh_channel(u8 ch);
 
 /* 以太网命令 ch 为 1..N；无效通道返回 0 */

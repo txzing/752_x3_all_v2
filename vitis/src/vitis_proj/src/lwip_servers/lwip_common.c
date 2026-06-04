@@ -855,7 +855,10 @@ void msg_cmd_0x30(void)
 		pixel = ((uint32_t)receivebuf[7] << 16) |
 		        ((uint32_t)receivebuf[8] << 8) |
 		        (uint32_t)receivebuf[9];
+		xil_printf("cmd_index %x pixel %x\r\n",cmd_index, pixel);
+
 		pixel_swap = rbg_swap_rgb(pixel);
+		xil_printf("pixel_swap %x\r\n",pixel_swap);
 		base_addr = pixel_compare_axi_base_eth(ch);
 		if (base_addr == 0U)
 		{

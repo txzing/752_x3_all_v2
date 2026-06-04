@@ -163,27 +163,19 @@ void PixelCompareIntrHandler(void *CallbackRef)
 		{
 			pixel_err[ch] = 1U;
 			vcmp_m_fill_from_base(PC_p->BaseAddress, ch);
-			xil_printf("PCITR %d\r\n", vcmp_m[ch].channel);
-		//	xil_printf("status %x\r\n", vcmp_m[ch].status);
-		//	xil_printf("Width %d\r\n", vcmp_m[ch].Width);
-		//	xil_printf("Height %d\r\n", vcmp_m[ch].Height);
-		//	xil_printf("fps %d\r\n", vcmp_m[ch].fps);
-		//	xil_printf("fps_total_cnt %d\r\n", vcmp_m[ch].fps_total_cnt);
-			xil_printf("error_pixel_hold %x\r\n", rgb_host_from_reg_rbg(vcmp_m[ch].error_pixel_hold));
-			xil_printf("pixel_hold %x\r\n", rgb_host_from_reg_rbg(vcmp_m[ch].pixel_hold));
-			xil_printf("pixel_threshold %d\r\n", vcmp_m[ch].pixel_threshold);
-			xil_printf("error_col %d\r\n", vcmp_m[ch].error_col);
-			xil_printf("error_line %d\r\n", vcmp_m[ch].error_line);
-		//	xil_printf("rgb_cnt_pixel %x\r\n", rgb_host_from_reg_rbg(vcmp_m[ch].rgb_cnt_pixel);
-		//	xil_printf("rgb_pixel_total %d\r\n", vcmp_m[ch].rgb_pixel_total);
-		//	xil_printf("rgb_not_pixel %x\r\n", rgb_host_from_reg_rbg(vcmp_m[ch].rgb_not_pixel));
-		//	xil_printf("roi_x_start %d\r\n", vcmp_m[ch].roi_x_start);
-		//	xil_printf("roi_x_end %d\r\n", vcmp_m[ch].roi_x_end);
-		//	xil_printf("roi_y_start %d\r\n", vcmp_m[ch].roi_y_start);
-		//	xil_printf("roi_y_end %d\r\n", vcmp_m[ch].roi_y_end);
-		//	xil_printf("point_x %d\r\n", vcmp_m[ch].point_x);
-		//	xil_printf("point_y %d\r\n", vcmp_m[ch].point_y);
-		//	xil_printf("point_pixel %x\r\n", rgb_host_from_reg_rbg(vcmp_m[ch].point_pixel));
+			xil_printf("PCITR %d\r\n", (int)ch + 1);
+//			xil_printf("-FPS_TOTAL_CNT: %d -\r\n", Xil_In32(PC_p->BaseAddress + FPS_TOTAL_CNT));
+			xil_printf("-PIXEL_POINT: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + ERROE_DATA_HOLD)));
+			xil_printf("-STREAM_IN_DATA_HOLD: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + STREAM_IN_DATA_HOLD)));
+			xil_printf("-ERR_COL: %d -\r\n", vcmp_m[ch].error_col);
+			xil_printf("-ERR_LINE: %d -\r\n", vcmp_m[ch].error_line);
+//			xil_printf("-RGB_CNT_PIXEL: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + RGB_CNT_PIXEL)));
+//			xil_printf("-RGB_PIXEL_TOTAL: %d -\r\n", Xil_In32(PC_p->BaseAddress + RGB_PIXEL_TOTAL));
+//			xil_printf("-RGB_NOT_PIXEL: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + RGB_NOT_PIXEL)));
+//			xil_printf("-ROI_X_START: %d -\r\n", (Xil_In32(PC_p->BaseAddress + ROI_X_START)) & 0xFFFFU);
+//			xil_printf("-ROI_X_END: %d -\r\n", (Xil_In32(PC_p->BaseAddress + ROI_X_END)) & 0xFFFFU);
+//			xil_printf("-ROI_Y_START: %d -\r\n", (Xil_In32(PC_p->BaseAddress + ROI_Y_START)) & 0xFFFFU);
+//			xil_printf("-ROI_Y_END: %d -\r\n", (Xil_In32(PC_p->BaseAddress + ROI_Y_END)) & 0xFFFFU);
 		}
 		Xil_Out32(PC_p->BaseAddress + INTR_CLEAR, 0x1);
 	}
@@ -233,15 +225,6 @@ uint32_t rgb_host_from_reg_rbg(uint32_t reg_rbg)
 
 	/* LE 线上字节顺序 R,G,B，与上位机 Set/Get Statistics Pixel 一致 */
 	return r | (g << 8) | (b << 16);
-}
-
-uint32_t rgb_from_reg_rbg(uint32_t reg_rbg)
-{
-	const uint32_t r = (reg_rbg >> 16) & 0xFFU;
-	const uint32_t b = (reg_rbg >> 8) & 0xFFU;
-	const uint32_t g = reg_rbg & 0xFFU;
-
-	return (r << 16) | (g << 8) | b;
 }
 
 #endif
