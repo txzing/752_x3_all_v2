@@ -169,21 +169,21 @@ void PixelCompareIntrHandler(void *CallbackRef)
 		//	xil_printf("Height %d\r\n", vcmp_m[ch].Height);
 		//	xil_printf("fps %d\r\n", vcmp_m[ch].fps);
 		//	xil_printf("fps_total_cnt %d\r\n", vcmp_m[ch].fps_total_cnt);
-			xil_printf("error_pixel_hold %8x\r\n", vcmp_m[ch].error_pixel_hold);
-			xil_printf("pixel_hold %8x\r\n", vcmp_m[ch].pixel_hold);
+			xil_printf("error_pixel_hold %x\r\n", rgb_host_from_reg_rbg(vcmp_m[ch].error_pixel_hold));
+			xil_printf("pixel_hold %x\r\n", rgb_host_from_reg_rbg(vcmp_m[ch].pixel_hold));
 			xil_printf("pixel_threshold %d\r\n", vcmp_m[ch].pixel_threshold);
 			xil_printf("error_col %d\r\n", vcmp_m[ch].error_col);
 			xil_printf("error_line %d\r\n", vcmp_m[ch].error_line);
-		//	xil_printf("rgb_cnt_pixel %8x\r\n", vcmp_m[ch].rgb_cnt_pixel);
+		//	xil_printf("rgb_cnt_pixel %x\r\n", rgb_host_from_reg_rbg(vcmp_m[ch].rgb_cnt_pixel);
 		//	xil_printf("rgb_pixel_total %d\r\n", vcmp_m[ch].rgb_pixel_total);
-		//	xil_printf("rgb_not_pixel %8x\r\n", vcmp_m[ch].rgb_not_pixel);
+		//	xil_printf("rgb_not_pixel %x\r\n", rgb_host_from_reg_rbg(vcmp_m[ch].rgb_not_pixel));
 		//	xil_printf("roi_x_start %d\r\n", vcmp_m[ch].roi_x_start);
 		//	xil_printf("roi_x_end %d\r\n", vcmp_m[ch].roi_x_end);
 		//	xil_printf("roi_y_start %d\r\n", vcmp_m[ch].roi_y_start);
 		//	xil_printf("roi_y_end %d\r\n", vcmp_m[ch].roi_y_end);
 		//	xil_printf("point_x %d\r\n", vcmp_m[ch].point_x);
 		//	xil_printf("point_y %d\r\n", vcmp_m[ch].point_y);
-		//	xil_printf("point_pixel %8x\r\n", vcmp_m[ch].point_pixel);
+		//	xil_printf("point_pixel %x\r\n", rgb_host_from_reg_rbg(vcmp_m[ch].point_pixel));
 		}
 		Xil_Out32(PC_p->BaseAddress + INTR_CLEAR, 0x1);
 	}
