@@ -78,7 +78,7 @@ int handle_err_pic_transfer(int channel)
 	{
 		return;
 	}
-	if(err_ch != current_ch)
+	if(channel != err_ch)
 	{
 		mon_base = vdma_passthrough_mon_base_lvds(channel - 1);
 		if (mon_base == 0U)
@@ -97,7 +97,9 @@ int handle_err_pic_transfer(int channel)
 		currentChannel->pkg_cnt = 1U;
 		currentChannel->udp_send_times =  (u16)(((currentChannel->FrameLength + (currentChannel->UDP_IMG_PACKEG_SIZE - 1U))
 											/ currentChannel->UDP_IMG_PACKEG_SIZE));
-		err_ch = current_ch;
+//        xil_printf("err_channel:%d, err_ch:%d ,current_ch:%d --", channel, err_ch, current_ch);
+//        xil_printf("currentChannel->Width:%d ,currentChannel->Height:%d\r\n", currentChannel->Width, currentChannel->Height);
+		err_ch = channel;
 	}
 	// 检查当前帧是否已发送完所有数据包
 	if (currentChannel->pkg_cnt <= currentChannel->udp_send_times)
