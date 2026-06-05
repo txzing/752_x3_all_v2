@@ -929,7 +929,7 @@ void vdma_lvds_path_op(u8 lvds, u8 with_config)
 	{
 		return;
 	}
-	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, with_config ? (8U << lvds) : (9U << lvds));
+	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, with_config ? (8U << lvds) : ((8U << lvds) | 0x7));
 	clear_vdma_instance(v0);
 	clear_vdma_instance((u8)(v0 + 1U));
 	if (with_config != 0U)
