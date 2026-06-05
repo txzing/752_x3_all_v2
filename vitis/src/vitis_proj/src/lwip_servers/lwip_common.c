@@ -770,11 +770,7 @@ void msg_cmd_0x30(void)
 			return;
 		}
 
-		if (vdma_passthrough_read_mon(base_addr, &col, &line, &fps) == 0)
-		{
-			ack_fail_request();
-			return;
-		}
+		vdma_passthrough_read_mon(base_addr, &col, &line, &fps);
 
 		memcpy(send_buf,receivebuf,7);
 		memcpy(send_buf+7,&col,4);

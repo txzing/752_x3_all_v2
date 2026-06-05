@@ -149,7 +149,7 @@ void clear_display(void);
 int vdma_apply_detected_rgb_geom(u8 first_vdma_id, u8 num_vdma, u32 mon_base);
 void vdma_config_instance(u8 id);
 void clear_vdma_instance(u8 id);
-void vdma_lvds_path_op(u8 lvds, u8 with_config);
+void vdma_lvds_path_op(u8 lvds_ch, u8 with_config);
 
 #if defined (XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES)
 u32 vdma_passthrough_mon_base_lvds(u8 lvds_idx_based);

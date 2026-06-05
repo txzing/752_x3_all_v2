@@ -916,20 +916,34 @@ void clear_vdma_instance(u8 id)
 }
 
 /* lvds: 0-based；with_config=1 清屏+默认几何，0 仅清屏。GPIO 掩码与 cable-up/down 一致 */
-void vdma_lvds_path_op(u8 lvds, u8 with_config)
+void vdma_lvds_path_op(u8 lvds_ch, u8 with_config)
 {
 	u8 v0;
 
-	if (lvds >= CHANNEL_NUM)
+	if (lvds_ch >= CHANNEL_NUM)
 	{
 		return;
 	}
-	v0 = (u8)((2U * lvds) + 1U);
+	v0 = (u8)((2U * lvds_ch) + 1U);
 	if ((u8)XPAR_XAXIVDMA_NUM_INSTANCES < (u8)(v0 + 2U))
 	{
 		return;
 	}
-	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, with_config ? (8U << lvds) : ((8U << lvds) | 0x7));
+
+	if(lvds_ch == 0)
+	{
+		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0xD);
+	}
+	else if(lvds_ch == 1)
+	{
+		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x12);
+	}
+	else if(lvds_ch == 2)
+	{
+		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x25);
+	}
+
+
 	clear_vdma_instance(v0);
 	clear_vdma_instance((u8)(v0 + 1U));
 	if (with_config != 0U)
