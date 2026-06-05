@@ -15,7 +15,7 @@ u8 switch_ch;
 u8 lock_status[CHANNEL_NUM] = {0};
 u8 reconfig_flag[CHANNEL_NUM] = {0};
 u8 clear_flag[CHANNEL_NUM] = {0};
-
+u8 stream_id[CHANNEL_NUM] = {0};
 
 void app_info(void)
 {
@@ -254,6 +254,8 @@ void uart_receive_process(void)
 
 			ret8 = 0;
 			xil_printf("***********96752 current_ch***********\r\n");
+			xgpio_i2c_reg16_read(current_ch, 0x90>>1, 0x0000, &ret8, STRETCH_ON);
+			xil_printf("0x0000 == 0x%02x\r\n", ret8);
 			xil_printf("***link lock [3]***\r\n");
 			xgpio_i2c_reg16_read(current_ch, 0x90>>1, 0x0013, &ret8, STRETCH_ON);
 			xil_printf("0x0013 == 0x%02x\r\n", ret8);
@@ -481,10 +483,11 @@ static void s2mm_hot_runtime_geom_poll_ch(u8 ch)
 
 void Disp_State_Detect(u8 channel)
 {
+
+	static u8 cnt[CHANNEL_NUM] = {0};
 	u32 ret32;
 	u8 ret8;
 	u8  idx;
-	static u8 stream_id = 0;
     u8 gmsl_locked;
     u8 video_locked;
 
@@ -492,6 +495,13 @@ void Disp_State_Detect(u8 channel)
     {
         return;
     }
+
+    if(cnt[channel] <= 2)
+    {
+    	cnt[channel]++;
+    	return;
+    }
+    cnt[channel] = 0;
     idx = channel - 1;
     static u8 unlock_cnt[CHANNEL_NUM] = {0};
 
@@ -503,9 +513,18 @@ void Disp_State_Detect(u8 channel)
 
 	if (gmsl_locked && !video_locked)
 	{
-		stream_id ^= 1;
-		xil_printf("channel %d now stream_id: %d\r\n",channel, stream_id);
-		xgpio_i2c_reg16_write(channel, 0x90>>1, 0x0050, stream_id, STRETCH_ON);
+		if(stream_id[channel - 1] == 0)
+		{
+			stream_id[channel - 1] = 1;
+		}
+		else if(stream_id[channel - 1] == 1)
+		{
+			stream_id[channel - 1] = 0;
+		}
+
+		xil_printf("channel %d now stream_id: %d\r\n",channel, stream_id[channel - 1]);
+		xgpio_i2c_reg16_write(channel, 0x90>>1, 0x0050, stream_id[channel - 1]&0x1, STRETCH_ON);
+		xgpio_i2c_reg16_write(channel, 0x90>>1, 0x0010, 0x31, STRETCH_ON);
 	}
 
     if ((gmsl_locked == 0) || (video_locked == 0))

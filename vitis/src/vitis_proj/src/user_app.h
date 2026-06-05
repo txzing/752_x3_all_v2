@@ -47,6 +47,7 @@ extern u32 ret32;
 extern u8 ret8;
 extern u8 current_ch;
 extern u8 switch_ch;
+extern  u8 stream_id[CHANNEL_NUM];
 
 /* 切换视频源：配置 AxisSwitch 与 current_ch；UDP 侧在传完当前帧后由 vdma_lwip_try_pending_channel_switch 调用本函数 */
 void board_apply_video_channel_switch(u8 switch_ch);
