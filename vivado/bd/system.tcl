@@ -1796,7 +1796,7 @@ proc create_root_design { parentCell } {
   # Create instance: HW_VER, and set properties
   set HW_VER [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 HW_VER ]
   set_property -dict [ list \
-   CONFIG.CONST_VAL {0x20260509} \
+   CONFIG.CONST_VAL {0x20260606} \
    CONFIG.CONST_WIDTH {32} \
  ] $HW_VER
 
@@ -1807,7 +1807,7 @@ proc create_root_design { parentCell } {
   set axi_gpio_lvds_reset [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_lvds_reset ]
   set_property -dict [ list \
    CONFIG.C_ALL_OUTPUTS {1} \
-   CONFIG.C_GPIO_WIDTH {6} \
+   CONFIG.C_GPIO_WIDTH {4} \
  ] $axi_gpio_lvds_reset
 
   # Create instance: axi_vdma_lwip, and set properties
@@ -1930,50 +1930,32 @@ proc create_root_design { parentCell } {
   # Create instance: xlslice_0, and set properties
   set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
   set_property -dict [ list \
-   CONFIG.DIN_WIDTH {6} \
+   CONFIG.DIN_WIDTH {4} \
  ] $xlslice_0
-
-  # Create instance: xlslice_1, and set properties
-  set xlslice_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_1 ]
-  set_property -dict [ list \
-   CONFIG.DIN_FROM {1} \
-   CONFIG.DIN_TO {1} \
-   CONFIG.DIN_WIDTH {6} \
-   CONFIG.DOUT_WIDTH {1} \
- ] $xlslice_1
-
-  # Create instance: xlslice_2, and set properties
-  set xlslice_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_2 ]
-  set_property -dict [ list \
-   CONFIG.DIN_FROM {2} \
-   CONFIG.DIN_TO {2} \
-   CONFIG.DIN_WIDTH {6} \
-   CONFIG.DOUT_WIDTH {1} \
- ] $xlslice_2
 
   # Create instance: xlslice_lvds_0, and set properties
   set xlslice_lvds_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_lvds_0 ]
   set_property -dict [ list \
-   CONFIG.DIN_FROM {3} \
-   CONFIG.DIN_TO {3} \
-   CONFIG.DIN_WIDTH {6} \
+   CONFIG.DIN_FROM {1} \
+   CONFIG.DIN_TO {1} \
+   CONFIG.DIN_WIDTH {4} \
  ] $xlslice_lvds_0
 
   # Create instance: xlslice_lvds_1, and set properties
   set xlslice_lvds_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_lvds_1 ]
   set_property -dict [ list \
-   CONFIG.DIN_FROM {4} \
-   CONFIG.DIN_TO {4} \
-   CONFIG.DIN_WIDTH {6} \
+   CONFIG.DIN_FROM {2} \
+   CONFIG.DIN_TO {2} \
+   CONFIG.DIN_WIDTH {4} \
    CONFIG.DOUT_WIDTH {1} \
  ] $xlslice_lvds_1
 
   # Create instance: xlslice_lvds_2, and set properties
   set xlslice_lvds_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_lvds_2 ]
   set_property -dict [ list \
-   CONFIG.DIN_FROM {5} \
-   CONFIG.DIN_TO {5} \
-   CONFIG.DIN_WIDTH {6} \
+   CONFIG.DIN_FROM {3} \
+   CONFIG.DIN_TO {3} \
+   CONFIG.DIN_WIDTH {4} \
    CONFIG.DOUT_WIDTH {1} \
  ] $xlslice_lvds_2
 
@@ -2031,7 +2013,7 @@ proc create_root_design { parentCell } {
 
   # Create port connections
   connect_bd_net -net axi_gpio_0_gpio_io_o1 [get_bd_ports uart_0_txen] [get_bd_pins processor_subsystem/uart_0_txen]
-  connect_bd_net -net axi_gpio_lvds_reset_gpio_io_o [get_bd_pins axi_gpio_lvds_reset/gpio_io_o] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_1/Din] [get_bd_pins xlslice_2/Din] [get_bd_pins xlslice_lvds_0/Din] [get_bd_pins xlslice_lvds_1/Din] [get_bd_pins xlslice_lvds_2/Din]
+  connect_bd_net -net axi_gpio_lvds_reset_gpio_io_o [get_bd_pins axi_gpio_lvds_reset/gpio_io_o] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_lvds_0/Din] [get_bd_pins xlslice_lvds_1/Din] [get_bd_pins xlslice_lvds_2/Din]
   connect_bd_net -net axi_vdma_2_s2mm_introut [get_bd_pins axi_vdma_lwip/s2mm_introut] [get_bd_pins processor_subsystem/In3]
   connect_bd_net -net clkin1_n_0_1 [get_bd_ports ch0_clkin0_n] [get_bd_pins lvds4x2_1to7_0/clkin1_n]
   connect_bd_net -net clkin1_n_0_2 [get_bd_ports ch1_clkin0_n] [get_bd_pins lvds4x2_1to7_1/clkin1_n]
@@ -2084,15 +2066,13 @@ proc create_root_design { parentCell } {
   connect_bd_net -net lvds_s2_intr [get_bd_pins lvds_s2/intr] [get_bd_pins processor_subsystem/In6]
   connect_bd_net -net lvds_s2_peripheral_aresetn [get_bd_pins axis_passthrough_mon_2/aresetn] [get_bd_pins lvds_s2/peripheral_aresetn] [get_bd_pins v_vid_in_axi4s_2/aresetn]
   connect_bd_net -net lvds_s2_peripheral_reset [get_bd_pins lvds_s2/peripheral_reset] [get_bd_pins v_vid_in_axi4s_2/vid_io_in_reset]
+  connect_bd_net -net proc_sys_reset_0_peripheral_reset [get_bd_pins lvds4x2_1to7_0/reset] [get_bd_pins lvds4x2_1to7_1/reset] [get_bd_pins lvds4x2_1to7_2/reset] [get_bd_pins xlslice_0/Dout]
   connect_bd_net -net rst_ps8_0_300M_peripheral_aresetn [get_bd_pins axi_gpio_lvds_reset/s_axi_aresetn] [get_bd_pins axi_vdma_lwip/axi_resetn] [get_bd_pins axis_passthrough_mon_0/s_axi_lite_aresetn] [get_bd_pins axis_passthrough_mon_1/s_axi_lite_aresetn] [get_bd_pins axis_passthrough_mon_2/s_axi_lite_aresetn] [get_bd_pins axis_switch_0/aresetn] [get_bd_pins axis_switch_0/s_axi_ctrl_aresetn] [get_bd_pins lvds_s0/s_axi_lite_aresetn] [get_bd_pins lvds_s1/s_axi_lite_aresetn] [get_bd_pins lvds_s2/s_axi_lite_aresetn] [get_bd_pins processor_subsystem/peripheral_aresetn] [get_bd_pins xgpio_i2c_0/s_axi_aresetn]
   connect_bd_net -net xlconcat_1_dout [get_bd_pins v_vid_in_axi4s_0/vid_data] [get_bd_pins xlconcat_0/dout]
   connect_bd_net -net xlconcat_2_dout [get_bd_pins v_vid_in_axi4s_1/vid_data] [get_bd_pins xlconcat_1/dout]
   connect_bd_net -net xlconcat_3_dout [get_bd_pins v_vid_in_axi4s_2/vid_data] [get_bd_pins xlconcat_2/dout]
   connect_bd_net -net xlconstant_1_dout [get_bd_pins HW_VER/dout] [get_bd_pins processor_subsystem/VERSION]
   connect_bd_net -net xlconstant_4_dout [get_bd_pins VCC/dout] [get_bd_pins v_vid_in_axi4s_0/aclken] [get_bd_pins v_vid_in_axi4s_0/axis_enable] [get_bd_pins v_vid_in_axi4s_0/vid_io_in_ce] [get_bd_pins v_vid_in_axi4s_1/aclken] [get_bd_pins v_vid_in_axi4s_1/axis_enable] [get_bd_pins v_vid_in_axi4s_1/vid_io_in_ce] [get_bd_pins v_vid_in_axi4s_2/aclken] [get_bd_pins v_vid_in_axi4s_2/axis_enable] [get_bd_pins v_vid_in_axi4s_2/vid_io_in_ce]
-  connect_bd_net -net xlslice_0_Dout [get_bd_pins lvds4x2_1to7_0/reset] [get_bd_pins xlslice_0/Dout]
-  connect_bd_net -net xlslice_1_Dout [get_bd_pins lvds4x2_1to7_1/reset] [get_bd_pins xlslice_1/Dout]
-  connect_bd_net -net xlslice_2_Dout [get_bd_pins lvds4x2_1to7_2/reset] [get_bd_pins xlslice_2/Dout]
   connect_bd_net -net xlslice_3_Dout [get_bd_pins lvds_s0/rst] [get_bd_pins xlslice_lvds_0/Dout]
   connect_bd_net -net xlslice_4_Dout [get_bd_pins lvds_s1/rst] [get_bd_pins xlslice_lvds_1/Dout]
   connect_bd_net -net xlslice_5_Dout [get_bd_pins lvds_s2/rst] [get_bd_pins xlslice_lvds_2/Dout]

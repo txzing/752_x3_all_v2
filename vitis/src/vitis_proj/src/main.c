@@ -152,7 +152,7 @@ int main()
 
 	app_info();
 	xil_printf("\r\nstart\r\n");
-	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x7);
+	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x1);
 	usleep(50*1000);
 	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
 

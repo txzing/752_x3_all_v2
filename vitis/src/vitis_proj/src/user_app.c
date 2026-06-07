@@ -182,14 +182,14 @@ void uart_receive_process(void)
 		else if(UserInput == 'r')
 		{
 			xil_printf("------------reset lvds------------\r\n");
-			XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0xff);
+			XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0xf);
 			usleep(20*1000);
 			XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
 		}
 		else if(UserInput == 'c')
 		{
 			xil_printf("------------clear display------------\r\n");
-			XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0xff);
+			XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0xf);
 		    clear_display();
 		    vdma_config();
 			XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
@@ -449,11 +449,22 @@ static void s2mm_hot_runtime_geom_poll_ch(u8 ch)
 	{
 		return;
 	}
-	if (s2mm_resolve_ch(ch, &mon_base, &first_id, &num_vdma) == 0U
-	    || vdma_passthrough_read_mon(mon_base, &rw, &rh, NULL) == 0)
+	if (s2mm_resolve_ch(ch, &mon_base, &first_id, &num_vdma) == 0U)
 	{
 		return;
 	}
+
+	if (vdma_passthrough_read_mon(mon_base, &rw, &rh, NULL) == 0)
+	{
+//		xil_printf("------------reset ch_%d lvds------------\r\n",ch + 1U);
+//    	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x1);
+//    	usleep(20*1000);
+//    	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
+//    	iterationCounts = 0U;
+//    	vdma_lvds_path_op(ch, 1U);
+		return;
+	}
+
 	st = &s2mm_hot[ch];
 	if (rw == st->stable_w && rh == st->stable_h)
 	{
@@ -546,7 +557,7 @@ void Disp_State_Detect(u8 channel)
 
 void display_fresh(void)
 {
-	if(timer_cnt >= 1)//200ms
+	if(timer_cnt >= 1)//500ms
 	{
 		timer_cnt = 0;
 
@@ -587,7 +598,7 @@ void display_fresh(void)
 //					xil_printf("----------pixel_cp_start_%d_cnt %d-----------\r\n",ch+1,pixel_cp_start_cnt[ch]);
 					pixel_cp_start_cnt[ch] = pixel_cp_start_cnt[ch] + 1;
 				}
-				else if(pixel_cp_start_cnt[ch] == 6U)
+				else if(pixel_cp_start_cnt[ch] == 3U)
 				{
 					pixel_cp_start[ch] = 0U;
 					pixel_cp_start_cnt[ch] = 0U;
@@ -642,6 +653,9 @@ void display_fresh(void)
 
 
 		        	xil_printf("----------cable %d up-----------\r\n",ch+1);
+	            	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x1);
+	            	usleep(20*1000);
+	            	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
 		        	iterationCounts = 0U;
 		        	vdma_lvds_path_op(ch, 1U);
 #if defined (BSP_HAS_VDMA) && defined (XPAR_AXI_PASSTHROUGH_MONITOR_NUM_INSTANCES)

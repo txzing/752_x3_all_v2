@@ -35,7 +35,7 @@ void timer_intr_hander(void *InstancePtr) //
 
 #define US (XPAR_TMRCTR_0_CLOCK_FREQ_HZ / 1000000)
 #define MS (1000*US)
-#define TIMER_TLR  200*MS
+#define TIMER_TLR  500*MS
 int lock_timer_init(void)
 {
 	int Status;

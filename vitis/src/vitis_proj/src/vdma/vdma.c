@@ -932,17 +932,17 @@ void vdma_lvds_path_op(u8 lvds_ch, u8 with_config)
 
 	if(lvds_ch == 0)
 	{
-		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0xD);
+		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x2);
 	}
 	else if(lvds_ch == 1)
 	{
-		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x12);
+		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x4);
 	}
 	else if(lvds_ch == 2)
 	{
-		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x25);
+		XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x8);
 	}
-
+	xil_printf("------------reset lvds_ch_%d------------\r\n",lvds_ch + 1U);
 
 	clear_vdma_instance(v0);
 	clear_vdma_instance((u8)(v0 + 1U));
