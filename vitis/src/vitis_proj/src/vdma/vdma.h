@@ -191,7 +191,7 @@ void vdma_lwip_stop_media(void);
 
 #define SEND_PIC 	0
 #define SEND_VIDEO 	1
-
+#define MAX_ITERATIONS 3 // 每个通道运行的最大次数
 
 #if defined (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES)
 	#define FRAME_ERR_BUFFER         	FRAME_BUFFER_BASE_ADDR - (FRAME_BUFFER_SIZE0*1)

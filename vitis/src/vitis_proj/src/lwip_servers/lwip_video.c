@@ -21,7 +21,8 @@ void lwip_video_transfer(void)
 	{
 		if (((VC_inst.send_pic_start == 1) ||
 			 (VC_inst.send_video_start == 1) ||
-			 (VC_inst.video_sending == 1)))
+			 (VC_inst.video_sending == 1)) &&
+			 (iterationCounts > MAX_ITERATIONS))
 		{
 			// 调用通用传输逻辑处理
 			handle_channel_transfer();

@@ -4,7 +4,6 @@
 
 #if defined (UDP_VIDEO) || defined (TCP_VIDEO)
 
-#define MAX_ITERATIONS 3 // 每个通道运行的最大次数
 volatile u32 iterationCounts = 0; // 每个通道的计数器
 
 static void vdma_lwip_program_s2mm(VdmaChannel *vc, u32 want_w, u32 h);
@@ -132,7 +131,7 @@ static void vdma_lwip_program_s2mm(VdmaChannel *vc, u32 w, u32 h)
 void MonitorAndExitAfterIterations(void)
 {
 
-	if (iterationCounts < MAX_ITERATIONS)
+	if (iterationCounts <= MAX_ITERATIONS)
 	{
 		if(VC_inst.WriteOneFrameEnd >= 0)
 		{
@@ -439,6 +438,7 @@ void vdma_lwip_arm_pic_capture(void)
 	vc->pkg_cnt = 1U;
 	/* 勿用缓冲区里在发图指令之前的旧帧；等下一次 S2MM 写满再传 */
 	vc->WriteOneFrameEnd = -1;
+	iterationCounts = 0U;
 }
 
 void vdma_lwip_arm_video_stream(void)
