@@ -1,0 +1,38 @@
+//set cell_handle [get_bd_cells $cellpath]
+set cell_handle [get_bd_cells lvds4x2_1to7_0]
+put $cell_handle
+/lvds4x2_1to7_0
+
+get_bd_intf_pins lvds4x2_1to7_0/*
+get_bd_pins lvds4x2_1to7_0/*
+/lvds4x2_1to7_0/clkin1_n /lvds4x2_1to7_0/clkin1_p /lvds4x2_1to7_0/clkin2_n /lvds4x2_1to7_0/clkin2_p /lvds4x2_1to7_0/datain1_n /lvds4x2_1to7_0/datain1_p /lvds4x2_1to7_0/datain2_n /lvds4x2_1to7_0/datain2_p /lvds4x2_1to7_0/px_clk /lvds4x2_1to7_0/px_data /lvds4x2_1to7_0/px_ready /lvds4x2_1to7_0/refclk /lvds4x2_1to7_0/reset
+
+get_bd_pins lvds4x2_1to7_0/refclk
+get_property config.FREQ_HZ [get_bd_pins lvds4x2_1to7_0/refclk]
+
+
+get_property CONFIG.FREQ_HZ.VALUE_SRC [get_bd_pins lvds4x2_1to7_0/refclk]
+CONSTANT
+set_property CONFIG.FREQ_HZ.VALUE_SRC PROPAGATED [get_bd_pins lvds4x2_1to7_0/refclk]
+
+get_property config.FREQ_HZ [find_bd_objs –relation connected_to [get_bd_pins lvds4x2_1to7_0/refclk]]
+300000000
+set_property config.FREQ_HZ [get_property config.FREQ_HZ [find_bd_objs –relation connected_to [get_bd_pins lvds4x2_1to7_0/refclk]]] [get_bd_pins lvds4x2_1to7_0/refclk]
+get_property config.FREQ_HZ [get_bd_pins lvds4x2_1to7_0/refclk]
+300000000
+
+
+get_property config.REF_FREQ [get_bd_cells lvds4x2_1to7_0]
+300
+set_property config.REF_FREQ [expr [get_property config.FREQ_HZ [get_bd_pins lvds4x2_1to7_0/refclk]]/1000000] [get_bd_cells lvds4x2_1to7_0]
+
+
+
+get_property CONFIG.FREQ_HZ.VALUE_SRC [get_bd_intf_pins lvds4x2_1to7_0/clkin1]
+CONSTANT
+set_property CONFIG.FREQ_HZ.VALUE_SRC PROPAGATED [get_bd_intf_pins lvds4x2_1to7_0/clkin1]
+
+
+
+bd/bd.tcl文件不要有 find_bd_objs –relation connected_to 之类的语句, vivado要重新启动才会更新, 
+而且看起来只有propagate段才真有效, pre_propagate就条件式的好了
