@@ -298,7 +298,7 @@ int lwip_common_init(struct netif *netif)
 	VC_inst.send_pic_start = 0;
 	VC_inst.video_sending = 0;
 	VC_inst.send_video_start = 0;
-	err_ch = current_ch;
+	err_ch = 0;
 #endif
 
 	return XST_SUCCESS;
@@ -750,11 +750,11 @@ void msg_cmd_0x30(void)
 	else if(cmd_index == 3)
 	{
 
-		uint32_t col;
-		uint32_t line;
-		uint32_t fps;
+		uint32_t col = 0;
+		uint32_t line = 0;
+		uint32_t fps = 0;
 
-		if (ch < 1U || ch > (uint8_t)CHANNEL_NUM)
+		if (ch < 1U || ch > CHANNEL_NUM)
 		{
 			ack_fail_request();
 			return;
@@ -1035,13 +1035,19 @@ void msg_cmd_0x40(void)
 			return;
 		}
 		memcpy(&var1,receivebuf+7,1);
-		current_ch = var1;
-		memcpy(send_buf,receivebuf,7);
-		memcpy(send_buf+7,&var1,1);
-		sendlen = 7 + 1 + 1;
+		switch_ch = var1;
+
+		if (switch_ch < 1U || switch_ch > CHANNEL_NUM)
+		{
+			ack_fail_request();
+			return;
+		}
+
+		ack_copy_request();
 	}
 	if(cmd_index == 7)
 	{
+#if defined (PLATFORM_ZYNQ) || defined (PLATFORM_ZYNQMP)
 		uint8_t var1;
 		if (!req_len_at_least(9))
 		{
@@ -1050,9 +1056,14 @@ void msg_cmd_0x40(void)
 		}
 		memcpy(&var1,receivebuf+7,1);
 		reset_pl = var1;
+		ack_copy_request();
+#endif
+	}
+	if(cmd_index == 8)// ch_num
+	{
 		memcpy(send_buf,receivebuf,7);
-		memcpy(send_buf+7,&var1,1);
-		sendlen = 7 + 1 + 1;
+		send_buf[7] = CHANNEL_NUM;
+		sendlen = 9;
 	}
 	if(cmd_index == 10) // read global_config
 	{

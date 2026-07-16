@@ -22,6 +22,7 @@ VdmaChannel VC_inst =
 	.video_sending = 0,
 	.send_video_start = 0,
 	.send_err_start = {0},
+	.send_err_sending = {0},
 	.Stride = 1920,
 	.Width = 1920,
 	.Height = 1080
@@ -94,6 +95,7 @@ int Vdma_Lwip_Video_Init(VdmaChannel *VC_inst)
 	    memset(VC_inst->Frame_Err_Buffers[ch],0xff,FRAME_BUFFER_SIZE0);
 		Xil_DCacheFlushRange(VC_inst->Frame_Err_Buffers[ch], FRAME_BUFFER_SIZE0);
 		VC_inst->send_err_start[ch] = 0;
+		VC_inst->send_err_sending[ch] = 0;
 	}
 #endif
 	VC_inst->WriteError = 0;
@@ -297,6 +299,8 @@ int vdma_passthrough_read_mon(u32 mon_base, u32 *out_w, u32 *out_h, u32 *out_fps
 	h1 = Xil_In32(mon_base + 4U);
 	if ((w1 < 10U) || (h1 < 10U))
 	{
+		*out_w = w1;
+		*out_h = h1;
 		return 0;
 	}
 	*out_w = w1;
@@ -729,7 +733,7 @@ static void vdma_clear_fb_triple(u32 VdmaBase, u32 fb0, u32 fb1, u32 fb2,
 	memset(fb1, 0xff, nbytes);
 	memset(fb2, 0xff, nbytes);
 	Xil_DCacheEnable();
-
+	usleep(50 * 1000);
 	xil_printf("clear vdma_%u Done\n\r", inst_index);
 }
 
@@ -884,7 +888,8 @@ int vdma_apply_detected_rgb_geom(u8 first_vdma_id, u8 num_vdma, u32 mon_base)
 		{
 			continue;
 		}
-		g.m_stride = g.s_stride;
+		g.s_stride = w;
+		g.m_stride = w;
 		g.m_width = w;
 		g.m_height = h;
 		if (vdma_set_triple_geom_apply(id, &g) == XST_SUCCESS)

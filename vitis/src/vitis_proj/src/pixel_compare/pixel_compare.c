@@ -163,8 +163,9 @@ void PixelCompareIntrHandler(void *CallbackRef)
 		{
 			pixel_err[ch] = 1U;
 			vcmp_m_fill_from_base(PC_p->BaseAddress, ch);
+		    bsp_printf("\r\n\r\n***************************\n\r");
 			xil_printf("PCITR %d\r\n", (int)ch + 1);
-//			xil_printf("-FPS_TOTAL_CNT: %d -\r\n", Xil_In32(PC_p->BaseAddress + FPS_TOTAL_CNT));
+			xil_printf("-FPS_TOTAL_CNT: %d -\r\n", Xil_In32(PC_p->BaseAddress + FPS_TOTAL_CNT));
 			xil_printf("-PIXEL_POINT: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + ERROE_DATA_HOLD)));
 			xil_printf("-STREAM_IN_DATA_HOLD: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + STREAM_IN_DATA_HOLD)));
 			xil_printf("-ERR_COL: %d -\r\n", vcmp_m[ch].error_col);
@@ -176,6 +177,7 @@ void PixelCompareIntrHandler(void *CallbackRef)
 //			xil_printf("-ROI_X_END: %d -\r\n", (Xil_In32(PC_p->BaseAddress + ROI_X_END)) & 0xFFFFU);
 //			xil_printf("-ROI_Y_START: %d -\r\n", (Xil_In32(PC_p->BaseAddress + ROI_Y_START)) & 0xFFFFU);
 //			xil_printf("-ROI_Y_END: %d -\r\n", (Xil_In32(PC_p->BaseAddress + ROI_Y_END)) & 0xFFFFU);
+
 		}
 		Xil_Out32(PC_p->BaseAddress + INTR_CLEAR, 0x1);
 	}

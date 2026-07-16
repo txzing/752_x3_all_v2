@@ -495,12 +495,12 @@ static void s2mm_hot_runtime_geom_poll_ch(u8 ch)
 void Disp_State_Detect(u8 channel)
 {
 
+	u8 idx = channel - 1;
+    u8 gmsl_locked = 0;;
+    u8 pipe_lock = 0;;
+    u8 video_locked = 0;
+    static u8 unlock_cnt[CHANNEL_NUM] = {0};
 	static u8 cnt[CHANNEL_NUM] = {0};
-	u32 ret32;
-	u8 ret8;
-	u8  idx;
-    u8 gmsl_locked;
-    u8 video_locked;
 
     if ((channel == 0) || (channel > CHANNEL_NUM))
     {
@@ -513,8 +513,8 @@ void Disp_State_Detect(u8 channel)
     	return;
     }
     cnt[channel] = 0;
-    idx = channel - 1;
-    static u8 unlock_cnt[CHANNEL_NUM] = {0};
+	ret8 = 0;
+	ret32 = 0;
 
 	ret32 = xgpio_i2c_reg16_read(channel, 0x90 >> 1, 0x0013, &ret8, STRETCH_ON);//GMSL2 link locked @ bit3
 	gmsl_locked = CHB(ret8, BIT(3));
@@ -578,10 +578,6 @@ void display_fresh(void)
 				{
 					pixel_err_cnt[ch] = 0U;
 					pixel_err[ch] = 0U;
-#if defined (UDP_VIDEO) || defined (TCP_VIDEO)
-					VC_inst.send_err_start[ch] = 0U;
-					VC_inst.pkg_cnt = 1U;
-#endif
 				}
 			}
 			else
@@ -598,7 +594,7 @@ void display_fresh(void)
 //					xil_printf("----------pixel_cp_start_%d_cnt %d-----------\r\n",ch+1,pixel_cp_start_cnt[ch]);
 					pixel_cp_start_cnt[ch] = pixel_cp_start_cnt[ch] + 1;
 				}
-				else if(pixel_cp_start_cnt[ch] == 3U)
+				else if(pixel_cp_start_cnt[ch] == 5U)
 				{
 					pixel_cp_start[ch] = 0U;
 					pixel_cp_start_cnt[ch] = 0U;

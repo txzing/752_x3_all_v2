@@ -139,6 +139,10 @@ begin
         intr_hold <= 1'b0;
     else if (intr_clear_q)
         intr_hold <= 1'b0;
+    else if (error_detected && axis_compare_enable_q && (err_col <= 5 && err_line == 0))
+    begin
+        intr_hold <= 1'b0;
+    end
     else if (error_detected && axis_compare_enable_q)
     begin
         intr_hold <= 1'b1;

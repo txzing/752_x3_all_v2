@@ -216,6 +216,7 @@ typedef struct {
     u8 video_sending;
     u8 send_video_start;
     u8 send_err_start[Err_Buffers_CNT];
+    u8 send_err_sending[Err_Buffers_CNT];
     int WrIndex;            // 当前写缓冲区索引
     int RdIndex;            // 当前读缓冲区索引
     int WriteOneFrameEnd;   // 写完成标志

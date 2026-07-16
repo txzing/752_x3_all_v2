@@ -9,6 +9,7 @@ int main()
 {
 	int Status ;
 	current_ch = 1;//default
+	switch_ch = current_ch;
 	timer_cnt = 0;
 
     init_platform(); // include interrupts setup

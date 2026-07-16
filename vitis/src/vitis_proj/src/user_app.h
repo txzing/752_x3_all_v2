@@ -11,8 +11,8 @@
 #if defined (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES)
 	#define CHANNEL_NUM  XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES
 /*
- * 与 axi_timer.c 中 TIMER_TLR（200ms）+ display_fresh(timer_cnt>=1) 对齐：
- * 每进入一次本逻辑表示约 200ms；超时 = TICKS * 200ms。
+ * 与 axi_timer.c 中 TIMER_TLR（500ms）+ display_fresh(timer_cnt>=1) 对齐：
+ * 每进入一次本逻辑表示约 500ms；超时 = TICKS * 500ms。
  */
 	#define PIXEL_ERR_HOST_IDLE_TICKS  30
 
@@ -22,7 +22,7 @@
  * - 检测：passthrough monitor 表征链路上当前稳定帧尺寸；display_fresh 周期轻读，
  *   连续 N 次一致后认为输入维稳定，再与上次已用于配置 MM2S 的值比较。
  * - 应用：有变化则 vdma_apply_detected_rgb_geom，仅重配 MM2S 读向 m_*（见 vdma.c）。
- * - N：约 200ms/次，N=5 约 1s 稳态后再重配，可按噪声调大。
+ * - N：约 500ms/次，N=2 约 1s 稳态后再重配，可按噪声调大。
  */
 	#define S2MM_HOT_GEOM_STABLE_TICKS  5U
 
