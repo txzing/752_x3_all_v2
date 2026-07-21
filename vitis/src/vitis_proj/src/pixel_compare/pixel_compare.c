@@ -18,6 +18,8 @@ int Pc_Config_Initialize(Pc_Config *InstancePtr, u16 DeviceId)
 
 	Xil_Out32(InstancePtr->BaseAddress + STATUS, 0x0);
 	Xil_Out32(InstancePtr->BaseAddress + PIXEL_THRESHOLD, 0x5);
+	/* 错误像素个数阈值：默认 1 = 首错即中断（与 IP 复位一致） */
+	Xil_Out32(InstancePtr->BaseAddress + ERR_PIXEL_CNT, PC_ERR_PIXEL_CNT_DEFAULT);
 
 	return XST_SUCCESS;
 }
@@ -34,7 +36,13 @@ vcmp_message  vcmp_m[XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES] = {0};
 /* VDMA 错误帧快照：ch0->buf7, ch1->buf13, ch2->buf19（与 FRAME_BUFFER_7/13/19 一致） */
 static u32 pixel_err_snapshot_src(u8 ch)
 {
-	return FRAME_BUFFER_BASE_ADDR + (FRAME_BUFFER_SIZE0 * (7U + 6U * (u32)ch));
+	if (ch < 1U || ch > CHANNEL_NUM)
+	{
+	    bsp_printf(TXT_RED "\r\n__FILE__:%s, __LINE__:%d\r\n" TXT_RST,__FILE__, __LINE__);
+		return;
+	}
+//4、7、10
+	return FRAME_BUFFER_BASE_ADDR + (FRAME_BUFFER_SIZE0 * (1U + 3U * (u8)ch));
 }
 
 static void vcmp_m_fill_from_base(u32 ba, u8 ch)
@@ -71,6 +79,9 @@ static void vcmp_m_fill_from_base(u32 ba, u8 ch)
 	vcmp_m[ch].point_x = (Xil_In32(ba + POINT_X));
 	vcmp_m[ch].point_y = (Xil_In32(ba + POINT_Y));
 	vcmp_m[ch].point_pixel = rgb_host_from_reg_rbg(Xil_In32(ba + POINT_PIXEL));
+	/* v2.22: fill IRQ threshold + completed-frame error total (latched at frame_end with IRQ) */
+	vcmp_m[ch].err_pixel_cnt = Xil_In32(ba + ERR_PIXEL_CNT);
+	vcmp_m[ch].err_pixel_cnt_total = Xil_In32(ba + ERR_PIXEL_CNT_TOTAL);
 }
 
 void vcmp_m_refresh_channel(u8 ch)
@@ -78,6 +89,11 @@ void vcmp_m_refresh_channel(u8 ch)
 	u32 ba;
 
 	if (ch >= XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES)
+	{
+		return;
+	}
+	/* pixel_err!=0：保留 ISR 错误快照，避免 cmd4/cable 重读把 TOTAL 冲掉后再 auto-send */
+	if (pixel_err[ch] != 0U)
 	{
 		return;
 	}
@@ -122,7 +138,7 @@ void pixel_err_handel(void)
 
 		xil_printf("cp err_buf ch[%d] err!\r\n", (int)ch + 1);
 		memcpy(currentChannel->Frame_Err_Buffers[ch],
-		       (void *)pixel_err_snapshot_src(ch), FRAME_BUFFER_SIZE0);
+		       (void *)pixel_err_snapshot_src(ch + 1), FRAME_BUFFER_SIZE0);
 		Xil_DCacheFlushRange(currentChannel->Frame_Err_Buffers[ch], FRAME_BUFFER_SIZE0);
 		pixel_err[ch] = 2U;
 		pixel_err_cnt[ch] = 0U;
@@ -155,7 +171,7 @@ void PixelCompareIntrHandler(void *CallbackRef)
 		return;
 	}
 
-	/* 与 RTL 一致：只要本帧锁存了比较错误且比较仍开启即处理（勿要求 bit2==1） */
+	/* 与 RTL 一致：本帧错误个数已达 ERR_PIXEL_CNT 且比较开启即处理（勿要求 bit2==1） */
 	if ((intr_status & PC_STATUS_ERR_CMP_MASK) == PC_STATUS_ERR_CMP_MASK)
 	{
 //		xil_printf("intr %d status %x\r\n", (int)ch + 1, intr_status);
@@ -165,11 +181,16 @@ void PixelCompareIntrHandler(void *CallbackRef)
 			vcmp_m_fill_from_base(PC_p->BaseAddress, ch);
 		    bsp_printf("\r\n\r\n***************************\n\r");
 			xil_printf("PCITR %d\r\n", (int)ch + 1);
-			xil_printf("-FPS_TOTAL_CNT: %d -\r\n", Xil_In32(PC_p->BaseAddress + FPS_TOTAL_CNT));
-			xil_printf("-PIXEL_POINT: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + ERROE_DATA_HOLD)));
-			xil_printf("-STREAM_IN_DATA_HOLD: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + STREAM_IN_DATA_HOLD)));
+			xil_printf("-FPS_TOTAL_CNT: %d -\r\n", vcmp_m[ch].fps_total_cnt);
+//			xil_printf("-PIXEL_POINT: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + ERROE_DATA_HOLD)));
+//			xil_printf("-STREAM_IN_DATA_HOLD: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + STREAM_IN_DATA_HOLD)));
 			xil_printf("-ERR_COL: %d -\r\n", vcmp_m[ch].error_col);
 			xil_printf("-ERR_LINE: %d -\r\n", vcmp_m[ch].error_line);
+			/* 与网口 err_auto_send 同一快照；勿再 Xil_In32（TOTAL 会随下次 SOF 变） */
+			xil_printf("-ERR_PIXEL_CNT: %d -\r\n", vcmp_m[ch].err_pixel_cnt);
+			/* TOTAL: 上一帧错误数（SOF 锁存），非本帧累计；阈值见 ERR_PIXEL_CNT */
+			xil_printf("-ERR_PIXEL_CNT_TOTAL: %d -\r\n",
+				   vcmp_m[ch].err_pixel_cnt_total);
 //			xil_printf("-RGB_CNT_PIXEL: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + RGB_CNT_PIXEL)));
 //			xil_printf("-RGB_PIXEL_TOTAL: %d -\r\n", Xil_In32(PC_p->BaseAddress + RGB_PIXEL_TOTAL));
 //			xil_printf("-RGB_NOT_PIXEL: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + RGB_NOT_PIXEL)));

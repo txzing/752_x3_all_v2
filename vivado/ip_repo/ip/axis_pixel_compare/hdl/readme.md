@@ -1,7 +1,7 @@
 # axis_pixel_compare IP 说明
 
-**版本:** 2.19 (与 `component.xml` 中 `spirit:version` 一致)  
-**最后更新:** 2026-06-02  
+**版本:** 2.20 (与 `component.xml` 中 `spirit:version` 一致)  
+**最后更新:** 2026-07-20  
 **RTL 源文件:** `axis_pixel_compare.v`, `AXI_LITE_REG_v1_0_S00_AXI.v`
 
 ---
@@ -12,7 +12,7 @@
 
 | 功能 | 说明 |
 |------|------|
-| **帧差比较** | 比较参考与实时视频各通道差值, 超阈锁存首错并产生中断 |
+| **帧差比较** | 比较参考与实时视频各通道差值, 超阈累计错误像素; 达到 `ERR_PIXEL_CNT` 才产生中断 (默认 1=首错) |
 | **RGB 区域统计** | 在 ROI 内统计与目标色接近的像素个数 (按通道容差) |
 | **点采样** | 指定 (x,y), 读回流经该点的视频像素值 |
 
@@ -54,7 +54,7 @@ s_axis_tdata[23:0]   实时视频 (Live), 24 位 RBG
 
 | 信号 | 说明 |
 |------|------|
-| `intr` | 本帧发生帧差错误且比较使能时置位; **下一帧 SOF** 或写 `INTR_CLEAR` 清除 |
+| `intr` | 本帧错误像素数达到 `ERR_PIXEL_CNT` 且比较使能时置位; **下一帧 SOF** 或写 `INTR_CLEAR` 清除 |
 
 内部 `frame_end` 信号为 `m_axis_tuser[0]` 上升沿 (下一帧 SOF), 不是行末 `tlast`.
 
@@ -65,12 +65,12 @@ s_axis_tdata[23:0]   实时视频 (Live), 24 位 RBG
 ### 3.1 帧差比较 (报错 / 中断)
 
 1. 写 `STATUS` bit0 = 1 使能比较.
-2. 若视频像素落在 **忽略色容差带** 内, 则 **不参与** 帧差, 不报错:  
+2. 若视频像素落在 **忽略色容差带** 内, 则 **不参与** 帧差, 不计入错误:  
    各通道 `|video - RGB_NOT_PIXEL| <= PIXEL_THRESHOLD`
-3. 否则, 若任一通道 `|ref - video| > PIXEL_THRESHOLD`, 则本帧 **首次** 出错时:
-   - 锁存 `ERROE_DATA_HOLD` (参考), `STREAM_IN_DATA_HOLD` (视频)
-   - 锁存 `ERR_COL`, `ERR_LINE` (见 3.5)
-   - 置位 `STATUS` bit1 (frame_error), 产生 `intr`
+3. 否则, 若任一通道 `|ref - video| > PIXEL_THRESHOLD`, 则本帧错误像素计数 +1:
+   - **首错** 时锁存 `ERROE_DATA_HOLD` / `STREAM_IN_DATA_HOLD` / `ERR_COL` / `ERR_LINE`
+   - 当 `err_cnt >= ERR_PIXEL_CNT` (默认 1) 时, 本帧 **首次** 置位 `STATUS` bit1 并产生 `intr`
+   - `ERR_PIXEL_CNT_TOTAL` 在下一帧 SOF 锁存上一帧累计错误数 (与 `RGB_PIXEL_TOTAL` 同语义; 帧内读到的是上一帧)
 4. 写 `INTR_CLEAR` (0x10, bit0=1) 或 **下一帧 SOF** 清除中断相关状态.
 
 ### 3.2 RGB 区域命中统计
@@ -152,6 +152,8 @@ s_axis_tdata[23:0]   实时视频 (Live), 24 位 RBG
 | 0x3C | RGB_NOT_PIXEL | W/R | 忽略色中心 |
 | 0x40~0x4C | ROI_* | W/R | 统计区域 xs/xe/ys/ye |
 | 0x50~0x58 | POINT_* | W/R | 点采样 x/y/pixel |
+| 0x5C | ERR_PIXEL_CNT | W/R | 错误像素个数阈值 (默认 1); `err_cnt>=` 本值才 IRQ |
+| 0x60 | ERR_PIXEL_CNT_TOTAL | R | 上一帧错误像素累计 (下一帧 SOF 锁存) |
 
 ---
 
@@ -197,6 +199,7 @@ RTL 内注释为英文; 含中文的源文件编码为 **GB2312**.
 | 2026-05-19 | 2.8 | 帧率监测, DEBUG 属性 |
 | 2026-05-22 | 2.9 | 修复单帧多次中断; ROI 上电复位; RGB/忽略色容差; 点采样 |
 | 2026-06-02 | 2.19 | **当前 RTL:** 组合 RGB 统计 + SOF 锁存; 忽略色按通道 TH; 实时 ROI; line_cnt SOF 先于 EOL |
+| 2026-07-20 | 2.20 | ERR_PIXEL_CNT 阈值 (默认 1); `err_cnt>=` 才 IRQ; ERR_PIXEL_CNT_TOTAL 本帧累计 |
 
 说明: 2.10~2.18 曾描述带 RGB 流水线/shadow 寄存器的实验实现, **不在当前 netlist 中**. 勿引用 `tuser_arm`, `frame_latch`, `is_sof_cap`, `rgb_pixle_total_lite` 等已移除信号.
 

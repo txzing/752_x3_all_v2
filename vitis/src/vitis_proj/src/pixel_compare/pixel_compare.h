@@ -4,12 +4,21 @@
 #define __PIXEL_COMPARE_H__
 #include "axis_pixel_compare.h"
 
+/* BSP 尚未同步 IP v2.22 驱动头时的兜底偏移（与 axis_pixel_compare.h 一致） */
+#ifndef ERR_PIXEL_CNT
+#define ERR_PIXEL_CNT       92
+#endif
+#ifndef ERR_PIXEL_CNT_TOTAL
+#define ERR_PIXEL_CNT_TOTAL 96
+#endif
+
 /*
  * STATUS 寄存器 (offset STATUS / slv_reg3 读回) 与 AXI_LITE_REG_v1_0_S00_AXI 一致：
  *   bit0 axis_compare_enable
- *   bit1 intr_level（本帧已锁存比较错误，接 axis_pixel_compare 的 frame_error_flag）
+ *   bit1 frame_error_flag（本帧累计已达 ERR_PIXEL_CNT，或上一帧 frame_end 已上报）
  *   bit2 stream_valid（!stream_invalid）
- * 故「有错误」至少要求 bit0+bit1；bit2 为 0 时读数为 0x3，旧代码用 ==0x7 会漏判。
+ * IRQ（v2.22）：仅在 frame_end（下一帧 SOF）锁存 ERR_PIXEL_CNT_TOTAL 后产生，
+ *   TOTAL = 刚结束那一帧的错误像素总数；勿再按「帧中首错」理解。
  */
 #define PC_STATUS_AXIS_CMP_EN	0x1u
 #define PC_STATUS_FRAME_ERR	0x2u
@@ -18,6 +27,9 @@
 #define PC_STATUS_OFF		0x0u
 #define PC_STATUS_ERROR		(PC_STATUS_AXIS_CMP_EN | PC_STATUS_FRAME_ERR | PC_STATUS_STREAM_OK)
 #define PC_STATUS_ERR_CMP_MASK	(PC_STATUS_AXIS_CMP_EN | PC_STATUS_FRAME_ERR)
+
+/* 默认错误像素个数阈值：与 IP 复位默认 1 一致（首错即中断） */
+#define PC_ERR_PIXEL_CNT_DEFAULT	1U
 
 typedef struct {
 	u16 DeviceId;		/* Unique ID  of device */
@@ -50,6 +62,9 @@ typedef struct __attribute__((packed))
  u32 point_x;
  u32 point_y;
  u32 point_pixel;
+ /* v2.22: 错误个数阈值 / 刚结束帧错误累计（frame_end 与 IRQ 同时锁存） */
+ u32 err_pixel_cnt;
+ u32 err_pixel_cnt_total;
 }vcmp_message;
 
 

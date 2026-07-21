@@ -929,8 +929,8 @@ void vdma_lvds_path_op(u8 lvds_ch, u8 with_config)
 	{
 		return;
 	}
-	v0 = (u8)((2U * lvds_ch) + 1U);
-	if ((u8)XPAR_XAXIVDMA_NUM_INSTANCES < (u8)(v0 + 2U))
+	v0 = (u8)((1U * lvds_ch) + 1U);
+	if ((u8)XPAR_XAXIVDMA_NUM_INSTANCES < (u8)(v0 + 1U))
 	{
 		return;
 	}
@@ -950,11 +950,9 @@ void vdma_lvds_path_op(u8 lvds_ch, u8 with_config)
 	xil_printf("------------reset lvds_ch_%d------------\r\n",lvds_ch + 1U);
 
 	clear_vdma_instance(v0);
-	clear_vdma_instance((u8)(v0 + 1U));
 	if (with_config != 0U)
 	{
 		vdma_config_instance(v0);
-		vdma_config_instance((u8)(v0 + 1U));
 	}
 	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0U);
 }

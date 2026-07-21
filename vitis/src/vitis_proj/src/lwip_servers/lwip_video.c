@@ -123,8 +123,8 @@ int handle_err_pic_transfer(int channel)
 		err_inst.VIDEO_FLAG == SEND_PIC;
 		err_inst.udp_send_times =  (u16)(((err_inst.FrameLength + (err_inst.UDP_IMG_PACKEG_SIZE - 1U))
 											/ err_inst.UDP_IMG_PACKEG_SIZE));
-        xil_printf("err_channel:%d, err_ch:%d ,current_ch:%d --", channel, err_ch, current_ch);
-        xil_printf("start send err_%d_pic , Width:%d ,Height:%d\r\n",channel, err_inst.Width, err_inst.Height);
+//        xil_printf("err_channel:%d, err_ch:%d ,current_ch:%d --", channel, err_ch, current_ch);
+//        xil_printf("start send err_%d_pic , Width:%d ,Height:%d\r\n",channel, err_inst.Width, err_inst.Height);
 		err_ch = channel;
 	}
 	// 检查当前帧是否已发送完所有数据包

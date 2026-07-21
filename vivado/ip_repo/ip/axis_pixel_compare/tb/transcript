@@ -1,0 +1,49 @@
+# do run_sim.do
+# 500
+# 2000
+# D:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_pixel_compare/tb
+# D:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_pixel_compare/hdl
+# D:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_pixel_compare/tb/logs
+# INFO: TB_DIR=D:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_pixel_compare/tb
+# ** Warning: (vlib-34) Library already exists at "work".
+# Model Technology ModelSim SE-64 vmap 10.7 Lib Mapping Utility 2017.12 Dec  7 2017
+# vmap work work 
+# Modifying D:\Vivado\modelsim_lib\modelsim.ini
+# INFO: compiling RTL + TBs
+# Model Technology ModelSim SE-64 vlog 10.7 Compiler 2017.12 Dec  7 2017
+# Start time: 12:39:29 on Jul 21,2026
+# vlog -work work D:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_pixel_compare/hdl/AXI_LITE_REG_v1_0_S00_AXI.v 
+# -- Compiling module AXI_LITE_REG_v1_0_S00_AXI
+# ** Warning: (vlog-2121) D:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_pixel_compare/hdl/AXI_LITE_REG_v1_0_S00_AXI.v(724): Illegal concatenation of an unsized constant. Will treat it as a 32-bit value.
+# 
+# Top level modules:
+# 	AXI_LITE_REG_v1_0_S00_AXI
+# End time: 12:39:29 on Jul 21,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 1
+# Model Technology ModelSim SE-64 vlog 10.7 Compiler 2017.12 Dec  7 2017
+# Start time: 12:39:29 on Jul 21,2026
+# vlog -work work D:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_pixel_compare/hdl/axis_pixel_compare.v 
+# -- Compiling module axis_pixel_compare
+# 
+# Top level modules:
+# 	axis_pixel_compare
+# End time: 12:39:29 on Jul 21,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# Model Technology ModelSim SE-64 vlog 10.7 Compiler 2017.12 Dec  7 2017
+# Start time: 12:39:29 on Jul 21,2026
+# vlog -work work D:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_pixel_compare/tb/tb_axis_pixel_compare.v 
+# -- Compiling module tb_axis_pixel_compare
+# 
+# Top level modules:
+# 	tb_axis_pixel_compare
+# End time: 12:39:29 on Jul 21,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# Model Technology ModelSim SE-64 vlog 10.7 Compiler 2017.12 Dec  7 2017
+# Start time: 12:39:29 on Jul 21,2026
+# vlog -work work D:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_pixel_compare/tb/tb_axis_pixel_compare_stress.v 
+# -- Compiling module tb_axis_pixel_compare_stress
+# 
+# Top level modules:
+# 	tb_axis_pixel_compare_stress
+# End time: 12:39:29 on Jul 21,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0

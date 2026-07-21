@@ -147,6 +147,7 @@ void uart_receive_process(void)
 			xil_printf("(pixel compare not in BSP)\r\n");
 #endif
 			xil_printf("------------------------\r\n");
+
 		}
 #if defined (XPAR_XV_TPG_NUM_INSTANCES)
 		else if(UserInput == 't')
@@ -392,12 +393,12 @@ static u8 s2mm_resolve_ch(u8 ch, u32 *out_mon, u8 *out_first, u8 *out_num)
 		return 0U;
 	}
 	*out_mon = vdma_passthrough_mon_base_lvds(ch);
-	if (*out_mon == 0U || (u8)XPAR_XAXIVDMA_NUM_INSTANCES < (u8)((2U * ch) + 3U))
+	if (*out_mon == 0U || (u8)XPAR_XAXIVDMA_NUM_INSTANCES < (u8)((1U * ch) + 3U))
 	{
 		return 0U;
 	}
-	*out_first = (u8)((2U * ch) + 1U);
-	*out_num = 2U;
+	*out_first = (u8)((1U * ch) + 1U);
+	*out_num = 1U;
 	return 1U;
 }
 
@@ -626,6 +627,7 @@ void display_fresh(void)
 #endif
 		        	vdma_lvds_path_op(ch, 0U);
 #if defined (UDP_COMMAND_SRV) && defined (UDP_VIDEO)
+		        	/* cable down 上报：refresh 在 pixel_err!=0 时会跳过，仍发当前快照 */
 		        	if (err_auto_send)
 		        	{
 		        		vcmp_m_refresh_channel(ch);

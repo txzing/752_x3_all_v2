@@ -1,0 +1,15 @@
+# do tmp_dbg.do
+# Model Technology ModelSim SE-64 vlog 10.7 Compiler 2017.12 Dec  7 2017
+# Start time: 11:47:09 on Jul 21,2026
+# vlog -work work ../hdl/AXI_LITE_REG_v1_0_S00_AXI.v ../hdl/axis_pixel_compare.v tb_axis_pixel_compare_stress.v 
+# ** Error: (vlog-7) Failed to open design unit file "../hdl/AXI_LITE_REG_v1_0_S00_AXI.v" in read mode.
+# No such file or directory. (errno = ENOENT)
+# End time: 11:47:09 on Jul 21,2026, Elapsed time: 0:00:00
+# Errors: 1, Warnings: 0
+# ** Error: D:/Modelsim/win64/vlog failed.
+# Error in macro ./tmp_dbg.do line 2
+# D:/Modelsim/win64/vlog failed.
+#     while executing
+# "vlog -work work ../hdl/AXI_LITE_REG_v1_0_S00_AXI.v ../hdl/axis_pixel_compare.v tb_axis_pixel_compare_stress.v"
+# 
+# <EOF>

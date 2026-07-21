@@ -924,6 +924,27 @@ void msg_cmd_0x30(void)
 		Xil_Out32(base_addr + POINT_Y, p_y & 0xFFFFU);
 		ack_copy_request();
 	}
+	else if (cmd_index == 0xb)
+	{
+		/* 设置错误像素个数阈值 ERR_PIXEL_CNT（达到该个数才产生中断，默认 1） */
+		u32 err_cnt_thr = 0U;
+
+		if (!req_len_at_least(12))
+		{
+			ack_fail_request();
+			return;
+		}
+		memcpy(&err_cnt_thr, receivebuf + 7, 4);
+		base_addr = pixel_compare_axi_base_eth(ch);
+		if (base_addr == 0U)
+		{
+			ack_fail_request();
+			return;
+		}
+		xil_printf("ERR_PIXEL_CNT ch%d = %u\r\n", (int)ch, (unsigned)err_cnt_thr);
+		Xil_Out32(base_addr + ERR_PIXEL_CNT, err_cnt_thr);
+		ack_copy_request();
+	}
 	else
 	{
 		ack_fail_request();

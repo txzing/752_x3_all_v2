@@ -3,7 +3,7 @@
   <spirit:vendor>xilinx.com</spirit:vendor>
   <spirit:library>user</spirit:library>
   <spirit:name>axis_pixel_compare</spirit:name>
-  <spirit:version>2.19</spirit:version>
+  <spirit:version>2.23</spirit:version>
   <spirit:busInterfaces>
     <spirit:busInterface>
       <spirit:name>m_axis</spirit:name>
@@ -1091,7 +1091,7 @@
     <spirit:fileSet>
       <spirit:name>xilinx_xpgui_1_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>xgui/axis_pixel_compare_v2_19.tcl</spirit:name>
+        <spirit:name>xgui/axis_pixel_compare_v2_20.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
         <spirit:userFileType>CHECKSUM_654e38ec</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
@@ -1132,7 +1132,7 @@
       </spirit:file>
     </spirit:fileSet>
   </spirit:fileSets>
-  <spirit:description>AXI-Stream frame compare, RGB ROI statistics, point sample; AXI-Lite control (v2.19).</spirit:description>
+  <spirit:description>AXI-Stream frame compare, RGB ROI statistics, point sample; AXI-Lite control (v2.23). Frame-end+1 IRQ/TOTAL/HOLD commit for 300MHz timing; ERR_PIXEL_CNT threshold.</spirit:description>
   <spirit:parameters>
     <spirit:parameter>
       <spirit:name>WIDTH</spirit:name>
