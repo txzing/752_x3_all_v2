@@ -71,6 +71,9 @@ static void vcmp_m_fill_from_base(u32 ba, u8 ch)
 	vcmp_m[ch].point_x = (Xil_In32(ba + POINT_X));
 	vcmp_m[ch].point_y = (Xil_In32(ba + POINT_Y));
 	vcmp_m[ch].point_pixel = rgb_host_from_reg_rbg(Xil_In32(ba + POINT_PIXEL));
+	/* v2.22: fill IRQ threshold + completed-frame error total (latched at frame_end with IRQ) */
+	vcmp_m[ch].err_pixel_cnt = Xil_In32(ba + ERR_PIXEL_CNT);
+	vcmp_m[ch].err_pixel_cnt_total = Xil_In32(ba + ERR_PIXEL_CNT_TOTAL);
 }
 
 void vcmp_m_refresh_channel(u8 ch)
@@ -169,6 +172,11 @@ void PixelCompareIntrHandler(void *CallbackRef)
 //			xil_printf("-STREAM_IN_DATA_HOLD: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + STREAM_IN_DATA_HOLD)));
 			xil_printf("-ERR_COL: %d -\r\n", vcmp_m[ch].error_col);
 			xil_printf("-ERR_LINE: %d -\r\n", vcmp_m[ch].error_line);
+			/* 与网口 err_auto_send 同一快照；勿再 Xil_In32（TOTAL 会随下次 SOF 变） */
+			xil_printf("-ERR_PIXEL_CNT: %d -\r\n", vcmp_m[ch].err_pixel_cnt);
+			/* TOTAL: 上一帧错误数（SOF 锁存），非本帧累计；阈值见 ERR_PIXEL_CNT */
+			xil_printf("-ERR_PIXEL_CNT_TOTAL: %d -\r\n",
+				   vcmp_m[ch].err_pixel_cnt_total);
 //			xil_printf("-RGB_CNT_PIXEL: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + RGB_CNT_PIXEL)));
 //			xil_printf("-RGB_PIXEL_TOTAL: %d -\r\n", Xil_In32(PC_p->BaseAddress + RGB_PIXEL_TOTAL));
 //			xil_printf("-RGB_NOT_PIXEL: %x -\r\n", rbg_swap_rgb(Xil_In32(PC_p->BaseAddress + RGB_NOT_PIXEL)));

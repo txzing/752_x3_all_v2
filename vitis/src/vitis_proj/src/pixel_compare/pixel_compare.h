@@ -40,31 +40,31 @@ typedef struct {
 
 typedef struct __attribute__((packed))
 {
- u32 channel;//采集通道
- u32 status;//状态码
- u32 Width;//宽度
- u32 Height;//高度
- u32 fps;//帧率
- u32 fps_total_cnt;//总帧数
- u32 error_pixel_hold;//发生错误时上一帧的像素值
- u32 pixel_hold; //错误时输入的像素点
- u32 pixel_threshold;//像素阈值
- u32 error_col;   /* 错误列 */
- u32 error_line;  //发生错误时的坐标行
- u32 rgb_cnt_pixel; //需要进行统计的像素值  rgb24位
- u32 rgb_pixel_total; //统计后的像素值个数
- u32 rgb_not_pixel; //不进行比较像素值
- /* RGB 统计区域限定（与 IP ROI 寄存器低 16 位一致：0 起算、闭区间 [xs,xe]×[ys,ye]） */
- u32 roi_x_start;
- u32 roi_x_end;
- u32 roi_y_start;
- u32 roi_y_end;
- u32 point_x;
- u32 point_y;
- u32 point_pixel;
- /* v2.22: 错误个数阈值 / 刚结束帧错误累计（frame_end 与 IRQ 同时锁存） */
- u32 err_pixel_cnt;
- u32 err_pixel_cnt_total;
+	u32 channel;//采集通道
+	u32 status;//状态码
+	u32 Width;//宽度
+	u32 Height;//高度
+	u32 fps;//帧率
+	u32 fps_total_cnt;//总帧数
+	u32 error_pixel_hold;//发生错误时上一帧的像素值
+	u32 pixel_hold; //错误时输入的像素点
+	u32 pixel_threshold;//像素阈值
+	u32 error_col;   /* 错误列 */
+	u32 error_line;  //发生错误时的坐标行
+	u32 rgb_cnt_pixel; //需要进行统计的像素值  rgb24位
+	u32 rgb_pixel_total; //统计后的像素值个数
+	u32 rgb_not_pixel; //不进行比较像素值
+	/* RGB 统计区域限定（与 IP ROI 寄存器低 16 位一致：0 起算、闭区间 [xs,xe]×[ys,ye]） */
+	u32 roi_x_start;
+	u32 roi_x_end;
+	u32 roi_y_start;
+	u32 roi_y_end;
+	u32 point_x;
+	u32 point_y;
+	u32 point_pixel;
+	/* v2.22: 错误个数阈值 / 刚结束帧错误累计（frame_end 与 IRQ 同时锁存） */
+	u32 err_pixel_cnt;
+	u32 err_pixel_cnt_total;
 }vcmp_message;
 
 
@@ -81,10 +81,10 @@ int Pc_Config_Initialize(Pc_Config *InstancePtr, u16 DeviceId);
 void PixelCompareIntrHandler(void *CallbackRef);
 int PixelCompare_init(void);
 uint32_t rbg_swap_rgb(uint32_t pixel);
-/* RBG 寄存器值 -> 上位机 0x00RRGGBB（与 rbg_swap_rgb / cmd 7、8 一致） */
-uint32_t rgb_from_reg_rbg(uint32_t reg_rbg);
-/* 同 rgb_from_reg_rbg，保留旧名 */
+/* RBG 寄存器值 -> 上位机协议（LE 线上字节顺序 R,G,B） */
 uint32_t rgb_host_from_reg_rbg(uint32_t reg_rbg);
+/* RBG 寄存器值 -> 调试显示 0x00RRGGBB */
+uint32_t rgb_from_reg_rbg(uint32_t reg_rbg);
 void vcmp_m_refresh_channel(u8 ch);
 
 /* 以太网命令 ch 为 1..N；无效通道返回 0 */

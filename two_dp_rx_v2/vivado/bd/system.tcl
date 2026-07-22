@@ -140,7 +140,7 @@ xilinx.com:ip:clk_wiz:6.0\
 xilinx.com:hls:AXI4_Stream_Terminator:1.0\
 xilinx.com:ip:axis_broadcaster:1.1\
 xilinx.com:user:axis_combiner:1.1\
-xilinx.com:user:axis_pixel_compare:2.19\
+xilinx.com:user:axis_pixel_compare:2.23\
 xilinx.com:ip:axis_subset_converter:1.1\
 xilinx.com:ip:proc_sys_reset:5.0\
 xilinx.com:ip:util_vector_logic:2.0\
@@ -1202,7 +1202,7 @@ proc create_hier_cell_lvds_s1 { parentCell nameHier } {
   set axis_combiner_0 [ create_bd_cell -type ip -vlnv xilinx.com:user:axis_combiner:1.1 axis_combiner_0 ]
 
   # Create instance: axis_pixel_compare_0, and set properties
-  set axis_pixel_compare_0 [ create_bd_cell -type ip -vlnv xilinx.com:user:axis_pixel_compare:2.19 axis_pixel_compare_0 ]
+  set axis_pixel_compare_0 [ create_bd_cell -type ip -vlnv xilinx.com:user:axis_pixel_compare:2.23 axis_pixel_compare_0 ]
   set_property -dict [ list \
    CONFIG.TUSER_WIDTH {1} \
  ] $axis_pixel_compare_0
@@ -1371,7 +1371,7 @@ proc create_hier_cell_lvds_s0 { parentCell nameHier } {
   set axis_combiner_0 [ create_bd_cell -type ip -vlnv xilinx.com:user:axis_combiner:1.1 axis_combiner_0 ]
 
   # Create instance: axis_pixel_compare_0, and set properties
-  set axis_pixel_compare_0 [ create_bd_cell -type ip -vlnv xilinx.com:user:axis_pixel_compare:2.19 axis_pixel_compare_0 ]
+  set axis_pixel_compare_0 [ create_bd_cell -type ip -vlnv xilinx.com:user:axis_pixel_compare:2.23 axis_pixel_compare_0 ]
   set_property -dict [ list \
    CONFIG.TUSER_WIDTH {1} \
  ] $axis_pixel_compare_0
@@ -1940,7 +1940,7 @@ proc create_root_design { parentCell } {
   # Create instance: HW_VER, and set properties
   set HW_VER [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 HW_VER ]
   set_property -dict [ list \
-   CONFIG.CONST_VAL {0x20260508} \
+   CONFIG.CONST_VAL {0x20260722} \
    CONFIG.CONST_WIDTH {32} \
  ] $HW_VER
 
@@ -2205,7 +2205,6 @@ proc create_root_design { parentCell } {
   # Restore current instance
   current_bd_instance $oldCurInst
 
-  validate_bd_design
   save_bd_design
 }
 # End of create_root_design()
@@ -2217,4 +2216,6 @@ proc create_root_design { parentCell } {
 
 create_root_design ""
 
+
+common::send_gid_msg -ssname BD::TCL -id 2053 -severity "WARNING" "This Tcl script was generated from a block design that has not been validated. It is possible that design <$design_name> may result in errors during validation."
 

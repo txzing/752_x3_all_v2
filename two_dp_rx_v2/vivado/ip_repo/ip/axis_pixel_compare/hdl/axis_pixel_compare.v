@@ -1,9 +1,9 @@
 `timescale 1ns/1ps
 //==============================================================================
 // Module: axis_pixel_compare (frame-diff / per-pixel compare)
-// Version: 2.19 (must match spirit:version in component.xml and OPTION VERSION in
+// Version: 2.23 (must match spirit:version in component.xml and OPTION VERSION in
 //           drivers/axis_pixel_compare_v1_0/data/axis_pixel_compare.mdd)
-// Last updated: 2026-06-02
+// Last updated: 2026-07-21
 //
 // Version history (summary):
 //   2026-04-21 2.x   RGB hit-count and mask colour via AXI-Lite
@@ -18,20 +18,34 @@
 //   2026-06-01 2.9   Point sample slv_reg20/21/22; RTL comments English; GB2312 sources
 //   2026-06-02 2.19  Current RTL (see Behaviour summary below). Versions 2.10-2.18
 //                    documented a pipelined RGB-stat path that is not in this netlist.
+//   2026-07-20 2.20  ERR_PIXEL_CNT threshold (default 1); IRQ when frame err_cnt >= thr;
+//                    ERR_PIXEL_CNT_TOTAL = previous-frame count latched at SOF (like RGB_PIXEL_TOTAL).
+//   2026-07-21 2.21  Timing: mid-frame err_beat pipelined 1 cycle (break rgb_mask/tdata->32b counter);
+//                    SOF error path stays same-cycle; TOTAL folds pending mid err at SOF.
+//   2026-07-21 2.22  IRQ at frame_end only: latch TOTAL then pulse if completed-frame count
+//                    meets ERR_PIXEL_CNT; mid-frame only accumulates (STATUS bit1 may set early).
+//                    HOLD/COL/LINE: working vs *_r IRQ snapshot (consecutive-frame safe);
+//                    ERR_* readback not gated by stream_invalid.
+//   2026-07-21 2.23  Timing (300MHz): delay TOTAL/IRQ/HOLD*_r/COL*_r commit by 1 cycle after
+//                    frame_end (break err_cnt + thr compare -> HOLD CE fo path).
 //
 // Behaviour summary (matches current netlist):
-// - Frame compare: |ref-video|>TH on any channel -> first error + IRQ;
+// - Frame compare: |ref-video|>TH on any channel -> count error pixel;
 //   |video-RGB_NOT_PIXEL|<=TH per channel -> skip diff (is_not_pixel).
+// - IRQ once per completed frame at SOF+1 (frame_end_q), after TOTAL/HOLD snapshot commit,
+//   when final err count >= ERR_PIXEL_CNT (thr=0 treated as any error: final>0).
+// - ERR_PIXEL_CNT_TOTAL / HOLD / ERR_COL: committed on frame_end_q (1 cycle after SOF).
+// - Mid-frame: accumulate + first-error working HOLD/COL/LINE; no IRQ until frame_end_q.
 // - RGB stats: rgb_stat_pixel combinational; SOF (axis_xfer && tuser) latches rgb_pixle_total,
-//   seeds rgb_pixle_total_cnt to 1 or 0; SOF beat roi_pix_y forced to 0 (L406).
+//   seeds rgb_pixle_total_cnt to 1 or 0; SOF beat roi_pix_y forced to 0.
 // - ROI: live roi_*_r from AXI each aclk; illegal box (xe<xs or ye<ys) -> in_rgb_roi full frame.
 // - Point sample: point_pixel_latched on axis_xfer when roi_pix_x/y match POINT_X/Y.
-// - Lite enable/threshold/RGB targets re-registered on aclk (1 cycle vs slv_reg write).
+// - Lite enable/threshold/RGB/err_pixel_cnt re-registered on aclk (1 cycle vs slv_reg write).
 // - line_cnt: SOF (m_axis_tuser) before EOL (tlast); same-beat SOF+tlast resets line only.
-// - frame_end = ~prev_tuser & m_axis_tuser[0] (SOF edge): fps tick, irq/error frame clear.
-// - ERR_COL/ERR_LINE: latched on first-error beat (same cycle as frame_error_flag);
-//   0-based col_cnt; err_line=0 on SOF beat else line_cnt; cleared on SOF or INTR_CLEAR coords.
-// - frame_error_flag until SOF on intr_level; INTR_CLEAR clears holds/intr, not STATUS bit1.
+// - frame_end = axis_xfer & ~prev_tuser & tuser (SOF edge): fps tick, capture, count reset.
+// - frame_error_flag: may set mid-frame when count>=thr (STATUS); IRQ still only at frame_end_q.
+// - Mid-frame error accumulate uses mid_err_beat_q (1-cycle delay) for timing closure.
+// - INTR_CLEAR clears holds/intr; STATUS bit1 cleared at next non-sticky policy / SOF path.
 // - stat_*_lite: 1-cycle registered COL/LINE/FPS/ERR_* for AXI read timing.
 //==============================================================================
 module axis_pixel_compare
@@ -106,16 +120,22 @@ assign axis_xfer = s_axis_tvalid & m_axis_tready;
 // Forward declarations (intr/err blocks below; ModelSim requires declare-before-use).
 reg        prev_tuser;
 wire       frame_end;
+reg        frame_end_q;
+reg        cap_thr_met;
 reg [15:0] col;
 reg [15:0] col_cnt;
 reg [15:0] line;
 reg [15:0] line_cnt;
+reg [15:0] err_col;
+reg [15:0] err_line;
 
 // Same convention as lite column width: pixel column index advances by PPC per AXI beat.
 localparam integer COL_PIX_SHIFT = (PPC == 8) ? 3 : (PPC == 4) ? 2 : (PPC == 2) ? 1 : 0;
 
-reg [WIDTH-1:0] error_data_hold;
+reg [WIDTH-1:0] error_data_hold;       // working: first-err of current open frame
 reg [WIDTH-1:0] stream_in_data_hold;
+reg [WIDTH-1:0] error_data_hold_r;     // SW snapshot: latched at frame_end (IRQ-stable)
+reg [WIDTH-1:0] stream_in_data_hold_r;
 reg [31:0] fps_total_cnt;
 reg error_detected;
 
@@ -128,23 +148,22 @@ assign intr = intr_hold;
 reg        axis_compare_enable_q;
 reg        intr_clear_q;
 reg [7:0]  pixel_threshold_q;
+reg [31:0] err_pixel_cnt_q;
 reg [23:0] rgb_target_q;
 reg [23:0] rgb_mask_q;
 
-/* Legacy (752_x1): intr_hold cleared by raw intr_clear for one S_AXI clock; set by
- * error_detected && axis_compare_enable (not _q). Matches PS IRQ + software INTR_CLEAR. */
+/* Legacy (752_x1): sticky intr.
+ * frame_end 拉低；frame_end_q&cap_thr_met（或 error_detected）再置高，连续错误帧仍有上升沿。 */
 always@(posedge aclk)
 begin
     if (!aresetn)
         intr_hold <= 1'b0;
     else if (intr_clear_q)
         intr_hold <= 1'b0;
-    else if (error_detected && axis_compare_enable_q)
-    begin
-        intr_hold <= 1'b1;
-    end
     else if (frame_end)
-        intr_hold <= 1'b0; // clear at next-frame SOF (frame_end = tuser rising edge)
+        intr_hold <= 1'b0; // SOF 拍清 0；下一拍 commit IRQ 再置 1
+    else if ((error_detected || (frame_end_q && cap_thr_met)) && axis_compare_enable_q)
+        intr_hold <= 1'b1;
 end
 
 wire [23:0] w_axi_rgb_target;
@@ -153,6 +172,7 @@ wire [23:0] w_axi_rgb_mask;
 wire pixel_compare_valid;
 
 wire [7:0] pixel_threshold;
+wire [31:0] err_pixel_cnt;
 // difference threshold per channel
 
 // reference pixels (upper half-word)
@@ -191,71 +211,244 @@ wire pixel_error_detected = (diff_R > pixel_threshold_q) ||
                             (diff_B > pixel_threshold_q);
 
 reg frame_error_flag;
+reg [31:0] err_pixel_cnt_frame; // running error count in current frame (IRQ uses this)
+reg [31:0] err_pixel_cnt_total; // AXI readback: previous frame count, latched at SOF
+
+// Decode helpers (combinational)
+wire err_beat     = pixel_compare_valid && pixel_error_detected;
+wire sof_err_beat = frame_end && err_beat;
+wire mid_err_beat = (!frame_end) && err_beat;
+
+// ---------------------------------------------------------------------------
+// Timing pipeline: mid-frame err_beat -> +1 cycle (breaks rgb_mask/tdata -> 32b +cnt)
+// SOF seed stays same-cycle. IRQ/TOTAL/HOLD*_r commit on frame_end_q (v2.23).
+// ---------------------------------------------------------------------------
+reg                mid_err_beat_q;
+reg [WIDTH-1:0]    tdata_mid_q;
+reg [15:0]         col_mid_q;
+reg [15:0]         line_mid_q;
+
+// frame_end 打一拍：把 32b +1/比较 与 HOLD CE 扇出拆开（300MHz WNS）
+// frame_end_q / cap_thr_met：见文件头 forward 声明
+reg [31:0]         cap_total;
+reg                cap_sof_err;
+reg [23:0]         cap_hold_vid;
+reg [23:0]         cap_hold_ref;
+reg [15:0]         cap_err_col;
+reg [15:0]         cap_err_line;
+
+// 打拍中帧错误指示及坐标/像素快照，切断比较组合逻辑到计数器的路径
 always@(posedge aclk)
 begin
-    if(!aresetn)
+    if (!aresetn)
     begin
-        error_detected <= 1'b0;
-        frame_error_flag <= 1'b0;
-        stream_in_data_hold <= 'd0;
-        error_data_hold <= 'd0;
+        mid_err_beat_q <= 1'b0;
+        tdata_mid_q    <= {WIDTH{1'b0}};
+        col_mid_q      <= 16'd0;
+        line_mid_q     <= 16'd0;
     end
     else
     begin
-
-        if (pixel_compare_valid && pixel_error_detected && !frame_error_flag) // first error in this frame only
+        mid_err_beat_q <= mid_err_beat;
+        if (mid_err_beat)
         begin
-            error_detected <= 1'b1;
-            frame_error_flag <= 1'b1;   // latch: frame already saw an error
-            stream_in_data_hold <= s_axis_tdata[23:0];
-            error_data_hold <= s_axis_tdata[47:24];
-        end
-        else if(frame_end)
-        begin
-            error_detected <= 1'b0;
-            frame_error_flag <= 1'b0;   // clear at next-frame SOF (frame_end)
-        end
-        else if (intr_clear_q)
-        begin
-            stream_in_data_hold <= 'd0;
-            error_data_hold <= 'd0;
-            error_detected <= 1'b0;
-        end
-        else
-        begin
-            error_detected <= 1'b0;
+            tdata_mid_q <= s_axis_tdata;
+            col_mid_q   <= col_cnt;
+            line_mid_q  <= line_cnt;
         end
     end
 end
 
-reg [15:0] err_col;
-reg [15:0] err_line;
+// Saturated +1（中帧打拍路径 / frame_end 折叠终值）
+wire [31:0] err_cnt_next =
+    (err_pixel_cnt_frame == 32'hFFFFFFFF) ? err_pixel_cnt_frame
+                                          : (err_pixel_cnt_frame + 32'd1);
+
+wire [31:0] frame_err_final = mid_err_beat_q ? err_cnt_next : err_pixel_cnt_frame;
+// thr=0：本帧有任一错误即上报；thr>=1：终值 >= 阈值
+wire frame_thr_met = (err_pixel_cnt_q == 32'd0) ? (frame_err_final > 32'd0)
+                                                  : (frame_err_final >= err_pixel_cnt_q);
+
+wire first_err_mid_q = mid_err_beat_q && (err_pixel_cnt_frame == 32'd0);
+// 帧内 STATUS：计数达阈可置位；真正 IRQ 仅在 frame_end_q
+wire mid_thr_hit_q   = mid_err_beat_q && (err_cnt_next >= ((err_pixel_cnt_q == 32'd0) ? 32'd1
+                                                                                      : err_pixel_cnt_q));
+
+// Frame error count / HOLD：frame_end 捕获+重开；frame_end_q 提交 TOTAL/IRQ/HOLD*_r
+always@(posedge aclk)
+begin
+    if (!aresetn)
+    begin
+        error_detected        <= 1'b0;
+        frame_error_flag      <= 1'b0;
+        stream_in_data_hold   <= 'd0;
+        error_data_hold       <= 'd0;
+        stream_in_data_hold_r <= 'd0;
+        error_data_hold_r     <= 'd0;
+        err_pixel_cnt_frame   <= 32'd0;
+        err_pixel_cnt_total   <= 32'd0;
+        frame_end_q           <= 1'b0;
+        cap_thr_met           <= 1'b0;
+        cap_total             <= 32'd0;
+        cap_sof_err           <= 1'b0;
+        cap_hold_vid          <= 24'd0;
+        cap_hold_ref          <= 24'd0;
+        cap_err_col           <= 16'd0;
+        cap_err_line          <= 16'd0;
+    end
+    else
+    begin
+        error_detected <= 1'b0;
+        frame_end_q    <= frame_end;
+
+        // ---- 1b) 先提交上一拍捕获（与本拍 frame_end 同拍时须先 commit 再 capture）----
+        if (frame_end_q)
+        begin
+            err_pixel_cnt_total <= cap_total;
+
+            if (cap_thr_met)
+            begin
+                error_detected        <= 1'b1;
+                stream_in_data_hold_r <= cap_hold_vid;
+                error_data_hold_r     <= cap_hold_ref;
+                frame_error_flag      <= 1'b1;
+            end
+            else
+            begin
+                stream_in_data_hold_r <= 'd0;
+                error_data_hold_r     <= 'd0;
+                if (!cap_sof_err)
+                    frame_error_flag <= 1'b0;
+            end
+        end
+
+        // ---- 1a) frame_end：捕获终值/阈值结果与 HOLD 候选，并重开新帧 working ----
+        if (frame_end)
+        begin
+            cap_total   <= frame_err_final;
+            cap_thr_met <= frame_thr_met;
+            cap_sof_err <= sof_err_beat;
+
+            if (first_err_mid_q)
+            begin
+                cap_hold_vid <= tdata_mid_q[23:0];
+                cap_hold_ref <= tdata_mid_q[47:24];
+                cap_err_col  <= col_mid_q;
+                cap_err_line <= line_mid_q;
+            end
+            else
+            begin
+                cap_hold_vid <= stream_in_data_hold[23:0];
+                cap_hold_ref <= error_data_hold[23:0];
+                cap_err_col  <= err_col;
+                cap_err_line <= err_line;
+            end
+
+            // 新帧 working 重开（与快照分离）
+            if (sof_err_beat)
+            begin
+                err_pixel_cnt_frame <= 32'd1;
+                stream_in_data_hold <= s_axis_tdata[23:0];
+                error_data_hold     <= s_axis_tdata[47:24];
+                // 上一帧未达阈时，本拍 SOF 错可直接抬 STATUS
+                if (!frame_thr_met)
+                    frame_error_flag <= (32'd1 >= ((err_pixel_cnt_q == 32'd0) ? 32'd1 : err_pixel_cnt_q));
+            end
+            else
+            begin
+                err_pixel_cnt_frame <= 32'd0;
+                stream_in_data_hold <= 'd0;
+                error_data_hold     <= 'd0;
+            end
+        end
+
+        // ---- 2) Mid-frame (pipelined): accumulate only (no IRQ) ----
+        else if (mid_err_beat_q)
+        begin
+            err_pixel_cnt_frame <= err_cnt_next;
+
+            if (first_err_mid_q)
+            begin
+                stream_in_data_hold <= tdata_mid_q[23:0];
+                error_data_hold     <= tdata_mid_q[47:24];
+            end
+
+            if (mid_thr_hit_q)
+                frame_error_flag <= 1'b1;
+        end
+
+        // ---- 3) Software clear: drop HOLD working + snapshot ----
+        else if (intr_clear_q)
+        begin
+            stream_in_data_hold   <= 'd0;
+            error_data_hold       <= 'd0;
+            stream_in_data_hold_r <= 'd0;
+            error_data_hold_r     <= 'd0;
+        end
+    end
+end
+
+reg [15:0] err_col_r;     // SW snapshot（frame_end_q 提交）
+reg [15:0] err_line_r;
 reg err_latched;
 
+// 首错坐标：working 跟当前帧；cap_err_* 在 frame_end 捕获，*_r 在 frame_end_q 提交
 always@(posedge aclk)
 begin
     if(!aresetn)
     begin
-        err_col <= 'b0;
-        err_line <= 'b0;
+        err_col     <= 'b0;
+        err_line    <= 'b0;
+        err_col_r   <= 'b0;
+        err_line_r  <= 'b0;
         err_latched <= 1'b0;
     end
-    else if (pixel_compare_valid && pixel_error_detected && !err_latched)
+    else
     begin
-        err_col <= col_cnt;
-        err_line <= m_axis_tuser[0] ? 16'd0 : line_cnt;
-        err_latched <= 1'b1;
-    end
-    else if (frame_end)
-    begin
-        err_latched <= 1'b0;
-        err_col <= 'b0;
-        err_line <= 'b0;
-    end
-    else if (intr_clear_q)
-    begin
-        err_col <= 'b0;
-        err_line <= 'b0;
+        // 与 HOLD 相同：同拍先 commit 再 re-arm
+        if (frame_end_q)
+        begin
+            if (cap_thr_met)
+            begin
+                err_col_r  <= cap_err_col;
+                err_line_r <= cap_err_line;
+            end
+            else
+            begin
+                err_col_r  <= 'b0;
+                err_line_r <= 'b0;
+            end
+        end
+
+        if (frame_end)
+        begin
+            if (sof_err_beat)
+            begin
+                err_col     <= col_cnt;
+                err_line    <= 16'd0;
+                err_latched <= 1'b1;
+            end
+            else
+            begin
+                err_col     <= 'b0;
+                err_line    <= 'b0;
+                err_latched <= 1'b0;
+            end
+        end
+        else if (mid_err_beat_q && !err_latched)
+        begin
+            err_col     <= col_mid_q;
+            err_line    <= line_mid_q;
+            err_latched <= 1'b1;
+        end
+        else if (intr_clear_q)
+        begin
+            err_col     <= 'b0;
+            err_line    <= 'b0;
+            err_col_r   <= 'b0;
+            err_line_r  <= 'b0;
+            err_latched <= 1'b0;
+        end
     end
 end
 
@@ -287,8 +480,8 @@ reg [31:0] fps;
 (* DONT_TOUCH = "yes", s="true",keep="true" *) (*MARK_DEBUG="TRUE"*)reg [31:0] fps_cnt;
 reg stream_invalid;
 
-// frame_end: rising edge of m_axis_tuser[0] (start of next frame), not EOL/tlast
-assign frame_end = ~prev_tuser & m_axis_tuser[0];
+// frame_end: SOF rising edge，且必须在有效传输拍（避免空闲 tuser 毛刺误锁存 TOTAL/FPS）
+assign frame_end = axis_xfer & ~prev_tuser & m_axis_tuser[0];
 
 always@(posedge aclk)
 begin
@@ -302,6 +495,7 @@ begin
     end
     else
     begin
+        /* 每拍跟踪 tuser，保证真 SOF 上升沿可检测；误锁存由 frame_end 的 axis_xfer 门控抑制 */
         prev_tuser <= m_axis_tuser[0];
         if(freq_sec_flag)
         begin
@@ -483,7 +677,8 @@ end
 wire [31:0] col_pixels_comb;
 assign col_pixels_comb = stream_invalid ? 32'b0 : ({16'd0, col} << COL_PIX_SHIFT);
 wire [31:0] err_col_pixels_comb;
-assign err_col_pixels_comb = stream_invalid ? 32'b0 : ({16'd0, err_col} << COL_PIX_SHIFT);
+// IRQ 快照不受 stream_invalid 门控（否则短 FREQ_HZ 仿真/低帧率时会误读 0）
+assign err_col_pixels_comb = {16'd0, err_col_r} << COL_PIX_SHIFT;
 
 reg [31:0] stat_col_lite;
 reg [31:0] stat_line_lite;
@@ -506,7 +701,7 @@ begin
         stat_line_lite     <= stream_invalid ? 32'b0 : {16'd0, line};
         stat_fps_lite      <= stream_invalid ? 32'b0 : fps;
         stat_err_col_lite  <= err_col_pixels_comb;
-        stat_err_line_lite <= stream_invalid ? 32'b0 : {16'd0, err_line};
+        stat_err_line_lite <= {16'd0, err_line_r};
     end
 end
 ////////////////
@@ -514,8 +709,8 @@ end
 // Explicit width adapters into AXI_LITE (eliminates implicit truncate/zero-extend warnings).
 wire [31:0] lite_s_axis_tdata_1    = {8'b0, s_axis_tdata[47:24]};
 wire [31:0] lite_s_axis_tdata_0    = {8'b0, s_axis_tdata[23:0]};
-wire [31:0] lite_error_data_hold   = error_data_hold[31:0];
-wire [31:0] lite_stream_in_data_hold = stream_in_data_hold[31:0];
+wire [31:0] lite_error_data_hold   = error_data_hold_r[31:0];
+wire [31:0] lite_stream_in_data_hold = stream_in_data_hold_r[31:0];
 wire [15:0] lite_err_col           = stat_err_col_lite[15:0];
 wire [15:0] lite_err_line          = stat_err_line_lite[15:0];
 
@@ -553,6 +748,8 @@ wire [15:0] lite_err_line          = stat_err_line_lite[15:0];
         .point_x(lite_point_x),
         .point_y(lite_point_y),
         .point_pixel(point_pixel_latched),
+        .err_pixel_cnt(err_pixel_cnt),
+        .err_pixel_cnt_total(err_pixel_cnt_total),
 		.S_AXI_ACLK(s00_axi_aclk),
 		.S_AXI_ARESETN(s00_axi_aresetn),
 		.S_AXI_AWADDR(s00_axi_awaddr),
@@ -584,6 +781,7 @@ begin
         axis_compare_enable_q <= 1'b0;
         intr_clear_q    <= 1'b0;
         pixel_threshold_q       <= 8'd0;
+        err_pixel_cnt_q         <= 32'd1;
         rgb_target_q            <= 24'd0;
         rgb_mask_q              <= 24'd0;
     end
@@ -592,6 +790,7 @@ begin
         axis_compare_enable_q <= axis_compare_enable;
         intr_clear_q  <= intr_clear;
         pixel_threshold_q     <= pixel_threshold;
+        err_pixel_cnt_q       <= err_pixel_cnt;
         rgb_target_q            <= w_axi_rgb_target;
         rgb_mask_q              <= w_axi_rgb_mask;
     end

@@ -1,0 +1,98 @@
+# cd {D:\workdir\cariad\ccu\752_x3_all_v2\bk\vivado\ip_repo\ip\axis_combiner\axis_combiner_1.0\sim}
+#  do run_tb.do
+# D:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0/sim
+# D:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0/hdl
+# INFO: SIMDIR=D:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0/sim
+# INFO: HDLDIR=D:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0/hdl
+# Model Technology ModelSim SE-64 vmap 10.7 Lib Mapping Utility 2017.12 Dec  7 2017
+# vmap work work 
+# Modifying D:\Vivado\modelsim_lib\modelsim.ini
+# Model Technology ModelSim SE-64 vlog 10.7 Compiler 2017.12 Dec  7 2017
+# Start time: 18:56:57 on Jul 16,2026
+# vlog -sv "+acc" D:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0/sim/xilinx_sync_fifo_beh.v 
+# -- Compiling module xilinx_sync_fifo
+# 
+# Top level modules:
+# 	xilinx_sync_fifo
+# End time: 18:56:57 on Jul 16,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# Model Technology ModelSim SE-64 vlog 10.7 Compiler 2017.12 Dec  7 2017
+# Start time: 18:56:57 on Jul 16,2026
+# vlog -sv "+acc" D:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0/hdl/axis_combiner.v 
+# -- Compiling module axis_combiner
+# 
+# Top level modules:
+# 	axis_combiner
+# End time: 18:56:57 on Jul 16,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# Model Technology ModelSim SE-64 vlog 10.7 Compiler 2017.12 Dec  7 2017
+# Start time: 18:56:57 on Jul 16,2026
+# vlog -sv "+acc" D:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0/sim/tb_axis_combiner.v 
+# -- Compiling module tb_axis_combiner
+# 
+# Top level modules:
+# 	tb_axis_combiner
+# End time: 18:56:57 on Jul 16,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 0
+# vsim -c -voptargs="+acc" -onfinish stop work.tb_axis_combiner 
+# Start time: 18:56:57 on Jul 16,2026
+# ** Note: (vsim-3812) Design is being optimized...
+# //  ModelSim SE-64 10.7 Dec  7 2017
+# //
+# //  Copyright 1991-2017 Mentor Graphics Corporation
+# //  All Rights Reserved.
+# //
+# //  ModelSim SE-64 and its associated documentation contain trade
+# //  secrets and commercial or financial information that are the property of
+# //  Mentor Graphics Corporation and are privileged, confidential,
+# //  and exempt from disclosure under the Freedom of Information Act,
+# //  5 U.S.C. Section 552. Furthermore, this information
+# //  is prohibited from disclosure under the Trade Secrets Act,
+# //  18 U.S.C. Section 1905.
+# //
+# Loading sv_std.std
+# Loading work.tb_axis_combiner(fast)
+# Loading work.axis_combiner(fast)
+# Loading work.xilinx_sync_fifo(fast)
+# 5000
+# INFO: bounded run 5000us (no run -all)
+# === tb_axis_combiner start ===
+# INFO: scenario=0 preload s1
+# INFO: preload_s1 wrote 54 beats
+# INFO: scenario=0 drive frames glitch=0
+# WARN: wait_ready(1) timeout
+# --------------------------------------------------
+# SCENARIO 0 RESULT (expect frames=8)
+#   s0 SOF raw=8  vld=8  beats=512
+#   m  SOF raw=8  vld=8  beats=512
+#   >>> m raw-SOF matches expect frames
+# --------------------------------------------------
+# INFO: scenario=1 preload s1
+# INFO: preload_s1 wrote 54 beats
+# INFO: scenario=1 drive frames glitch=0
+# WARN: wait_ready(1) timeout
+# --------------------------------------------------
+# SCENARIO 1 RESULT (expect frames=8)
+#   s0 SOF raw=8  vld=8  beats=512
+#   m  SOF raw=8  vld=8  beats=512
+#   >>> m raw-SOF matches expect frames
+# --------------------------------------------------
+# INFO: scenario=2 preload s1
+# INFO: preload_s1 wrote 54 beats
+# INFO: scenario=2 drive frames glitch=1
+# WARN: wait_ready(1) timeout
+# --------------------------------------------------
+# SCENARIO 2 RESULT (expect frames=8)
+#   s0 SOF raw=16  vld=8  beats=512
+#   m  SOF raw=16  vld=8  beats=512
+#   >>> REPRO: m raw-SOF 16 > expect 8 (inflate)
+# --------------------------------------------------
+# === tb_axis_combiner done ===
+# ** Note: $finish    : D:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0/sim/tb_axis_combiner.v(305)
+#    Time: 178335 ns  Iteration: 1  Instance: /tb_axis_combiner
+# Break in Module tb_axis_combiner at D:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0/sim/tb_axis_combiner.v line 305
+# Stopped at D:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0/sim/tb_axis_combiner.v line 305
+# INFO: simulation finished or timed out
+# End time: 18:56:58 on Jul 16,2026, Elapsed time: 0:00:01
+# Errors: 0, Warnings: 0
+# 0

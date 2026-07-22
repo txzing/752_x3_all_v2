@@ -3,8 +3,8 @@
 
 //******************************************************************************
 // Module: AXI_LITE_REG_v1_0_S00_AXI
-// Parent IP: axis_pixel_compare v2.19
-// Last updated: 2026-06-02
+// Parent IP: axis_pixel_compare v2.20
+// Last updated: 2026-07-20
 //
 // Version history:
 //   Date       Ver   Change
@@ -15,6 +15,7 @@
 //   2026-06-01 2.9   Point sample slv_reg20/21 (W), slv_reg22 (R from HW)
 //   2026-06-01 2.9   slv_reg15 ignore-centre note; threshold shared slv_reg10
 //   2026-06-01 2.9   RTL comments English only; source file saved as GB2312
+//   2026-07-20 2.20  ERR_PIXEL_CNT (slv_reg23 W, default 1); ERR_PIXEL_CNT_TOTAL (R)
 //******************************************************************************
 
 	module AXI_LITE_REG_v1_0_S00_AXI #
@@ -65,6 +66,10 @@
         output reg [15:0] point_x,
         output reg [15:0] point_y,
         input  wire [23:0] point_pixel,
+        // Error-count threshold (slv_reg23 W, default 1): IRQ when frame err_cnt >= this
+        output reg [31:0] err_pixel_cnt,
+        // Frame error total (slv_reg24 R): previous-frame count latched at SOF
+        input  wire [31:0] err_pixel_cnt_total,
 		// User ports ends
 		// Do not modify the ports beyond this line
 
@@ -320,7 +325,7 @@
 	      slv_reg20 <= 0;
 	      slv_reg21 <= 0;
 	      slv_reg22 <= 0;
-	      slv_reg23 <= 0;
+	      slv_reg23 <= 32'd1; // ERR_PIXEL_CNT default: IRQ on first error (>=1)
 	      slv_reg24 <= 0;
 	      slv_reg25 <= 0;
 	      slv_reg26 <= 0;
@@ -707,6 +712,7 @@
 	//   0x3C RGB_NOT_PIXEL (slv_reg15 W): ignore centre; |video-mask|<=TH per ch skips frame-diff
 	//   0x40..0x4C ROI xs/xe/ys/ye (slv_reg16..19, 0-based inclusive)
 	//   0x50 point_x, 0x54 point_y (slv_reg20/21 W), 0x58 point_pixel (slv_reg22 R)
+	//   0x5C ERR_PIXEL_CNT (slv_reg23 W, default 1), 0x60 ERR_PIXEL_CNT_TOTAL (R)
 	assign slv_reg_rden = axi_arready & S_AXI_ARVALID & ~axi_rvalid;
 	always @(*)
 	begin
@@ -735,8 +741,8 @@
 	        5'h14   : reg_data_out <= {16'd0, point_x};    //+0x50  W slv_reg20 sample X
 	        5'h15   : reg_data_out <= {16'd0, point_y};    //+0x54  W slv_reg21 sample Y
 	        5'h16   : reg_data_out <= {8'd0, point_pixel}; //+0x58  R  video RGB @ (point_x,point_y)
-	        5'h17   : reg_data_out <= slv_reg23;
-	        5'h18   : reg_data_out <= slv_reg24;
+	        5'h17   : reg_data_out <= err_pixel_cnt;       //+0x5C  W slv_reg23 IRQ threshold
+	        5'h18   : reg_data_out <= err_pixel_cnt_total; //+0x60  R  completed-frame err count (latched at frame_end w/ IRQ)
 	        5'h19   : reg_data_out <= slv_reg25;
 	        5'h1A   : reg_data_out <= slv_reg26;
 	        5'h1B   : reg_data_out <= slv_reg27;
@@ -853,6 +859,19 @@
 	    begin
 			point_x <= slv_reg20[15:0];
 			point_y <= slv_reg21[15:0];
+	    end
+	end
+
+	// slv_reg23: frame error-count threshold for IRQ (default 1 == first-error, legacy behaviour)
+	always @( posedge S_AXI_ACLK )
+	begin
+	  if ( S_AXI_ARESETN == 1'b0 )
+	    begin
+	      err_pixel_cnt <= 32'd1;
+	    end
+	  else
+	    begin
+	      err_pixel_cnt <= slv_reg23;
 	    end
 	end
 	

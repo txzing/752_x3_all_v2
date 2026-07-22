@@ -713,10 +713,7 @@ proc create_hier_cell_processor_subsystem { parentCell nameHier } {
    CONFIG.PSU_MIO_0_DIRECTION {out} \
    CONFIG.PSU_MIO_0_INPUT_TYPE {cmos} \
    CONFIG.PSU_MIO_0_POLARITY {Default} \
-   CONFIG.PSU_MIO_10_POLARITY {Default} \
-   CONFIG.PSU_MIO_11_POLARITY {Default} \
    CONFIG.PSU_MIO_12_INPUT_TYPE {cmos} \
-   CONFIG.PSU_MIO_12_POLARITY {Default} \
    CONFIG.PSU_MIO_13_DIRECTION {inout} \
    CONFIG.PSU_MIO_13_POLARITY {Default} \
    CONFIG.PSU_MIO_14_DIRECTION {inout} \
@@ -758,11 +755,9 @@ proc create_hier_cell_processor_subsystem { parentCell nameHier } {
    CONFIG.PSU_MIO_3_POLARITY {Default} \
    CONFIG.PSU_MIO_42_DIRECTION {in} \
    CONFIG.PSU_MIO_42_DRIVE_STRENGTH {12} \
-   CONFIG.PSU_MIO_42_POLARITY {Default} \
    CONFIG.PSU_MIO_42_SLEW {fast} \
    CONFIG.PSU_MIO_43_DIRECTION {out} \
    CONFIG.PSU_MIO_43_INPUT_TYPE {cmos} \
-   CONFIG.PSU_MIO_43_POLARITY {Default} \
    CONFIG.PSU_MIO_45_DIRECTION {in} \
    CONFIG.PSU_MIO_45_DRIVE_STRENGTH {12} \
    CONFIG.PSU_MIO_45_POLARITY {Default} \
@@ -837,9 +832,6 @@ proc create_hier_cell_processor_subsystem { parentCell nameHier } {
    CONFIG.PSU_MIO_77_DIRECTION {inout} \
    CONFIG.PSU_MIO_77_POLARITY {Default} \
    CONFIG.PSU_MIO_7_INPUT_TYPE {cmos} \
-   CONFIG.PSU_MIO_7_POLARITY {Default} \
-   CONFIG.PSU_MIO_8_POLARITY {Default} \
-   CONFIG.PSU_MIO_9_POLARITY {Default} \
    CONFIG.PSU_MIO_TREE_PERIPHERALS {Quad SPI Flash#Quad SPI Flash#Quad SPI Flash#Quad SPI Flash#Quad SPI Flash#Quad SPI Flash#Feedback Clk#######SD 0#SD 0#SD 0#SD 0#SD 0#SD 0#SD 0#SD 0#SD 0#SD 0#SD 0###############UART 0#UART 0######SD 1#SD 1#SD 1#SD 1#SD 1#SD 1#SD 1#############Gem 3#Gem 3#Gem 3#Gem 3#Gem 3#Gem 3#Gem 3#Gem 3#Gem 3#Gem 3#Gem 3#Gem 3#MDIO 3#MDIO 3} \
    CONFIG.PSU_MIO_TREE_SIGNALS {sclk_out#miso_mo1#mo2#mo3#mosi_mi0#n_ss_out#clk_for_lpbk#######sdio0_data_out[0]#sdio0_data_out[1]#sdio0_data_out[2]#sdio0_data_out[3]#sdio0_data_out[4]#sdio0_data_out[5]#sdio0_data_out[6]#sdio0_data_out[7]#sdio0_cmd_out#sdio0_clk_out#sdio0_bus_pow###############rxd#txd######sdio1_cd_n#sdio1_data_out[0]#sdio1_data_out[1]#sdio1_data_out[2]#sdio1_data_out[3]#sdio1_cmd_out#sdio1_clk_out#############rgmii_tx_clk#rgmii_txd[0]#rgmii_txd[1]#rgmii_txd[2]#rgmii_txd[3]#rgmii_tx_ctl#rgmii_rx_clk#rgmii_rxd[0]#rgmii_rxd[1]#rgmii_rxd[2]#rgmii_rxd[3]#rgmii_rx_ctl#gem3_mdc#gem3_mdio_out} \
    CONFIG.PSU_SD0_INTERNAL_BUS_WIDTH {8} \
@@ -1324,7 +1316,6 @@ proc create_hier_cell_lvds_s2 { parentCell nameHier } {
   set_property -dict [ list \
    CONFIG.C_OPERATION {not} \
    CONFIG.C_SIZE {1} \
-   CONFIG.LOGO_FILE {data/sym_notgate.png} \
  ] $util_vector_logic_0
 
   # Create interface connections
@@ -1494,7 +1485,6 @@ proc create_hier_cell_lvds_s1 { parentCell nameHier } {
   set_property -dict [ list \
    CONFIG.C_OPERATION {not} \
    CONFIG.C_SIZE {1} \
-   CONFIG.LOGO_FILE {data/sym_notgate.png} \
  ] $util_vector_logic_0
 
   # Create interface connections
@@ -1664,7 +1654,6 @@ proc create_hier_cell_lvds_s0 { parentCell nameHier } {
   set_property -dict [ list \
    CONFIG.C_OPERATION {not} \
    CONFIG.C_SIZE {1} \
-   CONFIG.LOGO_FILE {data/sym_notgate.png} \
  ] $util_vector_logic_0
 
   # Create interface connections
@@ -1797,7 +1786,6 @@ proc create_root_design { parentCell } {
   set axi_vdma_lwip [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_vdma:6.3 axi_vdma_lwip ]
   set_property -dict [ list \
    CONFIG.c_include_mm2s {0} \
-   CONFIG.c_mm2s_genlock_mode {0} \
    CONFIG.c_s2mm_max_burst_length {64} \
  ] $axi_vdma_lwip
 
@@ -2102,7 +2090,6 @@ proc create_root_design { parentCell } {
   # Restore current instance
   current_bd_instance $oldCurInst
 
-  validate_bd_design
   save_bd_design
 }
 # End of create_root_design()
@@ -2114,4 +2101,6 @@ proc create_root_design { parentCell } {
 
 create_root_design ""
 
+
+common::send_gid_msg -ssname BD::TCL -id 2053 -severity "WARNING" "This Tcl script was generated from a block design that has not been validated. It is possible that design <$design_name> may result in errors during validation."
 
