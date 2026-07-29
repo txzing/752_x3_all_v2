@@ -20,6 +20,10 @@
 #ifndef ROTATE_STREAM_FB_BASE
 #define ROTATE_STREAM_FB_BASE (XPAR_DDR_MEM_BASEADDR + 0x20000000U + 0x2000000U)
 #endif
+/* Must match PL IP NPC (1/2/4). Width/height must be divisible by NPC. */
+#ifndef ROTATE_STREAM_NPC
+#define ROTATE_STREAM_NPC 1
+#endif
 
 int rotate_stream_init_once(void);
 

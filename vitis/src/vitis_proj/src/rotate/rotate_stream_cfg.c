@@ -35,9 +35,10 @@ int rotate_stream_init_once(void)
 	XRotate_stream_accel_Start(&RotateStreamInst);
 
 	RotateStreamConfigured = 1;
-	xil_printf("rotate_stream armed once: %ux%u dir=%u fb=0x%08x\r\n",
+	xil_printf("rotate_stream armed once: %ux%u dir=%u npc=%u fb=0x%08x\r\n",
 		   ROTATE_STREAM_IN_WIDTH, ROTATE_STREAM_IN_HEIGHT,
-		   ROTATE_STREAM_DIRECTION, (u32)ROTATE_STREAM_FB_BASE);
+		   ROTATE_STREAM_DIRECTION, (u32)ROTATE_STREAM_NPC,
+		   (u32)ROTATE_STREAM_FB_BASE);
 	return XST_SUCCESS;
 }
 

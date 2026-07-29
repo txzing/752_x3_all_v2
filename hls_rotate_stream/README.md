@@ -3,7 +3,8 @@
 **Realtime** AXIS RGB888 rotate: CAPTURE ∥ ROTATE ∥ EMIT + IN/OUT double-buffer.
 Configure once (`ap_start` + enable), then continuous video — no per-frame CPU kick.
 
-See [doc/REALTIME_DESIGN.md](doc/REALTIME_DESIGN.md) for bandwidth / FPS / DDR analysis.
+See [doc/USAGE.md](doc/USAGE.md) for software/BD usage and **multi-PPC (NPC=1/2/4)**.
+See [doc/REALTIME_DESIGN.md](doc/REALTIME_DESIGN.md) for bandwidth / FPS analysis.
 
 ## Layout
 
