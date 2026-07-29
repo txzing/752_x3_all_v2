@@ -38,10 +38,28 @@ vitis_hls -f scripts/run_export_ip.tcl
 
 Copy exported IP into `vivado/ip_repo/ip/` (or overwrite `rotate_stream_accel_v1_0`).
 
-## ModelSim
+## ModelSim（本地 Windows）
+
+本云环境无 ModelSim；你本机有的话直接跑：
 
 ```bat
-vsim -c -do sim/run_modelsim.do
+cd <repo>\hls_rotate_stream\scripts
+run_modelsim.bat
+```
+
+默认 `vsim`：`D:\Modelsim\win64\vsim.exe`。若路径不同：
+
+```bat
+set MODELSIM_VSIM=C:\path\to\vsim.exe
+run_modelsim.bat
+```
+
+成功时应看到 `==== MODEL SIM PASSED ====`，并在 `sim\modelsim_transcript.log` 中有 `TEST PASSED`。
+
+看波形：
+
+```bat
+run_modelsim_gui.bat
 ```
 
 ## BD / SW integration
