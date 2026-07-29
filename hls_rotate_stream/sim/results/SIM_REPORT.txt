@@ -1,0 +1,53 @@
+========================================
+ rotate_stream_accel simulation report
+ date: 2026-07-29T12:15:52Z
+ root: /workspace/hls_rotate_stream
+========================================
+
+[1] Host multi-frame C-sim (dirs 0/1/2)
+Wrote tb_data/input_bgr.bin (128x64)
+Stream C-sim: 3 frames, in 128x64 dir=0 -> out 64x128 (config once)
+Mismatch bytes: 0 / 73728 (0.000000%)
+Test Passed
+Stream C-sim: 3 frames, in 128x64 dir=1 -> out 128x64 (config once)
+Mismatch bytes: 0 / 73728 (0.000000%)
+Test Passed
+Stream C-sim: 3 frames, in 128x64 dir=2 -> out 64x128 (config once)
+Mismatch bytes: 0 / 73728 (0.000000%)
+Test Passed
+HOST_CSIM_ALL_PASSED
+HOST_CSIM: PASS
+
+[2] RTL sim (iverilog = same sources as ModelSim)
+--- RTL dir=0 ---
+ModelSim/iverilog TB: 3 frames 64x32 dir=0 -> 32x64 (config once)
+Frame 0 done
+Frame 1 done
+Frame 2 done
+Mismatch bytes: 0 / 18432
+TEST PASSED
+RTL dir=0: PASS
+--- RTL dir=1 ---
+ModelSim/iverilog TB: 3 frames 64x32 dir=1 -> 64x32 (config once)
+Frame 0 done
+Frame 1 done
+Frame 2 done
+Mismatch bytes: 0 / 18432
+TEST PASSED
+RTL dir=1: PASS
+--- RTL dir=2 ---
+ModelSim/iverilog TB: 3 frames 64x32 dir=2 -> 32x64 (config once)
+Frame 0 done
+Frame 1 done
+Frame 2 done
+Mismatch bytes: 0 / 18432
+TEST PASSED
+RTL dir=2: PASS
+
+[3] ModelSim: not in PATH (cloud) — RTL iverilog covered same TB
+    On your PC: hls_rotate_stream\scripts\run_modelsim.bat
+
+========================================
+ ALL_SIM_CHECKS_PASSED
+ artifacts: /workspace/hls_rotate_stream/sim/results
+========================================
