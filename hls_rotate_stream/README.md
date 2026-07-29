@@ -1,7 +1,9 @@
 # hls_rotate_stream
 
-AXIS-in / AXIS-out RGB888 rotate IP with DDR multi-buffer and frame-sync auto trigger.
-**Configure once** (height/width/direction/fb), then auto-restart — no per-frame CPU kick.
+**Realtime** AXIS RGB888 rotate: CAPTURE ∥ ROTATE ∥ EMIT + IN/OUT double-buffer.
+Configure once (`ap_start` + enable), then continuous video — no per-frame CPU kick.
+
+See [doc/REALTIME_DESIGN.md](doc/REALTIME_DESIGN.md) for bandwidth / FPS / DDR analysis.
 
 ## Layout
 
@@ -71,5 +73,6 @@ run_modelsim_gui.bat
 
 ## Notes
 
-- Full 1920×3840 needs external DDR (`m_axi` after HLS export). Checked-in RTL uses on-chip multi-buffer for functional sim.
-- Latency ≥ 1 frame (90° requires a full input frame before first output line).
+- Full 1920×3840 needs external DDR (`m_axi` after HLS export). Checked-in RTL uses on-chip multi-buffer to prove **concurrent** semantics (`dbg_overlap_cycles > 0`).
+- End-to-end latency ≥ 1 frame (90°); sustained FPS targets ≥30 @ 300 MHz with II=1 stages (see design doc).
+- Realtime regression: `bash scripts/run_full_sim_verify.sh` or `run_modelsim.bat`.

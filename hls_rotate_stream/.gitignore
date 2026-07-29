@@ -7,6 +7,8 @@ rotate_stream_cosim/
 sim/work/
 sim/*.log
 sim/rot_*
+sim/tb_auto_dir*.sv
 sim/tb_rotate_stream_d*.sv
+sim/results/*.log
 tb_data/*.bin
 *.zip
