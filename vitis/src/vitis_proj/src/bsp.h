@@ -249,6 +249,7 @@ extern INTC InterruptController;	/* Instance of the Interrupt Controller */
 #endif
 #if defined (BSP_HAS_VDMA)
 #include "vdma/vdma.h"
+#include "rotate/rotate_stream_cfg.h"
 #endif
 #if defined (BSP_HAS_VTC)
 #include "vtc/vtc.h"

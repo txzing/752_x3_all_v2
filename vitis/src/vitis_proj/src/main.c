@@ -105,6 +105,15 @@ int main()
 #endif
 #endif // XPAR_XAXIVDMA_NUM_INSTANCES
 
+#if defined (XPAR_XROTATE_STREAM_ACCEL_NUM_INSTANCES)
+	/* Stream rotate: program once, auto-restart ¡ª no per-frame CPU kick */
+	Status = rotate_stream_init_once();
+	if (Status != XST_SUCCESS)
+	{
+		bsp_printf(TXT_RED "\r\n__FILE__:%s, __LINE__:%d\r\n" TXT_RST,__FILE__, __LINE__);
+		return XST_FAILURE ;
+	}
+#endif
 
 #if defined(SIL9136)
     sil9136_config();

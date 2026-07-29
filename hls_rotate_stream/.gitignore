@@ -1,0 +1,12 @@
+build/
+*_csim/
+*_cosim/
+rotate_stream_accel/
+rotate_stream_csim/
+rotate_stream_cosim/
+sim/work/
+sim/*.log
+sim/rot_*
+sim/tb_rotate_stream_d*.sv
+tb_data/*.bin
+*.zip

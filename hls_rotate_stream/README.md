@@ -1,0 +1,57 @@
+# hls_rotate_stream
+
+AXIS-in / AXIS-out RGB888 rotate IP with DDR multi-buffer and frame-sync auto trigger.
+**Configure once** (height/width/direction/fb), then auto-restart — no per-frame CPU kick.
+
+## Layout
+
+| Path | Role |
+|------|------|
+| `src/xf_rotate_stream_accel.cpp` | HLS top (`rotate_stream_accel`) |
+| `src/rotate_stream_csim_model.cpp` | Host C-sim model (g++) |
+| `src/xf_rotate_stream_tb.cpp` | Multi-frame host TB |
+| `src/xf_rotate_stream_axis_tb.cpp` | AXIS TB for Vitis HLS cosim |
+| `include/` | Config + rotate kernel |
+| `rtl/rotate_stream_accel.v` | Verified RTL (sim / interim IP HDL) |
+| `sim/tb_rotate_stream.sv` | ModelSim / iverilog multi-frame TB |
+| `scripts/` | C-sim / cosim / export / RTL run |
+
+## Verify (this environment)
+
+```bash
+# Host multi-frame C-sim (90/180/270)
+bash scripts/run_host_csim.sh
+
+# RTL sim (ModelSim if available, else iverilog)
+bash scripts/run_rtl_sim.sh
+```
+
+Expected: `HOST_CSIM_ALL_PASSED`, `TEST PASSED`, `IVERILOG_RTL_SIM_PASSED`.
+
+## Vitis HLS (Windows / machine with 2020.1)
+
+```bat
+vitis_hls -f scripts/run_stream_csim.tcl
+vitis_hls -f scripts/run_stream_cosim.tcl
+vitis_hls -f scripts/run_export_ip.tcl
+```
+
+Copy exported IP into `vivado/ip_repo/ip/` (or overwrite `rotate_stream_accel_v1_0`).
+
+## ModelSim
+
+```bat
+vsim -c -do sim/run_modelsim.do
+```
+
+## BD / SW integration
+
+1. Vivado: `source vivado/scripts/insert_rotate_stream.tcl` then `insert_rotate_stream_accel`
+2. Connect 1ppc RGB24 AXIS in/out, clock/reset, AXI-Lite, m_axi→HP
+3. Rebuild XSA; BSP gets `XPAR_XROTATE_STREAM_ACCEL_*`
+4. App: `rotate_stream_init_once()` once after `vdma_config()` — already wired in `main.c` under that XPAR guard
+
+## Notes
+
+- Full 1920×3840 needs external DDR (`m_axi` after HLS export). Checked-in RTL uses on-chip multi-buffer for functional sim.
+- Latency ≥ 1 frame (90° requires a full input frame before first output line).
