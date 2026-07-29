@@ -1,0 +1,24 @@
+========================================
+ ModelSim MULTI-SCENARIO report
+ date: 2026-07-29 local
+ tool: ModelSim SE-64 10.7
+========================================
+SUMMARY pass=14 fail=0
+TEST PASSED
+
+Scenarios:
+ NPC=1 DIR=0 64x32 frames=4 bp=0  ov=8193  PASS
+ NPC=1 DIR=1 64x32 frames=3 bp=0  ov=6146  PASS
+ NPC=1 DIR=2 64x32 frames=3 bp=0  ov=6146  PASS
+ NPC=2 DIR=0 64x32 frames=4 bp=0  ov=4098  PASS
+ NPC=2 DIR=1 64x32 frames=3 bp=0  ov=3074  PASS
+ NPC=2 DIR=2 64x32 frames=3 bp=0  ov=3074  PASS
+ NPC=4 DIR=0 64x32 frames=4 bp=0  ov=2050  PASS
+ NPC=4 DIR=1 64x32 frames=2 bp=0  ov=1026  PASS
+ NPC=4 DIR=2 64x32 frames=2 bp=0  ov=1026  PASS
+ NPC=1 DIR=0 96x48 frames=2 bp=0  ov=9218  PASS
+ NPC=2 DIR=0 96x48 frames=2 bp=0  ov=4610  PASS
+ NPC=4 DIR=0 96x48 frames=2 bp=0  ov=2306  PASS
+ NPC=1 DIR=0 64x32 frames=3 bp=1  ov=9217  PASS (backpressure)
+ NPC=2 DIR=0 64x32 frames=3 bp=1  ov=4096  PASS (backpressure)
+========================================

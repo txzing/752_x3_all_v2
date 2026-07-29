@@ -59,6 +59,15 @@ run_modelsim.bat
 
 成功时应看到 `==== MODEL SIM PASSED ====`，并在 `sim\modelsim_transcript.log` 中有 `TEST PASSED`。
 
+**多场景回归（NPC×方向×分辨率×背压）：**
+
+```bat
+cd <repo>\hls_rotate_stream\scripts
+run_modelsim_multi.bat
+```
+
+报告：`sim\results\MODELSIM_MULTI_REPORT.txt`
+
 看波形：
 
 ```bat
