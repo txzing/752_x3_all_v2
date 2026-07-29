@@ -393,12 +393,12 @@ static u8 s2mm_resolve_ch(u8 ch, u32 *out_mon, u8 *out_first, u8 *out_num)
 		return 0U;
 	}
 	*out_mon = vdma_passthrough_mon_base_lvds(ch);
-	if (*out_mon == 0U || (u8)XPAR_XAXIVDMA_NUM_INSTANCES < (u8)((1U * ch) + 3U))
+	if (*out_mon == 0U || (u8)XPAR_XAXIVDMA_NUM_INSTANCES < (u8)((2U * ch) + 3U))
 	{
 		return 0U;
 	}
-	*out_first = (u8)((1U * ch) + 1U);
-	*out_num = 1U;
+	*out_first = (u8)((2U * ch) + 1U);
+	*out_num = 2U;
 	return 1U;
 }
 

@@ -42,7 +42,10 @@ static u32 pixel_err_snapshot_src(u8 ch)
 		return;
 	}
 //4、7、10
-	return FRAME_BUFFER_BASE_ADDR + (FRAME_BUFFER_SIZE0 * (1U + 3U * (u8)ch));
+//	return FRAME_BUFFER_BASE_ADDR + (FRAME_BUFFER_SIZE0 * (1U + 3U * (u8)ch));
+
+//7、13、19
+	return FRAME_BUFFER_BASE_ADDR + (FRAME_BUFFER_SIZE0 * (1U + 6U * (u8)ch));
 }
 
 static void vcmp_m_fill_from_base(u32 ba, u8 ch)

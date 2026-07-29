@@ -990,7 +990,7 @@ void msg_cmd_0x40(void)
 	}
 	if(cmd_index == 2)
 	{
-		uint32_t ver = 0x00300000; // keep same as type==0 in qspi_update()
+		uint32_t ver = 0x00800000; // keep same as type==0 in qspi_update()
 		msg_send = ver;
 
 		memcpy(send_buf,receivebuf,7);
