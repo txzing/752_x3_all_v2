@@ -1,21 +1,25 @@
-========================================
- rotate_stream_accel REALTIME simulation report
- date: 2026-07-29T12:40:00Z
-========================================
-
-Architecture: CAPTURE || ROTATE || EMIT concurrent, IN/OUT double-buffer
-Software model: ONE ap_start + enable, continuous frames
-
-[1] Host C-sim dirs 0/1/2: PASS (0 mismatch)
-
-[2] RTL realtime (iverilog, same TB as ModelSim)
- dir=0: frames_in=4 frames_out=4 overlap_cycles=8193 Mismatch=0 TEST PASSED
- dir=1: frames_in=4 frames_out=4 overlap_cycles=8193 Mismatch=0 TEST PASSED
- dir=2: frames_in=4 frames_out=4 overlap_cycles=8193 Mismatch=0 TEST PASSED
-
-Overlap > 0 proves CAPTURE and EMIT run concurrently (not serial).
-
-[3] ModelSim: run locally via hls_rotate_stream\scripts\run_modelsim.bat
-
-ALL_SIM_CHECKS_PASSED
-========================================
+Wrote tb_data/input_bgr.bin (128x64)
+Stream C-sim: 3 frames, in 128x64 dir=0 -> out 64x128 (config once)
+Mismatch bytes: 0 / 73728 (0.000000%)
+Test Passed
+Stream C-sim: 3 frames, in 128x64 dir=1 -> out 128x64 (config once)
+Mismatch bytes: 0 / 73728 (0.000000%)
+Test Passed
+Stream C-sim: 3 frames, in 128x64 dir=2 -> out 64x128 (config once)
+Mismatch bytes: 0 / 73728 (0.000000%)
+Test Passed
+HOST_CSIM_ALL_PASSED
+Realtime TB: ONE ap_start, 4 frames 64x32 dir=0
+Sent frame 0
+Sent frame 1
+Sent frame 2
+Recv frame 0
+Sent frame 3
+Recv frame 1
+Recv frame 2
+Recv frame 3
+frames_in=4 frames_out=4 overlap_cycles=8193
+Mismatch bytes: 0 / 24576
+TEST PASSED
+OVERLAP_OK 8193
+ALL_REALTIME_SIM_CHECKS_PASSED
