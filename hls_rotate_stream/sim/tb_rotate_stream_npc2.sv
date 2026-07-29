@@ -1,8 +1,8 @@
 // tb_rotate_stream.sv — NPC=1 realtime（默认）
 `timescale 1ns / 1ps
 
-module tb_rotate_stream;
-    localparam integer NPC     = 1;
+module tb_rotate_stream_npc2;
+    localparam integer NPC     = 2;
     localparam integer AXIS_W  = NPC * 24;
     localparam integer CLK_NS  = 10;
     localparam integer HEIGHT  = 32;

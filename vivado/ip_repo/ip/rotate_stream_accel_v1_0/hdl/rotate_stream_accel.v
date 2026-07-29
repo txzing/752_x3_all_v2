@@ -1,10 +1,10 @@
 // rotate_stream_accel.v
-// 实时流旋转：CAPTURE / ROTATE / EMIT 三引擎并发 + IN/OUT 双缓冲（单 always 避免多驱动）
-// enable + 一次 ap_start 锁存参数后常开；帧结束自动触发旋转
+// 实时流旋转：CAPTURE/ROTATE/EMIT 并发 + 双缓冲；支持 NPC=1/2/4（多 PPC）
 `timescale 1ns / 1ps
 
 module rotate_stream_accel #(
-    parameter integer AXIS_W = 24,
+    parameter integer NPC    = 1,           // pixels per clock: 1, 2, or 4
+    parameter integer AXIS_W = NPC * 24,    // must be NPC*24
     parameter integer MAX_H  = 64,
     parameter integer MAX_W  = 128
 ) (
@@ -46,6 +46,16 @@ module rotate_stream_accel #(
     localparam integer STRIDE    = MAX_PIX * BPP;
     localparam integer MEM_BYTES = STRIDE * 4;
 
+    // 综合期检查
+    // synthesis translate_off
+    initial begin
+        if ((NPC != 1) && (NPC != 2) && (NPC != 4))
+            $fatal(1, "NPC must be 1, 2, or 4");
+        if (AXIS_W != NPC * 24)
+            $fatal(1, "AXIS_W must equal NPC*24");
+    end
+    // synthesis translate_on
+
     reg [7:0] mem [0:MEM_BYTES-1];
 
     reg        running;
@@ -57,24 +67,22 @@ module rotate_stream_accel #(
     reg wr_idx, rd_idx;
     reg rot_in_idx, rot_out_idx;
 
-    // CAPTURE
     localparam C_IDLE = 1'd0, C_RUN = 1'd1;
     reg c_state;
     reg [15:0] c_x, c_y;
 
-    // ROTATE
     localparam R_IDLE = 1'd0, R_RUN = 1'd1;
     reg r_state;
     reg [31:0] r_idx, r_total, r_in_base, r_out_base;
 
-    // EMIT
     localparam E_IDLE = 1'd0, E_RUN = 1'd1;
     reg e_state;
     reg [15:0] e_x, e_y;
     reg [31:0] e_base;
 
-    integer sx, sy, ox, oy, src_a, dst_a;
+    integer sx, sy, ox, oy, src_a, dst_a, k, pbase;
     reg [31:0] tmp_in_base;
+    reg [AXIS_W-1:0] pack_word;
 
     function automatic [15:0] f_out_h;
         input [15:0] h, w;
@@ -92,7 +100,6 @@ module rotate_stream_accel #(
         end
     endfunction
 
-    // 主时序：配置 + 三引擎
     always @(posedge ap_clk or negedge ap_rst_n) begin
         if (!ap_rst_n) begin
             running <= 0;
@@ -109,7 +116,6 @@ module rotate_stream_accel #(
         end else begin
             ap_done <= 1'b0;
 
-            // ---- 使能 / 一次启动 ----
             if (!enable) begin
                 running <= 0;
                 ap_idle <= 1; ap_ready <= 1;
@@ -130,16 +136,15 @@ module rotate_stream_accel #(
                 c_state <= C_IDLE; r_state <= R_IDLE; e_state <= E_IDLE;
                 dbg_frames_in <= 0; dbg_frames_out <= 0; dbg_overlap_cycles <= 0;
             end else if (running) begin
-                // 重叠统计
                 if (dbg_cap_active && dbg_emit_active)
                     dbg_overlap_cycles <= dbg_overlap_cycles + 1;
 
-                // ========== CAPTURE ==========
+                // ========== CAPTURE：每拍 NPC 像素 ==========
                 case (c_state)
                     C_IDLE: begin
                         dbg_cap_active <= 0;
                         s_axis_tready <= 0;
-                        if ((!in_valid0 || !in_valid1)) begin
+                        if (!in_valid0 || !in_valid1) begin
                             c_x <= 0; c_y <= 0;
                             c_state <= C_RUN;
                             s_axis_tready <= 1;
@@ -151,10 +156,13 @@ module rotate_stream_accel #(
                         s_axis_tready <= 1;
                         if (s_axis_tvalid && s_axis_tready) begin
                             tmp_in_base = wr_idx ? STRIDE : 0;
-                            mem[tmp_in_base + (c_y * in_w + c_x) * BPP + 0] <= s_axis_tdata[7:0];
-                            mem[tmp_in_base + (c_y * in_w + c_x) * BPP + 1] <= s_axis_tdata[15:8];
-                            mem[tmp_in_base + (c_y * in_w + c_x) * BPP + 2] <= s_axis_tdata[23:16];
-                            if (c_x == (in_w - 16'd1)) begin
+                            for (k = 0; k < NPC; k = k + 1) begin
+                                pbase = tmp_in_base + (c_y * in_w + c_x + k) * BPP;
+                                mem[pbase + 0] <= s_axis_tdata[k*24 + 7  -: 8];
+                                mem[pbase + 1] <= s_axis_tdata[k*24 + 15 -: 8];
+                                mem[pbase + 2] <= s_axis_tdata[k*24 + 23 -: 8];
+                            end
+                            if ((c_x + NPC) >= in_w) begin
                                 c_x <= 0;
                                 if (c_y == (in_h - 16'd1)) begin
                                     if (wr_idx == 0) in_valid0 <= 1'b1;
@@ -165,29 +173,25 @@ module rotate_stream_accel #(
                                     s_axis_tready <= 0;
                                     dbg_cap_active <= 0;
                                 end else c_y <= c_y + 1;
-                            end else c_x <= c_x + 1;
+                            end else c_x <= c_x + NPC[15:0];
                         end
                     end
                 endcase
 
-                // ========== ROTATE ==========
+                // ========== ROTATE：仍按像素（FB 字节序） ==========
                 case (r_state)
                     R_IDLE: begin
                         dbg_rot_active <= 0;
                         if ((in_valid0 || in_valid1) && (!out_valid0 || !out_valid1)) begin
                             if (in_valid0) begin
-                                rot_in_idx <= 0;
-                                r_in_base <= 0;
+                                rot_in_idx <= 0; r_in_base <= 0;
                             end else begin
-                                rot_in_idx <= 1;
-                                r_in_base <= STRIDE;
+                                rot_in_idx <= 1; r_in_base <= STRIDE;
                             end
                             if (!out_valid0) begin
-                                rot_out_idx <= 0;
-                                r_out_base <= 2 * STRIDE;
+                                rot_out_idx <= 0; r_out_base <= 2 * STRIDE;
                             end else begin
-                                rot_out_idx <= 1;
-                                r_out_base <= 3 * STRIDE;
+                                rot_out_idx <= 1; r_out_base <= 3 * STRIDE;
                             end
                             r_idx <= 0;
                             r_total <= out_h * out_w;
@@ -222,18 +226,16 @@ module rotate_stream_accel #(
                     end
                 endcase
 
-                // ========== EMIT ==========
+                // ========== EMIT：每拍打包 NPC 像素 ==========
                 case (e_state)
                     E_IDLE: begin
                         dbg_emit_active <= 0;
                         m_axis_tvalid <= 0;
                         if (out_valid0 || out_valid1) begin
                             if (out_valid0) begin
-                                rd_idx <= 0;
-                                e_base <= 2 * STRIDE;
+                                rd_idx <= 0; e_base <= 2 * STRIDE;
                             end else begin
-                                rd_idx <= 1;
-                                e_base <= 3 * STRIDE;
+                                rd_idx <= 1; e_base <= 3 * STRIDE;
                             end
                             e_x <= 0; e_y <= 0;
                             e_state <= E_RUN;
@@ -243,16 +245,19 @@ module rotate_stream_accel #(
                     E_RUN: begin
                         dbg_emit_active <= 1;
                         if (!m_axis_tvalid) begin
-                            m_axis_tdata <= {
-                                mem[e_base + (e_y * out_w + e_x) * BPP + 2],
-                                mem[e_base + (e_y * out_w + e_x) * BPP + 1],
-                                mem[e_base + (e_y * out_w + e_x) * BPP + 0]
-                            };
-                            m_axis_tuser <= (e_y == 0 && e_x == 0);
-                            m_axis_tlast <= (e_x == (out_w - 1));
+                            pack_word = {AXIS_W{1'b0}};
+                            for (k = 0; k < NPC; k = k + 1) begin
+                                pbase = e_base + (e_y * out_w + e_x + k) * BPP;
+                                pack_word[k*24 + 7  -: 8] = mem[pbase + 0];
+                                pack_word[k*24 + 15 -: 8] = mem[pbase + 1];
+                                pack_word[k*24 + 23 -: 8] = mem[pbase + 2];
+                            end
+                            m_axis_tdata  <= pack_word;
+                            m_axis_tuser  <= (e_y == 0 && e_x == 0);
+                            m_axis_tlast  <= ((e_x + NPC) >= out_w);
                             m_axis_tvalid <= 1;
                         end else if (m_axis_tready) begin
-                            if (e_x == (out_w - 1)) begin
+                            if ((e_x + NPC) >= out_w) begin
                                 if (e_y == (out_h - 1)) begin
                                     m_axis_tvalid <= 0;
                                     if (rd_idx == 0) out_valid0 <= 1'b0;
@@ -264,24 +269,30 @@ module rotate_stream_accel #(
                                 end else begin
                                     e_x <= 0;
                                     e_y <= e_y + 1;
-                                    m_axis_tdata <= {
-                                        mem[e_base + ((e_y + 1) * out_w + 0) * BPP + 2],
-                                        mem[e_base + ((e_y + 1) * out_w + 0) * BPP + 1],
-                                        mem[e_base + ((e_y + 1) * out_w + 0) * BPP + 0]
-                                    };
-                                    m_axis_tuser <= 0;
-                                    m_axis_tlast <= (out_w == 1);
+                                    pack_word = {AXIS_W{1'b0}};
+                                    for (k = 0; k < NPC; k = k + 1) begin
+                                        pbase = e_base + ((e_y + 1) * out_w + k) * BPP;
+                                        pack_word[k*24 + 7  -: 8] = mem[pbase + 0];
+                                        pack_word[k*24 + 15 -: 8] = mem[pbase + 1];
+                                        pack_word[k*24 + 23 -: 8] = mem[pbase + 2];
+                                    end
+                                    m_axis_tdata  <= pack_word;
+                                    m_axis_tuser  <= 0;
+                                    m_axis_tlast  <= (NPC >= out_w);
                                     m_axis_tvalid <= 1;
                                 end
                             end else begin
-                                e_x <= e_x + 1;
-                                m_axis_tdata <= {
-                                    mem[e_base + (e_y * out_w + (e_x + 1)) * BPP + 2],
-                                    mem[e_base + (e_y * out_w + (e_x + 1)) * BPP + 1],
-                                    mem[e_base + (e_y * out_w + (e_x + 1)) * BPP + 0]
-                                };
-                                m_axis_tuser <= 0;
-                                m_axis_tlast <= ((e_x + 1) == (out_w - 1));
+                                e_x <= e_x + NPC[15:0];
+                                pack_word = {AXIS_W{1'b0}};
+                                for (k = 0; k < NPC; k = k + 1) begin
+                                    pbase = e_base + (e_y * out_w + (e_x + NPC + k)) * BPP;
+                                    pack_word[k*24 + 7  -: 8] = mem[pbase + 0];
+                                    pack_word[k*24 + 15 -: 8] = mem[pbase + 1];
+                                    pack_word[k*24 + 23 -: 8] = mem[pbase + 2];
+                                end
+                                m_axis_tdata  <= pack_word;
+                                m_axis_tuser  <= 0;
+                                m_axis_tlast  <= ((e_x + NPC + NPC) >= out_w);
                                 m_axis_tvalid <= 1;
                             end
                         end
