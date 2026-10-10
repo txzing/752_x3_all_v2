@@ -1,10 +1,12 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
-
-
-//#define R1080P60 //#define TEST
-//#define R4K30W //#define R4K30
+/*
+ * 全局视频模式（与 src 下 vdma / vtc / tpg / clk_wiz / csi_tx 等 #if defined 一致）：
+ *   R1080 — 1080p 类；R4K — 4K 类；二者都不定义时走各模块 #else 默认分支。
+ */
+#define R1080		/* 1920 x 1080 */
+//#define R4K		/* 3840 x 2160 */
 
 /*
  * for rs485 tcl settings(mb/zynq/znyqmp)

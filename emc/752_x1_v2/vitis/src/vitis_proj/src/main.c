@@ -141,6 +141,8 @@ int main()
 	usleep(10*1000);
 
 	serdes_i2c_write_array_16(I2C_NO_1, max96752_oldi);
+	xgpio_i2c_reg16_write(I2C_NO_1, 0x90>>1, 0x0002, 0x43, STRETCH_ON);/* 保持视频，清 DIS_REM_CC */
+
 
 #endif // SER_CFG || DES_CFG
 
@@ -157,7 +159,7 @@ int main()
 
 	app_info();
 	xil_printf("\r\nstart\r\n");
-	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x3);
+	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x1);
 	usleep(50*1000);
 	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
 

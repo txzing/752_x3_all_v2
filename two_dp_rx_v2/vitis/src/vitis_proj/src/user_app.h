@@ -27,6 +27,8 @@ void board_apply_video_channel_switch(u8 switch_ch);
 void app_info(void);
 void video_resolution_print(char *info,u32 baseaddr);
 void uart_receive_process(void);
+/* Touch INT pulse (same mapping as UART 'i'). Returns I2C status, *reg23 is touch reg 0x23. */
+int tp_touch_intr_read(u8 ch, u8 *reg23);
 
 //void MODS_Switch(void);
 

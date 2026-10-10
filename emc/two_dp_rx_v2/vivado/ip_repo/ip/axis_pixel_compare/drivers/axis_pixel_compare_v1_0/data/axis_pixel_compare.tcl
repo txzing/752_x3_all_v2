@@ -1,30 +1,27 @@
 ###############################################################################
 # axis_pixel_compare.tcl - BSP/HSI driver generation
 #
-# Version: 2.19 (must match spirit:version in component.xml and OPTION VERSION in
+# Version: 2.23 (must match spirit:version in component.xml and OPTION VERSION in
 #               drivers/axis_pixel_compare_v1_0/data/axis_pixel_compare.mdd)
-# Revision date: 2026-06-02
+# Revision date: 2026-07-21
 #
 # - xdefine_include_file -> xparameters.h (NUM_INSTANCES, DEVICE_ID, S00 base/high)
 # - axis_pixel_compare_g.c written here: DeviceId, S00_axi_BaseAddr, IntrId (no HighAddr).
-# - IntrId: 解析 xparameters.h; PMU 域为 0U. BSP 生成时本驱动常早于 INTC 驱动, 中断宏可能
-#   尚未写入 xparameters.h, 故 MicroBlaze 回退为 XPAR_INTC_<n>_AXIS_PIXEL_COMPARE_<i>_VEC_ID
-#   (编译期展开), MPSoC 回退为 XPAR_FABRIC_<UP>_INTR_INTR. 勿用 get_interrupt_id 数值作
-#   GIC SPI (常为 4U/5U/6U 等错误值).
+# - IntrId: 解析 xparameters.h; PMU 域为 0U. BSP 生成时本驱动常早�?INTC 驱动, 中断宏可�?#   尚未写入 xparameters.h, �?MicroBlaze 回退�?XPAR_INTC_<n>_AXIS_PIXEL_COMPARE_<i>_VEC_ID
+#   (编译期展开), MPSoC 回退�?XPAR_FABRIC_<UP>_INTR_INTR. 勿用 get_interrupt_id 数值作
+#   GIC SPI (常为 4U/5U/6U 等错误�?.
 #
-# IntrId 选择策略 (按顺序命中即返回; 不写死 LVDS 等板级实例名):
-#   A) xparameters.h 已有: AXI_INTC_<UP>_INTR_INTR 行, VEC_ID, FABRIC_* 等
-#   B) 逐行扫描: 符号名包含 <UP> 且后缀为 *_INTR_* / *_VEC_ID
-#   C) 编译期回退 (宏可尚未出现在生成时的 xparameters.h 中):
+# IntrId 选择策略 (按顺序命中即返回; 不写�?LVDS 等板级实例名):
+#   A) xparameters.h 已有: AXI_INTC_<UP>_INTR_INTR �? VEC_ID, FABRIC_* �?#   B) 逐行扫描: 符号名包�?<UP> 且后缀�?*_INTR_* / *_VEC_ID
+#   C) 编译期回退 (宏可尚未出现在生成时�?xparameters.h �?:
 #        MicroBlaze -> XPAR_INTC_<n>_AXIS_PIXEL_COMPARE_<inst_idx>_VEC_ID
 #        ARM PS/GIC -> XPAR_FABRIC_<UP>_INTR_INTR
 #   D) PMU 或无中断连接: 0U
 #
-# xparameters.h 定位: 从 [info script] 与 [pwd] 双向向上查找, 且同时尝试
-#   include/xparameters.h 与 bspinclude/include/xparameters.h (Vitis 导出布局).
+# xparameters.h 定位: �?[info script] �?[pwd] 双向向上查找, 且同时尝�?#   include/xparameters.h �?bspinclude/include/xparameters.h (Vitis 导出布局).
 # regexp 使用 Tcl8.5 兼容写法 (禁止 regexp -> var).
 #
-# 说明: 本文件为 GB2312 编码, 中文注释标点均为英文, 与 axis_pixel_compare.h 一致.
+# 说明: 本文件为 GB2312 编码, 中文注释标点均为英文, �?axis_pixel_compare.h 一�?
 ###############################################################################
 
 # Try one candidate path; return normalized path if readable file.

@@ -415,7 +415,7 @@ void FlashQuadEnable(XQspiPs *QspiPtr);
 //#define QSPI_DEVICE_ID 		XPAR_PROCESSOR_SUBSYSTEM_AXI_QUAD_SPI_0_DEVICE_ID
 #define QSPI_DEVICE_ID 		XPAR_SPI_0_DEVICE_ID
 
-//??????FLASH?÷????????
+//发送到FLASH器件的指令
 #define WRITE_STATUS_CMD	0x01
 #define WRITE_CMD			0x02
 #define READ_CMD			0x03

@@ -132,18 +132,20 @@ user.org:user:lvds4x2_1to7:1.0\
 xilinx.com:ip:v_vid_in_axi4s:4.0\
 xilinx.com:ip:xlconcat:2.1\
 xilinx.com:ip:xlslice:1.0\
+xilinx.com:ip:proc_sys_reset:5.0\
+xilinx.com:ip:util_vector_logic:2.0\
 xilinx.com:hls:AXI4_Stream_Terminator:1.0\
 xilinx.com:ip:axis_broadcaster:1.1\
 xilinx.com:user:axis_combiner:1.1\
 xilinx.com:user:axis_pixel_compare:2.23\
 xilinx.com:ip:axis_subset_converter:1.1\
-xilinx.com:ip:proc_sys_reset:5.0\
-xilinx.com:ip:util_vector_logic:2.0\
 xilinx.com:user:AXI_LITE_REG:1.0\
 xilinx.com:ip:smartconnect:1.0\
 xilinx.com:ip:axi_timer:2.0\
 xilinx.com:ip:zynq_ultra_ps_e:3.3\
 alinx.com.cn:user:xgpio_to_i2c:1.0\
+xilinx.com:user:fake_i2c_slave_0:1.1\
+figkey:figkey:i2c_hub_x2:1.1\
 xilinx.com:ip:axi_uartlite:2.0\
 "
 
@@ -253,6 +255,222 @@ proc create_hier_cell_rs485_hier { parentCell nameHier } {
   connect_bd_net -net axi_uartlite_0_interrupt [get_bd_pins interrupt] [get_bd_pins axi_uartlite_0/interrupt]
   connect_bd_net -net rst_ps8_0_300M_peripheral_aresetn [get_bd_pins s_axi_aresetn] [get_bd_pins axi_gpio_0/s_axi_aresetn] [get_bd_pins axi_timer_0/s_axi_aresetn] [get_bd_pins axi_uartlite_0/s_axi_aresetn]
   connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins s_axi_aclk] [get_bd_pins axi_gpio_0/s_axi_aclk] [get_bd_pins axi_timer_0/s_axi_aclk] [get_bd_pins axi_uartlite_0/s_axi_aclk]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: fake_i2c_2
+proc create_hier_cell_fake_i2c_2 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_fake_i2c_2() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:iic_rtl:1.0 i2c_1
+
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:iic_rtl:1.0 i2c_up0
+
+
+  # Create pins
+  create_bd_pin -dir I VCC
+  create_bd_pin -dir I -type clk sys_clk
+  create_bd_pin -dir I -type rst sys_rst_n
+
+  # Create instance: fake_i2c_slave_0_0, and set properties
+  set fake_i2c_slave_0_0 [ create_bd_cell -type ip -vlnv xilinx.com:user:fake_i2c_slave_0:1.1 fake_i2c_slave_0_0 ]
+  set_property -dict [ list \
+   CONFIG.I2C_SLAVE_ADDR {"1010000"} \
+   CONFIG.I2C_SLAVE_REG_MODE {0} \
+ ] $fake_i2c_slave_0_0
+
+  # Create instance: i2c_hub_x2_0, and set properties
+  set i2c_hub_x2_0 [ create_bd_cell -type ip -vlnv figkey:figkey:i2c_hub_x2:1.1 i2c_hub_x2_0 ]
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net i2c_hub_x2_0_i2c_down [get_bd_intf_pins i2c_1] [get_bd_intf_pins i2c_hub_x2_0/i2c_down]
+  connect_bd_intf_net -intf_net xgpio_i2c_0_i2c_1 [get_bd_intf_pins i2c_up0] [get_bd_intf_pins i2c_hub_x2_0/i2c_up0]
+
+  # Create port connections
+  connect_bd_net -net fake_i2c_slave_0_0_sda_o [get_bd_pins fake_i2c_slave_0_0/sda_o] [get_bd_pins i2c_hub_x2_0/upstream1_sda_I]
+  connect_bd_net -net fake_i2c_slave_0_0_sda_t [get_bd_pins fake_i2c_slave_0_0/sda_t] [get_bd_pins i2c_hub_x2_0/upstream1_sda_T]
+  connect_bd_net -net i2c_hub_x2_0_upstream1_scl_O [get_bd_pins fake_i2c_slave_0_0/scl] [get_bd_pins i2c_hub_x2_0/upstream1_scl_O]
+  connect_bd_net -net i2c_hub_x2_0_upstream1_sda_O [get_bd_pins fake_i2c_slave_0_0/sda_in] [get_bd_pins i2c_hub_x2_0/upstream1_sda_O]
+  connect_bd_net -net lvds_s0_peripheral_aresetn [get_bd_pins sys_rst_n] [get_bd_pins fake_i2c_slave_0_0/sys_rst_n]
+  connect_bd_net -net processor_subsystem_pl_clk1 [get_bd_pins sys_clk] [get_bd_pins fake_i2c_slave_0_0/sys_clk]
+  connect_bd_net -net xlconstant_4_dout [get_bd_pins VCC] [get_bd_pins i2c_hub_x2_0/upstream1_scl_I] [get_bd_pins i2c_hub_x2_0/upstream1_scl_T]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: fake_i2c_1
+proc create_hier_cell_fake_i2c_1 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_fake_i2c_1() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:iic_rtl:1.0 i2c_1
+
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:iic_rtl:1.0 i2c_up0
+
+
+  # Create pins
+  create_bd_pin -dir I VCC
+  create_bd_pin -dir I -type clk sys_clk
+  create_bd_pin -dir I -type rst sys_rst_n
+
+  # Create instance: fake_i2c_slave_0_0, and set properties
+  set fake_i2c_slave_0_0 [ create_bd_cell -type ip -vlnv xilinx.com:user:fake_i2c_slave_0:1.1 fake_i2c_slave_0_0 ]
+  set_property -dict [ list \
+   CONFIG.I2C_SLAVE_ADDR {"1010000"} \
+   CONFIG.I2C_SLAVE_REG_MODE {0} \
+ ] $fake_i2c_slave_0_0
+
+  # Create instance: i2c_hub_x2_0, and set properties
+  set i2c_hub_x2_0 [ create_bd_cell -type ip -vlnv figkey:figkey:i2c_hub_x2:1.1 i2c_hub_x2_0 ]
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net i2c_hub_x2_0_i2c_down [get_bd_intf_pins i2c_1] [get_bd_intf_pins i2c_hub_x2_0/i2c_down]
+  connect_bd_intf_net -intf_net xgpio_i2c_0_i2c_1 [get_bd_intf_pins i2c_up0] [get_bd_intf_pins i2c_hub_x2_0/i2c_up0]
+
+  # Create port connections
+  connect_bd_net -net fake_i2c_slave_0_0_sda_o [get_bd_pins fake_i2c_slave_0_0/sda_o] [get_bd_pins i2c_hub_x2_0/upstream1_sda_I]
+  connect_bd_net -net fake_i2c_slave_0_0_sda_t [get_bd_pins fake_i2c_slave_0_0/sda_t] [get_bd_pins i2c_hub_x2_0/upstream1_sda_T]
+  connect_bd_net -net i2c_hub_x2_0_upstream1_scl_O [get_bd_pins fake_i2c_slave_0_0/scl] [get_bd_pins i2c_hub_x2_0/upstream1_scl_O]
+  connect_bd_net -net i2c_hub_x2_0_upstream1_sda_O [get_bd_pins fake_i2c_slave_0_0/sda_in] [get_bd_pins i2c_hub_x2_0/upstream1_sda_O]
+  connect_bd_net -net lvds_s0_peripheral_aresetn [get_bd_pins sys_rst_n] [get_bd_pins fake_i2c_slave_0_0/sys_rst_n]
+  connect_bd_net -net processor_subsystem_pl_clk1 [get_bd_pins sys_clk] [get_bd_pins fake_i2c_slave_0_0/sys_clk]
+  connect_bd_net -net xlconstant_4_dout [get_bd_pins VCC] [get_bd_pins i2c_hub_x2_0/upstream1_scl_I] [get_bd_pins i2c_hub_x2_0/upstream1_scl_T]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
+# Hierarchical cell: fake_i2c_0
+proc create_hier_cell_fake_i2c_0 { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_fake_i2c_0() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:iic_rtl:1.0 i2c_1
+
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:iic_rtl:1.0 i2c_up0
+
+
+  # Create pins
+  create_bd_pin -dir I VCC
+  create_bd_pin -dir I -type clk sys_clk
+  create_bd_pin -dir I -type rst sys_rst_n
+
+  # Create instance: fake_i2c_slave_0_0, and set properties
+  set fake_i2c_slave_0_0 [ create_bd_cell -type ip -vlnv xilinx.com:user:fake_i2c_slave_0:1.1 fake_i2c_slave_0_0 ]
+  set_property -dict [ list \
+   CONFIG.I2C_SLAVE_ADDR {"1010000"} \
+   CONFIG.I2C_SLAVE_REG_MODE {0} \
+ ] $fake_i2c_slave_0_0
+
+  # Create instance: i2c_hub_x2_0, and set properties
+  set i2c_hub_x2_0 [ create_bd_cell -type ip -vlnv figkey:figkey:i2c_hub_x2:1.1 i2c_hub_x2_0 ]
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net i2c_hub_x2_0_i2c_down [get_bd_intf_pins i2c_1] [get_bd_intf_pins i2c_hub_x2_0/i2c_down]
+  connect_bd_intf_net -intf_net xgpio_i2c_0_i2c_1 [get_bd_intf_pins i2c_up0] [get_bd_intf_pins i2c_hub_x2_0/i2c_up0]
+
+  # Create port connections
+  connect_bd_net -net fake_i2c_slave_0_0_sda_o [get_bd_pins fake_i2c_slave_0_0/sda_o] [get_bd_pins i2c_hub_x2_0/upstream1_sda_I]
+  connect_bd_net -net fake_i2c_slave_0_0_sda_t [get_bd_pins fake_i2c_slave_0_0/sda_t] [get_bd_pins i2c_hub_x2_0/upstream1_sda_T]
+  connect_bd_net -net i2c_hub_x2_0_upstream1_scl_O [get_bd_pins fake_i2c_slave_0_0/scl] [get_bd_pins i2c_hub_x2_0/upstream1_scl_O]
+  connect_bd_net -net i2c_hub_x2_0_upstream1_sda_O [get_bd_pins fake_i2c_slave_0_0/sda_in] [get_bd_pins i2c_hub_x2_0/upstream1_sda_O]
+  connect_bd_net -net lvds_s0_peripheral_aresetn [get_bd_pins sys_rst_n] [get_bd_pins fake_i2c_slave_0_0/sys_rst_n]
+  connect_bd_net -net processor_subsystem_pl_clk1 [get_bd_pins sys_clk] [get_bd_pins fake_i2c_slave_0_0/sys_clk]
+  connect_bd_net -net xlconstant_4_dout [get_bd_pins VCC] [get_bd_pins i2c_hub_x2_0/upstream1_scl_I] [get_bd_pins i2c_hub_x2_0/upstream1_scl_T]
 
   # Restore current instance
   current_bd_instance $oldCurInst
@@ -679,7 +897,8 @@ proc create_hier_cell_processor_subsystem { parentCell nameHier } {
   create_bd_pin -dir I -from 31 -to 0 VERSION
   create_bd_pin -dir O -from 0 -to 0 -type rst peripheral_aresetn
   create_bd_pin -dir O -from 0 -to 0 -type rst peripheral_reset
-  create_bd_pin -dir O -type clk pl_clk0
+  create_bd_pin -dir O -type clk pl_clk0_300m
+  create_bd_pin -dir O -type clk pl_clk1_50m
   create_bd_pin -dir O -from 0 -to 0 uart_0_txen
 
   # Create instance: AXI_LITE_REG_0, and set properties
@@ -945,10 +1164,10 @@ proc create_hier_cell_processor_subsystem { parentCell nameHier } {
    CONFIG.PSU__CRL_APB__PL0_REF_CTRL__DIVISOR1 {1} \
    CONFIG.PSU__CRL_APB__PL0_REF_CTRL__FREQMHZ {300} \
    CONFIG.PSU__CRL_APB__PL0_REF_CTRL__SRCSEL {RPLL} \
-   CONFIG.PSU__CRL_APB__PL1_REF_CTRL__ACT_FREQMHZ {200.000000} \
-   CONFIG.PSU__CRL_APB__PL1_REF_CTRL__DIVISOR0 {4} \
+   CONFIG.PSU__CRL_APB__PL1_REF_CTRL__ACT_FREQMHZ {50.000000} \
+   CONFIG.PSU__CRL_APB__PL1_REF_CTRL__DIVISOR0 {24} \
    CONFIG.PSU__CRL_APB__PL1_REF_CTRL__DIVISOR1 {1} \
-   CONFIG.PSU__CRL_APB__PL1_REF_CTRL__FREQMHZ {100} \
+   CONFIG.PSU__CRL_APB__PL1_REF_CTRL__FREQMHZ {50} \
    CONFIG.PSU__CRL_APB__PL1_REF_CTRL__SRCSEL {RPLL} \
    CONFIG.PSU__CRL_APB__PL2_REF_CTRL__DIVISOR0 {4} \
    CONFIG.PSU__CRL_APB__PL2_REF_CTRL__DIVISOR1 {1} \
@@ -1063,13 +1282,13 @@ proc create_hier_cell_processor_subsystem { parentCell nameHier } {
    CONFIG.PSU__ENET3__PERIPHERAL__IO {MIO 64 .. 75} \
    CONFIG.PSU__ENET3__PTP__ENABLE {0} \
    CONFIG.PSU__ENET3__TSU__ENABLE {0} \
-   CONFIG.PSU__FPGA_PL1_ENABLE {0} \
+   CONFIG.PSU__FPGA_PL1_ENABLE {1} \
    CONFIG.PSU__GEM3_COHERENCY {0} \
    CONFIG.PSU__GEM3_ROUTE_THROUGH_FPD {0} \
    CONFIG.PSU__GEM__TSU__ENABLE {0} \
-   CONFIG.PSU__GPIO_EMIO_WIDTH {3} \
+   CONFIG.PSU__GPIO_EMIO_WIDTH {9} \
    CONFIG.PSU__GPIO_EMIO__PERIPHERAL__ENABLE {1} \
-   CONFIG.PSU__GPIO_EMIO__PERIPHERAL__IO {3} \
+   CONFIG.PSU__GPIO_EMIO__PERIPHERAL__IO {9} \
    CONFIG.PSU__HIGH_ADDRESS__ENABLE {0} \
    CONFIG.PSU__I2C0__PERIPHERAL__ENABLE {1} \
    CONFIG.PSU__I2C0__PERIPHERAL__IO {EMIO} \
@@ -1081,7 +1300,7 @@ proc create_hier_cell_processor_subsystem { parentCell nameHier } {
    CONFIG.PSU__IOU_SLCR__TTC2__FREQMHZ {100.000000} \
    CONFIG.PSU__IOU_SLCR__TTC3__ACT_FREQMHZ {100.000000} \
    CONFIG.PSU__IOU_SLCR__TTC3__FREQMHZ {100.000000} \
-   CONFIG.PSU__PL_CLK1_BUF {FALSE} \
+   CONFIG.PSU__PL_CLK1_BUF {TRUE} \
    CONFIG.PSU__PROTECTION__MASTERS {USB1:NonSecure;0|USB0:NonSecure;0|S_AXI_LPD:NA;0|S_AXI_HPC1_FPD:NA;0|S_AXI_HPC0_FPD:NA;0|S_AXI_HP3_FPD:NA;0|S_AXI_HP2_FPD:NA;0|S_AXI_HP1_FPD:NA;0|S_AXI_HP0_FPD:NA;1|S_AXI_ACP:NA;0|S_AXI_ACE:NA;0|SD1:NonSecure;1|SD0:NonSecure;1|SATA1:NonSecure;0|SATA0:NonSecure;0|RPU1:Secure;1|RPU0:Secure;1|QSPI:NonSecure;1|PMU:NA;1|PCIe:NonSecure;0|NAND:NonSecure;0|LDMA:NonSecure;1|GPU:NonSecure;1|GEM3:NonSecure;1|GEM2:NonSecure;0|GEM1:NonSecure;0|GEM0:NonSecure;0|FDMA:NonSecure;1|DP:NonSecure;0|DAP:NA;1|Coresight:NA;1|CSU:NA;1|APU:NA;1} \
    CONFIG.PSU__PROTECTION__SLAVES {LPD;USB3_1_XHCI;FE300000;FE3FFFFF;0|LPD;USB3_1;FF9E0000;FF9EFFFF;0|LPD;USB3_0_XHCI;FE200000;FE2FFFFF;0|LPD;USB3_0;FF9D0000;FF9DFFFF;0|LPD;UART1;FF010000;FF01FFFF;0|LPD;UART0;FF000000;FF00FFFF;1|LPD;TTC3;FF140000;FF14FFFF;1|LPD;TTC2;FF130000;FF13FFFF;1|LPD;TTC1;FF120000;FF12FFFF;1|LPD;TTC0;FF110000;FF11FFFF;1|FPD;SWDT1;FD4D0000;FD4DFFFF;0|LPD;SWDT0;FF150000;FF15FFFF;0|LPD;SPI1;FF050000;FF05FFFF;0|LPD;SPI0;FF040000;FF04FFFF;0|FPD;SMMU_REG;FD5F0000;FD5FFFFF;1|FPD;SMMU;FD800000;FDFFFFFF;1|FPD;SIOU;FD3D0000;FD3DFFFF;1|FPD;SERDES;FD400000;FD47FFFF;1|LPD;SD1;FF170000;FF17FFFF;1|LPD;SD0;FF160000;FF16FFFF;1|FPD;SATA;FD0C0000;FD0CFFFF;0|LPD;RTC;FFA60000;FFA6FFFF;1|LPD;RSA_CORE;FFCE0000;FFCEFFFF;1|LPD;RPU;FF9A0000;FF9AFFFF;1|LPD;R5_TCM_RAM_GLOBAL;FFE00000;FFE3FFFF;1|LPD;R5_1_Instruction_Cache;FFEC0000;FFECFFFF;1|LPD;R5_1_Data_Cache;FFED0000;FFEDFFFF;1|LPD;R5_1_BTCM_GLOBAL;FFEB0000;FFEBFFFF;1|LPD;R5_1_ATCM_GLOBAL;FFE90000;FFE9FFFF;1|LPD;R5_0_Instruction_Cache;FFE40000;FFE4FFFF;1|LPD;R5_0_Data_Cache;FFE50000;FFE5FFFF;1|LPD;R5_0_BTCM_GLOBAL;FFE20000;FFE2FFFF;1|LPD;R5_0_ATCM_GLOBAL;FFE00000;FFE0FFFF;1|LPD;QSPI_Linear_Address;C0000000;DFFFFFFF;1|LPD;QSPI;FF0F0000;FF0FFFFF;1|LPD;PMU_RAM;FFDC0000;FFDDFFFF;1|LPD;PMU_GLOBAL;FFD80000;FFDBFFFF;1|FPD;PCIE_MAIN;FD0E0000;FD0EFFFF;0|FPD;PCIE_LOW;E0000000;EFFFFFFF;0|FPD;PCIE_HIGH2;8000000000;BFFFFFFFFF;0|FPD;PCIE_HIGH1;600000000;7FFFFFFFF;0|FPD;PCIE_DMA;FD0F0000;FD0FFFFF;0|FPD;PCIE_ATTRIB;FD480000;FD48FFFF;0|LPD;OCM_XMPU_CFG;FFA70000;FFA7FFFF;1|LPD;OCM_SLCR;FF960000;FF96FFFF;1|OCM;OCM;FFFC0000;FFFFFFFF;1|LPD;NAND;FF100000;FF10FFFF;0|LPD;MBISTJTAG;FFCF0000;FFCFFFFF;1|LPD;LPD_XPPU_SINK;FF9C0000;FF9CFFFF;1|LPD;LPD_XPPU;FF980000;FF98FFFF;1|LPD;LPD_SLCR_SECURE;FF4B0000;FF4DFFFF;1|LPD;LPD_SLCR;FF410000;FF4AFFFF;1|LPD;LPD_GPV;FE100000;FE1FFFFF;1|LPD;LPD_DMA_7;FFAF0000;FFAFFFFF;1|LPD;LPD_DMA_6;FFAE0000;FFAEFFFF;1|LPD;LPD_DMA_5;FFAD0000;FFADFFFF;1|LPD;LPD_DMA_4;FFAC0000;FFACFFFF;1|LPD;LPD_DMA_3;FFAB0000;FFABFFFF;1|LPD;LPD_DMA_2;FFAA0000;FFAAFFFF;1|LPD;LPD_DMA_1;FFA90000;FFA9FFFF;1|LPD;LPD_DMA_0;FFA80000;FFA8FFFF;1|LPD;IPI_CTRL;FF380000;FF3FFFFF;1|LPD;IOU_SLCR;FF180000;FF23FFFF;1|LPD;IOU_SECURE_SLCR;FF240000;FF24FFFF;1|LPD;IOU_SCNTRS;FF260000;FF26FFFF;1|LPD;IOU_SCNTR;FF250000;FF25FFFF;1|LPD;IOU_GPV;FE000000;FE0FFFFF;1|LPD;I2C1;FF030000;FF03FFFF;0|LPD;I2C0;FF020000;FF02FFFF;1|FPD;GPU;FD4B0000;FD4BFFFF;0|LPD;GPIO;FF0A0000;FF0AFFFF;1|LPD;GEM3;FF0E0000;FF0EFFFF;1|LPD;GEM2;FF0D0000;FF0DFFFF;0|LPD;GEM1;FF0C0000;FF0CFFFF;0|LPD;GEM0;FF0B0000;FF0BFFFF;0|FPD;FPD_XMPU_SINK;FD4F0000;FD4FFFFF;1|FPD;FPD_XMPU_CFG;FD5D0000;FD5DFFFF;1|FPD;FPD_SLCR_SECURE;FD690000;FD6CFFFF;1|FPD;FPD_SLCR;FD610000;FD68FFFF;1|FPD;FPD_GPV;FD700000;FD7FFFFF;1|FPD;FPD_DMA_CH7;FD570000;FD57FFFF;1|FPD;FPD_DMA_CH6;FD560000;FD56FFFF;1|FPD;FPD_DMA_CH5;FD550000;FD55FFFF;1|FPD;FPD_DMA_CH4;FD540000;FD54FFFF;1|FPD;FPD_DMA_CH3;FD530000;FD53FFFF;1|FPD;FPD_DMA_CH2;FD520000;FD52FFFF;1|FPD;FPD_DMA_CH1;FD510000;FD51FFFF;1|FPD;FPD_DMA_CH0;FD500000;FD50FFFF;1|LPD;EFUSE;FFCC0000;FFCCFFFF;1|FPD;Display Port;FD4A0000;FD4AFFFF;0|FPD;DPDMA;FD4C0000;FD4CFFFF;0|FPD;DDR_XMPU5_CFG;FD050000;FD05FFFF;1|FPD;DDR_XMPU4_CFG;FD040000;FD04FFFF;1|FPD;DDR_XMPU3_CFG;FD030000;FD03FFFF;1|FPD;DDR_XMPU2_CFG;FD020000;FD02FFFF;1|FPD;DDR_XMPU1_CFG;FD010000;FD01FFFF;1|FPD;DDR_XMPU0_CFG;FD000000;FD00FFFF;1|FPD;DDR_QOS_CTRL;FD090000;FD09FFFF;1|FPD;DDR_PHY;FD080000;FD08FFFF;1|DDR;DDR_LOW;0;7FFFFFFF;1|DDR;DDR_HIGH;800000000;800000000;0|FPD;DDDR_CTRL;FD070000;FD070FFF;1|LPD;Coresight;FE800000;FEFFFFFF;1|LPD;CSU_DMA;FFC80000;FFC9FFFF;1|LPD;CSU;FFCA0000;FFCAFFFF;1|LPD;CRL_APB;FF5E0000;FF85FFFF;1|FPD;CRF_APB;FD1A0000;FD2DFFFF;1|FPD;CCI_REG;FD5E0000;FD5EFFFF;1|FPD;CCI_GPV;FD6E0000;FD6EFFFF;1|LPD;CAN1;FF070000;FF07FFFF;0|LPD;CAN0;FF060000;FF06FFFF;0|FPD;APU;FD5C0000;FD5CFFFF;1|LPD;APM_INTC_IOU;FFA20000;FFA2FFFF;1|LPD;APM_FPD_LPD;FFA30000;FFA3FFFF;1|FPD;APM_5;FD490000;FD49FFFF;1|FPD;APM_0;FD0B0000;FD0BFFFF;1|LPD;APM2;FFA10000;FFA1FFFF;1|LPD;APM1;FFA00000;FFA0FFFF;1|LPD;AMS;FFA50000;FFA5FFFF;1|FPD;AFI_5;FD3B0000;FD3BFFFF;1|FPD;AFI_4;FD3A0000;FD3AFFFF;1|FPD;AFI_3;FD390000;FD39FFFF;1|FPD;AFI_2;FD380000;FD38FFFF;1|FPD;AFI_1;FD370000;FD37FFFF;1|FPD;AFI_0;FD360000;FD36FFFF;1|LPD;AFIFM6;FF9B0000;FF9BFFFF;1|FPD;ACPU_GIC;F9010000;F907FFFF;1} \
    CONFIG.PSU__PSS_REF_CLK__FREQMHZ {33.333333} \
@@ -1198,7 +1417,8 @@ proc create_hier_cell_processor_subsystem { parentCell nameHier } {
   connect_bd_net -net rst_ps8_0_300M_peripheral_reset [get_bd_pins peripheral_reset] [get_bd_pins rst_ps8_0_300M/peripheral_reset]
   connect_bd_net -net xlconcat_0_dout [get_bd_pins xlconcat_0/dout] [get_bd_pins zynq_ultra_ps_e_0/pl_ps_irq0]
   connect_bd_net -net xlconstant_1_dout [get_bd_pins VERSION] [get_bd_pins AXI_LITE_REG_0/VERSION]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins pl_clk0] [get_bd_pins AXI_LITE_REG_0/s00_axi_aclk] [get_bd_pins axi_smc/aclk] [get_bd_pins axi_timer_0/s_axi_aclk] [get_bd_pins ps8_0_axi_periph/ACLK] [get_bd_pins ps8_0_axi_periph/M00_ACLK] [get_bd_pins ps8_0_axi_periph/M01_ACLK] [get_bd_pins ps8_0_axi_periph/M02_ACLK] [get_bd_pins ps8_0_axi_periph/M03_ACLK] [get_bd_pins ps8_0_axi_periph/M04_ACLK] [get_bd_pins ps8_0_axi_periph/M05_ACLK] [get_bd_pins ps8_0_axi_periph/M06_ACLK] [get_bd_pins ps8_0_axi_periph/M07_ACLK] [get_bd_pins ps8_0_axi_periph/M08_ACLK] [get_bd_pins ps8_0_axi_periph/M09_ACLK] [get_bd_pins ps8_0_axi_periph/M10_ACLK] [get_bd_pins ps8_0_axi_periph/M11_ACLK] [get_bd_pins ps8_0_axi_periph/M12_ACLK] [get_bd_pins ps8_0_axi_periph/M13_ACLK] [get_bd_pins ps8_0_axi_periph/M14_ACLK] [get_bd_pins ps8_0_axi_periph/M15_ACLK] [get_bd_pins ps8_0_axi_periph/M16_ACLK] [get_bd_pins ps8_0_axi_periph/M17_ACLK] [get_bd_pins ps8_0_axi_periph/M18_ACLK] [get_bd_pins ps8_0_axi_periph/M19_ACLK] [get_bd_pins ps8_0_axi_periph/M20_ACLK] [get_bd_pins ps8_0_axi_periph/M21_ACLK] [get_bd_pins ps8_0_axi_periph/M22_ACLK] [get_bd_pins ps8_0_axi_periph/M23_ACLK] [get_bd_pins ps8_0_axi_periph/S00_ACLK] [get_bd_pins rs485_hier/s_axi_aclk] [get_bd_pins rst_ps8_0_300M/slowest_sync_clk] [get_bd_pins zynq_ultra_ps_e_0/maxihpm0_lpd_aclk] [get_bd_pins zynq_ultra_ps_e_0/pl_clk0] [get_bd_pins zynq_ultra_ps_e_0/saxihp0_fpd_aclk]
+  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins pl_clk0_300m] [get_bd_pins AXI_LITE_REG_0/s00_axi_aclk] [get_bd_pins axi_smc/aclk] [get_bd_pins axi_timer_0/s_axi_aclk] [get_bd_pins ps8_0_axi_periph/ACLK] [get_bd_pins ps8_0_axi_periph/M00_ACLK] [get_bd_pins ps8_0_axi_periph/M01_ACLK] [get_bd_pins ps8_0_axi_periph/M02_ACLK] [get_bd_pins ps8_0_axi_periph/M03_ACLK] [get_bd_pins ps8_0_axi_periph/M04_ACLK] [get_bd_pins ps8_0_axi_periph/M05_ACLK] [get_bd_pins ps8_0_axi_periph/M06_ACLK] [get_bd_pins ps8_0_axi_periph/M07_ACLK] [get_bd_pins ps8_0_axi_periph/M08_ACLK] [get_bd_pins ps8_0_axi_periph/M09_ACLK] [get_bd_pins ps8_0_axi_periph/M10_ACLK] [get_bd_pins ps8_0_axi_periph/M11_ACLK] [get_bd_pins ps8_0_axi_periph/M12_ACLK] [get_bd_pins ps8_0_axi_periph/M13_ACLK] [get_bd_pins ps8_0_axi_periph/M14_ACLK] [get_bd_pins ps8_0_axi_periph/M15_ACLK] [get_bd_pins ps8_0_axi_periph/M16_ACLK] [get_bd_pins ps8_0_axi_periph/M17_ACLK] [get_bd_pins ps8_0_axi_periph/M18_ACLK] [get_bd_pins ps8_0_axi_periph/M19_ACLK] [get_bd_pins ps8_0_axi_periph/M20_ACLK] [get_bd_pins ps8_0_axi_periph/M21_ACLK] [get_bd_pins ps8_0_axi_periph/M22_ACLK] [get_bd_pins ps8_0_axi_periph/M23_ACLK] [get_bd_pins ps8_0_axi_periph/S00_ACLK] [get_bd_pins rs485_hier/s_axi_aclk] [get_bd_pins rst_ps8_0_300M/slowest_sync_clk] [get_bd_pins zynq_ultra_ps_e_0/maxihpm0_lpd_aclk] [get_bd_pins zynq_ultra_ps_e_0/pl_clk0] [get_bd_pins zynq_ultra_ps_e_0/saxihp0_fpd_aclk]
+  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk1 [get_bd_pins pl_clk1_50m] [get_bd_pins zynq_ultra_ps_e_0/pl_clk1]
   connect_bd_net -net zynq_ultra_ps_e_0_pl_resetn0 [get_bd_pins rst_ps8_0_300M/ext_reset_in] [get_bd_pins zynq_ultra_ps_e_0/pl_resetn0]
 
   # Restore current instance
@@ -1706,6 +1926,112 @@ proc create_hier_cell_lvds_s0 { parentCell nameHier } {
   current_bd_instance $oldCurInst
 }
 
+# Hierarchical cell: fake_touch
+proc create_hier_cell_fake_touch { parentCell nameHier } {
+
+  variable script_folder
+
+  if { $parentCell eq "" || $nameHier eq "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2092 -severity "ERROR" "create_hier_cell_fake_touch() - Empty argument(s)!"}
+     return
+  }
+
+  # Get object for parentCell
+  set parentObj [get_bd_cells $parentCell]
+  if { $parentObj == "" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2090 -severity "ERROR" "Unable to find parent cell <$parentCell>!"}
+     return
+  }
+
+  # Make sure parentObj is hier blk
+  set parentType [get_property TYPE $parentObj]
+  if { $parentType ne "hier" } {
+     catch {common::send_gid_msg -ssname BD::TCL -id 2091 -severity "ERROR" "Parent <$parentObj> has TYPE = <$parentType>. Expected to be <hier>."}
+     return
+  }
+
+  # Save current instance; Restore later
+  set oldCurInst [current_bd_instance .]
+
+  # Set parent object as current
+  current_bd_instance $parentObj
+
+  # Create cell and set as current instance
+  set hier_obj [create_bd_cell -type hier $nameHier]
+  current_bd_instance $hier_obj
+
+  # Create interface pins
+  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:iic_rtl:1.0 i2c_1
+
+  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:iic_rtl:1.0 i2c_2
+
+  create_bd_intf_pin -mode Master -vlnv xilinx.com:interface:iic_rtl:1.0 i2c_3
+
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:iic_rtl:1.0 i2c_up0
+
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:iic_rtl:1.0 i2c_up1
+
+  create_bd_intf_pin -mode Slave -vlnv xilinx.com:interface:iic_rtl:1.0 i2c_up2
+
+
+  # Create pins
+  create_bd_pin -dir I -from 4 -to 0 Din
+  create_bd_pin -dir I VCC
+  create_bd_pin -dir I -type clk sys_clk
+
+  # Create instance: fake_i2c_0
+  create_hier_cell_fake_i2c_0 $hier_obj fake_i2c_0
+
+  # Create instance: fake_i2c_1
+  create_hier_cell_fake_i2c_1 $hier_obj fake_i2c_1
+
+  # Create instance: fake_i2c_2
+  create_hier_cell_fake_i2c_2 $hier_obj fake_i2c_2
+
+  # Create instance: proc_sys_reset_0, and set properties
+  set proc_sys_reset_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 proc_sys_reset_0 ]
+  set_property -dict [ list \
+   CONFIG.C_AUX_RST_WIDTH {1} \
+   CONFIG.C_EXT_RST_WIDTH {1} \
+ ] $proc_sys_reset_0
+
+  # Create instance: util_vector_logic_0, and set properties
+  set util_vector_logic_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_vector_logic:2.0 util_vector_logic_0 ]
+  set_property -dict [ list \
+   CONFIG.C_OPERATION {not} \
+   CONFIG.C_SIZE {1} \
+   CONFIG.LOGO_FILE {data/sym_notgate.png} \
+ ] $util_vector_logic_0
+
+  # Create instance: xlslice_2, and set properties
+  set xlslice_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_2 ]
+  set_property -dict [ list \
+   CONFIG.DIN_FROM {4} \
+   CONFIG.DIN_TO {4} \
+   CONFIG.DIN_WIDTH {5} \
+   CONFIG.DOUT_WIDTH {1} \
+ ] $xlslice_2
+
+  # Create interface connections
+  connect_bd_intf_net -intf_net Conn1 [get_bd_intf_pins i2c_1] [get_bd_intf_pins fake_i2c_0/i2c_1]
+  connect_bd_intf_net -intf_net Conn2 [get_bd_intf_pins i2c_up0] [get_bd_intf_pins fake_i2c_0/i2c_up0]
+  connect_bd_intf_net -intf_net Conn3 [get_bd_intf_pins i2c_up1] [get_bd_intf_pins fake_i2c_1/i2c_up0]
+  connect_bd_intf_net -intf_net Conn4 [get_bd_intf_pins i2c_up2] [get_bd_intf_pins fake_i2c_2/i2c_up0]
+  connect_bd_intf_net -intf_net Conn5 [get_bd_intf_pins i2c_2] [get_bd_intf_pins fake_i2c_1/i2c_1]
+  connect_bd_intf_net -intf_net Conn6 [get_bd_intf_pins i2c_3] [get_bd_intf_pins fake_i2c_2/i2c_1]
+
+  # Create port connections
+  connect_bd_net -net VCC_dout [get_bd_pins VCC] [get_bd_pins fake_i2c_0/VCC] [get_bd_pins fake_i2c_1/VCC] [get_bd_pins fake_i2c_2/VCC]
+  connect_bd_net -net axi_gpio_lvds_reset_gpio_io_o [get_bd_pins Din] [get_bd_pins xlslice_2/Din]
+  connect_bd_net -net proc_sys_reset_0_peripheral_aresetn [get_bd_pins fake_i2c_0/sys_rst_n] [get_bd_pins fake_i2c_1/sys_rst_n] [get_bd_pins fake_i2c_2/sys_rst_n] [get_bd_pins proc_sys_reset_0/peripheral_aresetn]
+  connect_bd_net -net sys_clk_1 [get_bd_pins sys_clk] [get_bd_pins fake_i2c_0/sys_clk] [get_bd_pins fake_i2c_1/sys_clk] [get_bd_pins fake_i2c_2/sys_clk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk]
+  connect_bd_net -net util_vector_logic_0_Res [get_bd_pins proc_sys_reset_0/ext_reset_in] [get_bd_pins util_vector_logic_0/Res]
+  connect_bd_net -net xlslice_2_Dout [get_bd_pins util_vector_logic_0/Op1] [get_bd_pins xlslice_2/Dout]
+
+  # Restore current instance
+  current_bd_instance $oldCurInst
+}
+
 
 # Procedure to create entire design; Provide argument to make
 # procedure reusable. If parentCell is "", will use root.
@@ -1798,7 +2124,7 @@ proc create_root_design { parentCell } {
   set axi_gpio_lvds_reset [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_gpio:2.0 axi_gpio_lvds_reset ]
   set_property -dict [ list \
    CONFIG.C_ALL_OUTPUTS {1} \
-   CONFIG.C_GPIO_WIDTH {4} \
+   CONFIG.C_GPIO_WIDTH {5} \
  ] $axi_gpio_lvds_reset
 
   # Create instance: axi_vdma_lwip, and set properties
@@ -1838,6 +2164,9 @@ proc create_root_design { parentCell } {
    CONFIG.NUM_SI {3} \
    CONFIG.ROUTING_MODE {1} \
  ] $axis_switch_0
+
+  # Create instance: fake_touch
+  create_hier_cell_fake_touch [current_bd_instance .] fake_touch
 
   # Create instance: lvds4x2_1to7_0, and set properties
   set lvds4x2_1to7_0 [ create_bd_cell -type ip -vlnv user.org:user:lvds4x2_1to7:1.0 lvds4x2_1to7_0 ]
@@ -1920,7 +2249,7 @@ proc create_root_design { parentCell } {
   # Create instance: xlslice_0, and set properties
   set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
   set_property -dict [ list \
-   CONFIG.DIN_WIDTH {4} \
+   CONFIG.DIN_WIDTH {5} \
  ] $xlslice_0
 
   # Create instance: xlslice_lvds_0, and set properties
@@ -1928,7 +2257,7 @@ proc create_root_design { parentCell } {
   set_property -dict [ list \
    CONFIG.DIN_FROM {1} \
    CONFIG.DIN_TO {1} \
-   CONFIG.DIN_WIDTH {4} \
+   CONFIG.DIN_WIDTH {5} \
  ] $xlslice_lvds_0
 
   # Create instance: xlslice_lvds_1, and set properties
@@ -1936,7 +2265,7 @@ proc create_root_design { parentCell } {
   set_property -dict [ list \
    CONFIG.DIN_FROM {2} \
    CONFIG.DIN_TO {2} \
-   CONFIG.DIN_WIDTH {4} \
+   CONFIG.DIN_WIDTH {5} \
    CONFIG.DOUT_WIDTH {1} \
  ] $xlslice_lvds_1
 
@@ -1945,7 +2274,7 @@ proc create_root_design { parentCell } {
   set_property -dict [ list \
    CONFIG.DIN_FROM {3} \
    CONFIG.DIN_TO {3} \
-   CONFIG.DIN_WIDTH {4} \
+   CONFIG.DIN_WIDTH {5} \
    CONFIG.DOUT_WIDTH {1} \
  ] $xlslice_lvds_2
 
@@ -1959,6 +2288,9 @@ proc create_root_design { parentCell } {
   connect_bd_intf_net -intf_net axis_passthrough_mon_1_m_axis [get_bd_intf_pins axis_passthrough_mon_1/m_axis] [get_bd_intf_pins lvds_s1/S_AXIS]
   connect_bd_intf_net -intf_net axis_passthrough_mon_2_m_axis [get_bd_intf_pins axis_passthrough_mon_2/m_axis] [get_bd_intf_pins lvds_s2/S_AXIS]
   connect_bd_intf_net -intf_net axis_switch_0_M00_AXIS [get_bd_intf_pins axi_vdma_lwip/S_AXIS_S2MM] [get_bd_intf_pins axis_switch_0/M00_AXIS]
+  connect_bd_intf_net -intf_net fake_touch_i2c_1 [get_bd_intf_ports i2c_1] [get_bd_intf_pins fake_touch/i2c_1]
+  connect_bd_intf_net -intf_net fake_touch_i2c_2 [get_bd_intf_ports i2c_2] [get_bd_intf_pins fake_touch/i2c_2]
+  connect_bd_intf_net -intf_net fake_touch_i2c_3 [get_bd_intf_ports i2c_3] [get_bd_intf_pins fake_touch/i2c_3]
   connect_bd_intf_net -intf_net lvds_s0_M_AXI_MM2S1 [get_bd_intf_pins lvds_s0/M_AXI_MM2S1] [get_bd_intf_pins processor_subsystem/S07_AXI]
   connect_bd_intf_net -intf_net lvds_s0_M_AXI_S2MM1 [get_bd_intf_pins lvds_s0/M_AXI_S2MM1] [get_bd_intf_pins processor_subsystem/S08_AXI]
   connect_bd_intf_net -intf_net lvds_s1_M_AXIS [get_bd_intf_pins axis_switch_0/S01_AXIS] [get_bd_intf_pins lvds_s1/M_AXIS]
@@ -1993,17 +2325,17 @@ proc create_root_design { parentCell } {
   connect_bd_intf_net -intf_net v_vid_in_axi4s_0_video_out [get_bd_intf_pins axis_passthrough_mon_0/s_axis] [get_bd_intf_pins v_vid_in_axi4s_0/video_out]
   connect_bd_intf_net -intf_net v_vid_in_axi4s_1_video_out [get_bd_intf_pins axis_passthrough_mon_1/s_axis] [get_bd_intf_pins v_vid_in_axi4s_1/video_out]
   connect_bd_intf_net -intf_net v_vid_in_axi4s_2_video_out [get_bd_intf_pins axis_passthrough_mon_2/s_axis] [get_bd_intf_pins v_vid_in_axi4s_2/video_out]
+  connect_bd_intf_net -intf_net xgpio_i2c_0_i2c_1 [get_bd_intf_pins fake_touch/i2c_up0] [get_bd_intf_pins xgpio_i2c_0/i2c_1]
+  connect_bd_intf_net -intf_net xgpio_i2c_0_i2c_2 [get_bd_intf_pins fake_touch/i2c_up1] [get_bd_intf_pins xgpio_i2c_0/i2c_2]
+  connect_bd_intf_net -intf_net xgpio_i2c_0_i2c_3 [get_bd_intf_pins fake_touch/i2c_up2] [get_bd_intf_pins xgpio_i2c_0/i2c_3]
   connect_bd_intf_net -intf_net xgpio_to_i2c_0_i2c_down [get_bd_intf_ports i2c_0] [get_bd_intf_pins xgpio_i2c_0/i2c_0]
-  connect_bd_intf_net -intf_net xgpio_to_i2c_1_i2c_down [get_bd_intf_ports i2c_1] [get_bd_intf_pins xgpio_i2c_0/i2c_1]
-  connect_bd_intf_net -intf_net xgpio_to_i2c_2_i2c_down [get_bd_intf_ports i2c_2] [get_bd_intf_pins xgpio_i2c_0/i2c_2]
-  connect_bd_intf_net -intf_net xgpio_to_i2c_3_i2c_down [get_bd_intf_ports i2c_3] [get_bd_intf_pins xgpio_i2c_0/i2c_3]
   connect_bd_intf_net -intf_net xgpio_to_i2c_4_i2c_down [get_bd_intf_ports i2c_4] [get_bd_intf_pins xgpio_i2c_0/i2c_4]
   connect_bd_intf_net -intf_net zynq_ultra_ps_e_0_GPIO_0 [get_bd_intf_ports gpio] [get_bd_intf_pins processor_subsystem/gpio]
   connect_bd_intf_net -intf_net zynq_ultra_ps_e_0_IIC_0 [get_bd_intf_ports eeprom] [get_bd_intf_pins processor_subsystem/eeprom]
 
   # Create port connections
   connect_bd_net -net axi_gpio_0_gpio_io_o1 [get_bd_ports uart_0_txen] [get_bd_pins processor_subsystem/uart_0_txen]
-  connect_bd_net -net axi_gpio_lvds_reset_gpio_io_o [get_bd_pins axi_gpio_lvds_reset/gpio_io_o] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_lvds_0/Din] [get_bd_pins xlslice_lvds_1/Din] [get_bd_pins xlslice_lvds_2/Din]
+  connect_bd_net -net axi_gpio_lvds_reset_gpio_io_o [get_bd_pins axi_gpio_lvds_reset/gpio_io_o] [get_bd_pins fake_touch/Din] [get_bd_pins xlslice_0/Din] [get_bd_pins xlslice_lvds_0/Din] [get_bd_pins xlslice_lvds_1/Din] [get_bd_pins xlslice_lvds_2/Din]
   connect_bd_net -net axi_vdma_2_s2mm_introut [get_bd_pins axi_vdma_lwip/s2mm_introut] [get_bd_pins processor_subsystem/In3]
   connect_bd_net -net clkin1_n_0_1 [get_bd_ports ch0_clkin0_n] [get_bd_pins lvds4x2_1to7_0/clkin1_n]
   connect_bd_net -net clkin1_n_0_2 [get_bd_ports ch1_clkin0_n] [get_bd_pins lvds4x2_1to7_1/clkin1_n]
@@ -2058,15 +2390,16 @@ proc create_root_design { parentCell } {
   connect_bd_net -net lvds_s2_peripheral_reset [get_bd_pins lvds_s2/peripheral_reset] [get_bd_pins v_vid_in_axi4s_2/vid_io_in_reset]
   connect_bd_net -net proc_sys_reset_0_peripheral_reset [get_bd_pins lvds4x2_1to7_0/reset] [get_bd_pins lvds4x2_1to7_1/reset] [get_bd_pins lvds4x2_1to7_2/reset] [get_bd_pins xlslice_0/Dout]
   connect_bd_net -net rst_ps8_0_300M_peripheral_aresetn [get_bd_pins axi_gpio_lvds_reset/s_axi_aresetn] [get_bd_pins axi_vdma_lwip/axi_resetn] [get_bd_pins axis_passthrough_mon_0/s_axi_lite_aresetn] [get_bd_pins axis_passthrough_mon_1/s_axi_lite_aresetn] [get_bd_pins axis_passthrough_mon_2/s_axi_lite_aresetn] [get_bd_pins axis_switch_0/aresetn] [get_bd_pins axis_switch_0/s_axi_ctrl_aresetn] [get_bd_pins lvds_s0/s_axi_lite_aresetn] [get_bd_pins lvds_s1/s_axi_lite_aresetn] [get_bd_pins lvds_s2/s_axi_lite_aresetn] [get_bd_pins processor_subsystem/peripheral_aresetn] [get_bd_pins xgpio_i2c_0/s_axi_aresetn]
+  connect_bd_net -net sys_clk_1 [get_bd_pins fake_touch/sys_clk] [get_bd_pins processor_subsystem/pl_clk1_50m]
   connect_bd_net -net xlconcat_1_dout [get_bd_pins v_vid_in_axi4s_0/vid_data] [get_bd_pins xlconcat_0/dout]
   connect_bd_net -net xlconcat_2_dout [get_bd_pins v_vid_in_axi4s_1/vid_data] [get_bd_pins xlconcat_1/dout]
   connect_bd_net -net xlconcat_3_dout [get_bd_pins v_vid_in_axi4s_2/vid_data] [get_bd_pins xlconcat_2/dout]
   connect_bd_net -net xlconstant_1_dout [get_bd_pins HW_VER/dout] [get_bd_pins processor_subsystem/VERSION]
-  connect_bd_net -net xlconstant_4_dout [get_bd_pins VCC/dout] [get_bd_pins v_vid_in_axi4s_0/aclken] [get_bd_pins v_vid_in_axi4s_0/axis_enable] [get_bd_pins v_vid_in_axi4s_0/vid_io_in_ce] [get_bd_pins v_vid_in_axi4s_1/aclken] [get_bd_pins v_vid_in_axi4s_1/axis_enable] [get_bd_pins v_vid_in_axi4s_1/vid_io_in_ce] [get_bd_pins v_vid_in_axi4s_2/aclken] [get_bd_pins v_vid_in_axi4s_2/axis_enable] [get_bd_pins v_vid_in_axi4s_2/vid_io_in_ce]
+  connect_bd_net -net xlconstant_4_dout [get_bd_pins VCC/dout] [get_bd_pins fake_touch/VCC] [get_bd_pins v_vid_in_axi4s_0/aclken] [get_bd_pins v_vid_in_axi4s_0/axis_enable] [get_bd_pins v_vid_in_axi4s_0/vid_io_in_ce] [get_bd_pins v_vid_in_axi4s_1/aclken] [get_bd_pins v_vid_in_axi4s_1/axis_enable] [get_bd_pins v_vid_in_axi4s_1/vid_io_in_ce] [get_bd_pins v_vid_in_axi4s_2/aclken] [get_bd_pins v_vid_in_axi4s_2/axis_enable] [get_bd_pins v_vid_in_axi4s_2/vid_io_in_ce]
   connect_bd_net -net xlslice_3_Dout [get_bd_pins lvds_s0/rst] [get_bd_pins xlslice_lvds_0/Dout]
   connect_bd_net -net xlslice_4_Dout [get_bd_pins lvds_s1/rst] [get_bd_pins xlslice_lvds_1/Dout]
   connect_bd_net -net xlslice_5_Dout [get_bd_pins lvds_s2/rst] [get_bd_pins xlslice_lvds_2/Dout]
-  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins axi_gpio_lvds_reset/s_axi_aclk] [get_bd_pins axi_vdma_lwip/m_axi_s2mm_aclk] [get_bd_pins axi_vdma_lwip/s_axi_lite_aclk] [get_bd_pins axi_vdma_lwip/s_axis_s2mm_aclk] [get_bd_pins axis_passthrough_mon_0/aclk] [get_bd_pins axis_passthrough_mon_0/s_axi_lite_aclk] [get_bd_pins axis_passthrough_mon_1/aclk] [get_bd_pins axis_passthrough_mon_1/s_axi_lite_aclk] [get_bd_pins axis_passthrough_mon_2/aclk] [get_bd_pins axis_passthrough_mon_2/s_axi_lite_aclk] [get_bd_pins axis_switch_0/aclk] [get_bd_pins axis_switch_0/s_axi_ctrl_aclk] [get_bd_pins lvds4x2_1to7_0/refclk] [get_bd_pins lvds4x2_1to7_1/refclk] [get_bd_pins lvds4x2_1to7_2/refclk] [get_bd_pins lvds_s0/m_axi_mm2s_aclk] [get_bd_pins lvds_s1/m_axi_mm2s_aclk] [get_bd_pins lvds_s2/m_axi_mm2s_aclk] [get_bd_pins processor_subsystem/pl_clk0] [get_bd_pins v_vid_in_axi4s_0/aclk] [get_bd_pins v_vid_in_axi4s_1/aclk] [get_bd_pins v_vid_in_axi4s_2/aclk] [get_bd_pins xgpio_i2c_0/s_axi_aclk]
+  connect_bd_net -net zynq_ultra_ps_e_0_pl_clk0 [get_bd_pins axi_gpio_lvds_reset/s_axi_aclk] [get_bd_pins axi_vdma_lwip/m_axi_s2mm_aclk] [get_bd_pins axi_vdma_lwip/s_axi_lite_aclk] [get_bd_pins axi_vdma_lwip/s_axis_s2mm_aclk] [get_bd_pins axis_passthrough_mon_0/aclk] [get_bd_pins axis_passthrough_mon_0/s_axi_lite_aclk] [get_bd_pins axis_passthrough_mon_1/aclk] [get_bd_pins axis_passthrough_mon_1/s_axi_lite_aclk] [get_bd_pins axis_passthrough_mon_2/aclk] [get_bd_pins axis_passthrough_mon_2/s_axi_lite_aclk] [get_bd_pins axis_switch_0/aclk] [get_bd_pins axis_switch_0/s_axi_ctrl_aclk] [get_bd_pins lvds4x2_1to7_0/refclk] [get_bd_pins lvds4x2_1to7_1/refclk] [get_bd_pins lvds4x2_1to7_2/refclk] [get_bd_pins lvds_s0/m_axi_mm2s_aclk] [get_bd_pins lvds_s1/m_axi_mm2s_aclk] [get_bd_pins lvds_s2/m_axi_mm2s_aclk] [get_bd_pins processor_subsystem/pl_clk0_300m] [get_bd_pins v_vid_in_axi4s_0/aclk] [get_bd_pins v_vid_in_axi4s_1/aclk] [get_bd_pins v_vid_in_axi4s_2/aclk] [get_bd_pins xgpio_i2c_0/s_axi_aclk]
 
   # Create address segments
   assign_bd_address -offset 0x00000000 -range 0x80000000 -target_address_space [get_bd_addr_spaces axi_vdma_lwip/Data_S2MM] [get_bd_addr_segs processor_subsystem/zynq_ultra_ps_e_0/SAXIGP2/HP0_DDR_LOW] -force

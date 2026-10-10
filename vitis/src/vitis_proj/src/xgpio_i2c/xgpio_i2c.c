@@ -34,6 +34,8 @@
 //#include "../bitmanip.h"
 
 XGpio XGpioInstI2c;
+u8 i2c_devices_list[255];
+
 
 //#define  XGPIO_ID  XPAR_GPIO_0_DEVICE_ID
 #define  XGPIO_ID  XPAR_XGPIO_I2C_0_AXI_GPIO_0_DEVICE_ID
@@ -91,6 +93,7 @@ XGpio_I2C_Cfg XGpio_I2C_CfgTable[I2C_NO_BUTT] =
 };
 
 //XGPIO初始化
+
 int xgpio_i2c_init(void)
 {
 	int Status ;
@@ -238,7 +241,7 @@ void i2c_stop(i2c_no i2c)
 	STB(ret,BIT32(scl));
 	XGpio_SetDataDirection(&XGpioInstI2c, 1, ret);
 //	XGpio_SetDataDirection(&XGpioInstI2c, 1, (INPUT<<sda|INPUT<<scl));
-	usleep(1000);
+	usleep(50); /* > I2C Std tBUF 4.7us */
 }
 
 //产生ACK应答
@@ -449,6 +452,7 @@ u8  i2c_recv_byte(i2c_no i2c)
 u8  i2c_recv_ack(i2c_no i2c, stretch_mode st_mode)
 {
 	u8 check;
+	u8 stretch_to = 0;
 	u32 ucErrTime=0;
 	u32 sda;
 	u32 scl;
@@ -483,13 +487,15 @@ u8  i2c_recv_ack(i2c_no i2c, stretch_mode st_mode)
 		XGpio_SetDataDirection(&XGpioInstI2c, 1, ret);
 		//XGpio_SetDataDirection(&XGpioInstI2c, 1, (INPUT<<sda|INPUT<<scl)); //SCL设置为输入
 
+		/* Clock stretch wait. Cap ~32ms (GMSL DS side-channel arb max step: 2/8/32ms).
+		 * Was 100ms (slow empty-addr). On timeout drive SCL high then sample SDA. */
 		while(CHB(XGpio_DiscreteRead(&XGpioInstI2c, 1), BIT32(scl)) == 0)
 		{
 		  ucErrTime++;
 		  usleep(1);
-		  if(ucErrTime>100000) // 空设备一路就要0.5秒以上
+		  if(ucErrTime>32000)
 		  {
-			ucErrTime = 0;
+			stretch_to = 1;
 			break;
 		  }
 		}
@@ -497,6 +503,20 @@ u8  i2c_recv_ack(i2c_no i2c, stretch_mode st_mode)
 	}
 	else
 	{
+		ret = XGpio_DiscreteRead(&XGpioInstI2c, 1);
+		XGpio_DiscreteWrite(&XGpioInstI2c, 1, (STB(ret,BIT32(scl))));
+		usleep(2);
+	}
+
+	/* If stretch wait timed out (weak pull-up / slow SCL rise), drive SCL high
+	 * then sample SDA. Do not force NACK without sampling - present slaves on
+	 * weak buses would otherwise always fail under STRETCH_ON. */
+	if(stretch_to)
+	{
+		ret=XGpio_GetDataDirection(&XGpioInstI2c, 1);
+		STB(ret,BIT32(sda));
+		CLB(ret,BIT32(scl));
+		XGpio_SetDataDirection(&XGpioInstI2c, 1, ret);
 		ret = XGpio_DiscreteRead(&XGpioInstI2c, 1);
 		XGpio_DiscreteWrite(&XGpioInstI2c, 1, (STB(ret,BIT32(scl))));
 		usleep(2);
@@ -547,13 +567,45 @@ u8  i2c_recv_ack(i2c_no i2c, stretch_mode st_mode)
 	XGpio_DiscreteWrite(&XGpioInstI2c, 1, ret);
 	//XGpio_DiscreteWrite(&XGpioInstI2c, 1, (0<<scl)|(1<<sda));
 
+	/* stretch timeout: bus restored above; report TIMEOUT (not sampled NACK) */
+	if (stretch_to) {
+		return 2;
+	}
 	return check;
 }
 
+/* Read fail: fill buf with 0xFF so callers do not print stale data. */
+static void i2c_read_fail(u8 *ret, u16 len)
+{
+	u16 i;
+
+	if ((ret == NULL) || (len == 0U)) {
+		return;
+	}
+	for (i = 0; i < len; i++) {
+		ret[i] = 0xFF;
+	}
+}
+
+/* Map i2c_recv_ack: 0=ACK 1=NACK 2=TIMEOUT. is_dev=1 for first addr byte. */
+static int i2c_status_from_ack(u8 ack, int is_dev)
+{
+	if (ack == 0U) {
+		return I2C_OK;
+	}
+	if (ack == 2U) {
+		return I2C_ERR_TIMEOUT;
+	}
+	return is_dev ? I2C_ERR_NODEV : I2C_ERR_XFER;
+}
 
 int xgpio_i2c_reg8_write(i2c_no i2c, char IIC_ADDR, char Addr, char Data, stretch_mode st_mode)
 {
 	u8 ack=0;
+
+	if (i2c >= I2C_NO_BUTT) {
+		return I2C_ERR_PARAM;
+	}
 
 	i2c_start(i2c);
 
@@ -562,7 +614,7 @@ int xgpio_i2c_reg8_write(i2c_no i2c, char IIC_ADDR, char Addr, char Data, stretc
 	if(ack)
 	{
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 1);
 	}
 
 	i2c_send_byte(i2c, Addr);
@@ -570,7 +622,7 @@ int xgpio_i2c_reg8_write(i2c_no i2c, char IIC_ADDR, char Addr, char Data, stretc
 	if(ack)
 	{
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 0);
 	}
 
 	i2c_send_byte(i2c, Data);
@@ -578,25 +630,35 @@ int xgpio_i2c_reg8_write(i2c_no i2c, char IIC_ADDR, char Addr, char Data, stretc
 	if(ack)
 	{
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 0);
 	}
 
 	i2c_stop(i2c);
 
-	return XST_SUCCESS;
+	return I2C_OK;
 }
 
-int xgpio_i2c_reg8_continuous_write(i2c_no i2c, u8 IIC_ADDR, u8 Addr, u8 *Data,u16 len, stretch_mode st_mode)
+/* Continuous write: each data byte followed by Slave ACK; on NACK/TIMEOUT stop and return.
+ * *done = number of data bytes accepted before fail (NULL ok). */
+int xgpio_i2c_reg8_continuous_write(i2c_no i2c, u8 IIC_ADDR, u8 Addr, u8 *Data,u16 len, stretch_mode st_mode, u16 *done)
 {
 	u8 ack=0;
-	u8 i = 0;
+	u16 i = 0;
+
+	if (done != NULL) {
+		*done = 0;
+	}
+	if ((i2c >= I2C_NO_BUTT) || (Data == NULL) || (len == 0U)) {
+		return I2C_ERR_PARAM;
+	}
+
 	i2c_start(i2c);
 	i2c_send_byte(i2c, IIC_ADDR<<1);
 	ack=i2c_recv_ack(i2c, st_mode);
 	if(ack)
 	{
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 1);
 	}
 
 	i2c_send_byte(i2c, Addr);
@@ -604,7 +666,7 @@ int xgpio_i2c_reg8_continuous_write(i2c_no i2c, u8 IIC_ADDR, u8 Addr, u8 *Data,u
 	if(ack)
 	{
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 0);
 	}
 
 	for(i = 0;i<len;i++)
@@ -614,15 +676,19 @@ int xgpio_i2c_reg8_continuous_write(i2c_no i2c, u8 IIC_ADDR, u8 Addr, u8 *Data,u
 		if(ack)
 		{
 			i2c_stop(i2c);
-			return XST_FAILURE;
+			if (done != NULL) {
+				*done = i; /* data[0..i-1] ok */
+			}
+			return i2c_status_from_ack(ack, 0);
 		}
 	}
 
 	i2c_stop(i2c);
-
-	return XST_SUCCESS;
+	if (done != NULL) {
+		*done = len;
+	}
+	return I2C_OK;
 }
-
 
 // 7-bit addr
 int xgpio_i2c_reg8_read(i2c_no i2c, char IIC_ADDR, char Addr, u8 * ret, stretch_mode st_mode)
@@ -630,22 +696,28 @@ int xgpio_i2c_reg8_read(i2c_no i2c, char IIC_ADDR, char Addr, u8 * ret, stretch_
 	u8 rxd;
 	u8 ack=0;
 
+	if ((i2c >= I2C_NO_BUTT) || (ret == NULL)) {
+		return I2C_ERR_PARAM;
+	}
+
 	i2c_start(i2c);
 
 	i2c_send_byte(i2c, IIC_ADDR<<1);
 	ack=i2c_recv_ack(i2c, st_mode);
 	if(ack)
 	{
+		i2c_read_fail(ret, 1);
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 1);
 	}
 
 	i2c_send_byte(i2c, Addr);
 	ack=i2c_recv_ack(i2c, st_mode);
 	if(ack)
 	{
+		i2c_read_fail(ret, 1);
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 0);
 	}
 
 	//i2c_stop(i2c);
@@ -656,8 +728,9 @@ int xgpio_i2c_reg8_read(i2c_no i2c, char IIC_ADDR, char Addr, u8 * ret, stretch_
   	ack=i2c_recv_ack(i2c, st_mode);
 	if(ack)
 	{
+		i2c_read_fail(ret, 1);
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 0);
 	}
 
 	rxd = i2c_recv_byte(i2c);
@@ -667,14 +740,23 @@ int xgpio_i2c_reg8_read(i2c_no i2c, char IIC_ADDR, char Addr, u8 * ret, stretch_
 
   	*ret = rxd;
 
-  	return XST_SUCCESS;
+  	return I2C_OK;
 }
 
-int xgpio_i2c_reg8_continuous_read(i2c_no i2c, u8 IIC_ADDR, u8 Addr, u8 * ret, u16 len, stretch_mode st_mode)
+/* Continuous read: Master ACK for bytes [0..len-2], NACK on last byte, then STOP.
+ * Setup-phase fail => *done=0; success => *done=len. */
+int xgpio_i2c_reg8_continuous_read(i2c_no i2c, u8 IIC_ADDR, u8 Addr, u8 * ret, u16 len, stretch_mode st_mode, u16 *done)
 {
 	u8 rxd;
 	u8 ack=0;
-	u8 i = 0;
+	u16 i = 0;
+
+	if (done != NULL) {
+		*done = 0;
+	}
+	if ((i2c >= I2C_NO_BUTT) || (ret == NULL) || (len == 0U)) {
+		return I2C_ERR_PARAM;
+	}
 
 	i2c_start(i2c);
 
@@ -682,19 +764,19 @@ int xgpio_i2c_reg8_continuous_read(i2c_no i2c, u8 IIC_ADDR, u8 Addr, u8 * ret, u
 	ack=i2c_recv_ack(i2c, st_mode);
 	if(ack)
 	{
+		i2c_read_fail(ret, len);
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 1);
 	}
 
 	i2c_send_byte(i2c, Addr);
 	ack=i2c_recv_ack(i2c, st_mode);
 	if(ack)
 	{
+		i2c_read_fail(ret, len);
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 0);
 	}
-
-	//i2c_stop(i2c);
 
   	i2c_start(i2c);
 
@@ -702,8 +784,9 @@ int xgpio_i2c_reg8_continuous_read(i2c_no i2c, u8 IIC_ADDR, u8 Addr, u8 * ret, u
   	ack=i2c_recv_ack(i2c, st_mode);
 	if(ack)
 	{
+		i2c_read_fail(ret, len);
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 0);
 	}
 	usleep(50);
 	for(i=0;i<len;i++)
@@ -718,14 +801,19 @@ int xgpio_i2c_reg8_continuous_read(i2c_no i2c, u8 IIC_ADDR, u8 Addr, u8 * ret, u
 	}
 
   	i2c_stop(i2c);
-
-  	return XST_SUCCESS;
+	if (done != NULL) {
+		*done = len;
+	}
+  	return I2C_OK;
 }
-
 
 int xgpio_i2c_reg16_write(i2c_no i2c, char IIC_ADDR, unsigned short Addr, char Data, stretch_mode st_mode)
 {
 	u8 ack=0;
+
+	if (i2c >= I2C_NO_BUTT) {
+		return I2C_ERR_PARAM;
+	}
 
 	i2c_start(i2c);
 
@@ -734,7 +822,7 @@ int xgpio_i2c_reg16_write(i2c_no i2c, char IIC_ADDR, unsigned short Addr, char D
 	if(ack)
 	{
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 1);
 	}
 
 	i2c_send_byte(i2c, Addr >> 8);
@@ -742,7 +830,7 @@ int xgpio_i2c_reg16_write(i2c_no i2c, char IIC_ADDR, unsigned short Addr, char D
 	if(ack)
 	{
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 0);
 	}
 
 	i2c_send_byte(i2c, Addr & 0x00FF);
@@ -750,7 +838,7 @@ int xgpio_i2c_reg16_write(i2c_no i2c, char IIC_ADDR, unsigned short Addr, char D
 	if(ack)
 	{
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 0);
 	}
 
 	i2c_send_byte(i2c, Data);
@@ -758,18 +846,26 @@ int xgpio_i2c_reg16_write(i2c_no i2c, char IIC_ADDR, unsigned short Addr, char D
 	if(ack)
 	{
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 0);
 	}
 
 	i2c_stop(i2c);
 
-	return XST_SUCCESS;
+	return I2C_OK;
 }
 
-int xgpio_i2c_reg16_continuous_write(i2c_no i2c, u8 IIC_ADDR, u16 Addr, u8 *Data,u16 len, stretch_mode st_mode)
+/* Same ACK rules as reg8 continuous write (Slave ACK each data byte). */
+int xgpio_i2c_reg16_continuous_write(i2c_no i2c, u8 IIC_ADDR, u16 Addr, u8 *Data,u16 len, stretch_mode st_mode, u16 *done)
 {
 	u8 ack=0;
-	u8 i = 0;
+	u16 i = 0;
+
+	if (done != NULL) {
+		*done = 0;
+	}
+	if ((i2c >= I2C_NO_BUTT) || (Data == NULL) || (len == 0U)) {
+		return I2C_ERR_PARAM;
+	}
 
 	i2c_start(i2c);
 
@@ -778,7 +874,7 @@ int xgpio_i2c_reg16_continuous_write(i2c_no i2c, u8 IIC_ADDR, u16 Addr, u8 *Data
 	if(ack)
 	{
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 1);
 	}
 
 	i2c_send_byte(i2c, Addr >> 8);
@@ -786,7 +882,7 @@ int xgpio_i2c_reg16_continuous_write(i2c_no i2c, u8 IIC_ADDR, u16 Addr, u8 *Data
 	if(ack)
 	{
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 0);
 	}
 
 	i2c_send_byte(i2c, Addr & 0x00FF);
@@ -794,7 +890,7 @@ int xgpio_i2c_reg16_continuous_write(i2c_no i2c, u8 IIC_ADDR, u16 Addr, u8 *Data
 	if(ack)
 	{
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 0);
 	}
 	for(i = 0;i<len;i++)
 	{
@@ -803,117 +899,130 @@ int xgpio_i2c_reg16_continuous_write(i2c_no i2c, u8 IIC_ADDR, u16 Addr, u8 *Data
 		if(ack)
 		{
 			i2c_stop(i2c);
-			return XST_FAILURE;
+			if (done != NULL) {
+				*done = i;
+			}
+			return i2c_status_from_ack(ack, 0);
 		}
 	}
-	return XST_SUCCESS;
+	i2c_stop(i2c);
+	if (done != NULL) {
+		*done = len;
+	}
+	return I2C_OK;
 }
-
 
 int xgpio_i2c_reg16_read(i2c_no i2c, char IIC_ADDR, unsigned short Addr, u8 * ret, stretch_mode st_mode)
 {
 	u8 rxd;
 	u8 ack=0;
 
+	if ((i2c >= I2C_NO_BUTT) || (ret == NULL)) {
+		return I2C_ERR_PARAM;
+	}
+
 	i2c_start(i2c);
 
 	i2c_send_byte(i2c, IIC_ADDR<<1);
-//	i2c_ack(i2c);
 	ack=i2c_recv_ack(i2c, st_mode);
 	if(ack)
 	{
+		i2c_read_fail(ret, 1);
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 1);
 	}
 
 	i2c_send_byte(i2c, Addr >> 8);
-//	i2c_ack(i2c);
 	ack=i2c_recv_ack(i2c, st_mode);
 	if(ack)
 	{
+		i2c_read_fail(ret, 1);
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 0);
 	}
 
 	i2c_send_byte(i2c, Addr & 0x00FF);
-//	i2c_ack(i2c);
 	ack=i2c_recv_ack(i2c, st_mode);
 	if(ack)
 	{
+		i2c_read_fail(ret, 1);
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 0);
 	}
-
-	//i2c_stop(i2c);
 
   	i2c_start(i2c);
 
   	i2c_send_byte(i2c, IIC_ADDR<<1 | 0x01);
-//  	i2c_ack(i2c);
   	ack=i2c_recv_ack(i2c, st_mode);
 	if(ack)
 	{
+		i2c_read_fail(ret, 1);
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 0);
 	}
 
 	rxd = i2c_recv_byte(i2c);
 	i2c_nack(i2c);
-//	i2c_ack(i2c);
 
   	i2c_stop(i2c);
 
   	*ret = rxd;
 
-  	return  XST_SUCCESS ;
+  	return I2C_OK;
 }
 
-int xgpio_i2c_reg16_continuous_read(i2c_no i2c, u8 IIC_ADDR, u16 Addr, u8 * ret,u16 len, stretch_mode st_mode)
+/* Same ACK rules as reg8 continuous read (Master NACK on last data byte). */
+int xgpio_i2c_reg16_continuous_read(i2c_no i2c, u8 IIC_ADDR, u16 Addr, u8 * ret,u16 len, stretch_mode st_mode, u16 *done)
 {
 	u8 rxd;
 	u8 ack=0;
-	u8 i = 0;
+	u16 i = 0;
+
+	if (done != NULL) {
+		*done = 0;
+	}
+	if ((i2c >= I2C_NO_BUTT) || (ret == NULL) || (len == 0U)) {
+		return I2C_ERR_PARAM;
+	}
 
 	i2c_start(i2c);
 
 	i2c_send_byte(i2c, IIC_ADDR<<1);
-//	i2c_ack(i2c);
 	ack=i2c_recv_ack(i2c, st_mode);
 	if(ack)
 	{
+		i2c_read_fail(ret, len);
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 1);
 	}
 
 	i2c_send_byte(i2c, Addr >> 8);
-//	i2c_ack(i2c);
 	ack=i2c_recv_ack(i2c, st_mode);
 	if(ack)
 	{
+		i2c_read_fail(ret, len);
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 0);
 	}
 
 	i2c_send_byte(i2c, Addr & 0x00FF);
-//	i2c_ack(i2c);
 	ack=i2c_recv_ack(i2c, st_mode);
 	if(ack)
 	{
+		i2c_read_fail(ret, len);
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 0);
 	}
-
-	//i2c_stop(i2c);
 
   	i2c_start(i2c);
 
   	i2c_send_byte(i2c, IIC_ADDR<<1 | 0x01);
-//  	i2c_ack(i2c);
   	ack=i2c_recv_ack(i2c, st_mode);
 	if(ack)
 	{
+		i2c_read_fail(ret, len);
 		i2c_stop(i2c);
-		return XST_FAILURE;
+		return i2c_status_from_ack(ack, 0);
 	}
 	for(i=0;i<len;i++)
 	{
@@ -926,12 +1035,11 @@ int xgpio_i2c_reg16_continuous_read(i2c_no i2c, u8 IIC_ADDR, u16 Addr, u8 * ret,
 	}
 
   	i2c_stop(i2c);
-
-//  	*ret = rxd;
-
-  	return  XST_SUCCESS ;
+	if (done != NULL) {
+		*done = len;
+	}
+  	return I2C_OK;
 }
-
 
 #if 0
 int xgpio_i2c_32b32_write(i2c_no i2c, char IIC_ADDR, unsigned int Addr, unsigned int Data, stretch_mode st_mode)
@@ -1099,6 +1207,93 @@ int xgpio_i2c_32b32_read(i2c_no i2c, char IIC_ADDR, unsigned int Addr, unsigned 
   	return  XST_SUCCESS ;
 }
 #endif
+
+/*
+ * 读 8-bit 寄存器并打印; 必须查返回值.
+ * 失败时驱动会把 ret8 写成 0xFF, 打印 FAIL, 避免沿用上一次成功读的旧值.
+ */
+void dump_i2c_reg8_read(i2c_no bus, u8 addr7, u8 reg)
+{
+	ret8 = 0xFF;
+	ret32 = (u32)xgpio_i2c_reg8_read(bus, (char)addr7, reg, &ret8, STRETCH_ON);
+	if (ret32 != I2C_OK) {
+		xil_printf("0x%02x == FAIL st=%d (0x%02x)\r\n", reg, (int)ret32, ret8);
+	} else {
+		xil_printf("0x%02x == 0x%02x\r\n", reg, ret8);
+	}
+}
+/*
+ * 读 16-bit 寄存器并打印; 必须查返回值.
+ * 失败时驱动会把 ret8 写成 0xFF, 打印 FAIL, 避免沿用上一次成功读的旧值.
+ */
+void dump_i2c_reg16_read(i2c_no bus, u8 addr7, u16 reg)
+{
+	ret8 = 0xFF;
+	ret32 = (u32)xgpio_i2c_reg16_read(bus, (char)addr7, reg, &ret8, STRETCH_ON);
+	if (ret32 != I2C_OK) {
+		xil_printf("0x%04x == FAIL st=%d (0x%02x)\r\n", reg, (int)ret32, ret8);
+	} else {
+		xil_printf("0x%04x == 0x%02x\r\n", reg, ret8);
+	}
+}
+
+/* 探测单个 7-bit 地址: 收到 ACK 返回 XST_SUCCESS */
+int xgpio_i2c_probe(i2c_no i2c, u8 addr7, stretch_mode st_mode)
+{
+	u8 ack;
+
+	if ((i2c >= I2C_NO_BUTT) || (addr7 > 0x7F)) {
+		return I2C_ERR_PARAM;
+	}
+
+	i2c_start(i2c);
+	i2c_send_byte(i2c, (u8)(addr7 << 1));
+	ack = i2c_recv_ack(i2c, st_mode);
+	i2c_stop(i2c);
+
+	return i2c_status_from_ack(ack, 1);
+}
+
+/*
+ * 扫描 7-bit 地址 0x03..0x77 (风格类似 Linux i2cdetect).
+ * found_addrs: 可选, 写入发现的地址; found_max 为缓冲容量.
+ * 返回发现数量. 弱上拉总线请用 STRETCH_OFF.
+ */
+int xgpio_i2c_scan(i2c_no i2c, stretch_mode st_mode, u8 *found_addrs, u8 found_max)
+{
+	u8 addr;
+	u8 found = 0;
+
+	xil_printf("i2c-%d scan:\r\n", (int)i2c);
+	xil_printf("     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f\r\n");
+
+	for (addr = 0; addr < 0x80; addr++) {
+		if ((addr & 0x0FU) == 0U) {
+			xil_printf("%02x:", addr);
+		}
+
+		if ((addr < 0x03U) || (addr > 0x77U)) {
+			xil_printf("   ");
+		} else {
+			if (xgpio_i2c_probe(i2c, addr, st_mode) == I2C_OK) {
+				xil_printf(" %02x", addr);
+				if ((found_addrs != NULL) && (found < found_max)) {
+					found_addrs[found] = addr;
+				}
+				found++;
+			} else {
+				xil_printf(" --");
+			}
+		}
+
+		if ((addr & 0x0FU) == 0x0FU) {
+			xil_printf("\r\n");
+		}
+	}
+
+	xil_printf("found %d device(s)\r\n", found);
+	return (int)found;
+}
 
 #endif // XPAR_XGPIO_I2C_0_AXI_GPIO_0_DEVICE_ID
 

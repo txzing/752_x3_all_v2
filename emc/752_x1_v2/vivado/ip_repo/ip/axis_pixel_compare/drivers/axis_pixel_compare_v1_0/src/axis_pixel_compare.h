@@ -6,14 +6,16 @@
  * @file axis_pixel_compare.h
  * @brief axis_pixel_compare AXI-Lite register offsets and BSP config types.
  *
- * Version: 2.19 (must match spirit:version in component.xml and OPTION VERSION in
+ * Version: 2.20 (must match spirit:version in component.xml and OPTION VERSION in
  *          drivers/axis_pixel_compare_v1_0/data/axis_pixel_compare.mdd)
  *
  * Stream format: tdata[47:24]=reference, tdata[23:0]=live video (RBG 24-bit each).
  *
  * Frame compare:
  *   STATUS bit0 enable; RGB_NOT_PIXEL ignore centre - skip diff when |video-mask|<=TH per ch.
- *   Otherwise |ref-video| > TH -> error + IRQ.
+ *   Otherwise |ref-video| > TH -> error pixel counted; IRQ when err_cnt >= ERR_PIXEL_CNT
+ *   (default 1 = first-error legacy). Once per frame. ERR_PIXEL_CNT_TOTAL =
+ *   previous-frame error count (latched at next-frame SOF, like RGB_PIXEL_TOTAL).
  *
  * RGB region statistics (independent of mask):
  *   RGB_CNT_PIXEL = target colour; count pixels in ROI with |video-target|<=TH per ch.
@@ -28,7 +30,8 @@
  * LINE readback: line_cnt latched at SOF (0-based); SW may +1 for WxH display (e.g. 719->720).
  *
  * 说明 (GB2312, 标点均为英文):
- * - 帧差: 使能后比较 ref 与 video, 超阈锁存首错并中断; 忽略色 |video-mask|<=TH 不参与比较.
+ * - 帧差: 使能后比较 ref 与 video, 错误像素累计; err_cnt>=ERR_PIXEL_CNT 才中断(默认1兼容首错).
+ * - ERR_PIXEL_CNT_TOTAL: 上一帧错误像素累计, 下一帧 SOF 锁存 (与 RGB_PIXEL_TOTAL 同语义).
  * - RGB统计: ROI 内 |video-RGB_CNT_PIXEL|<=TH 的像素计数, 与忽略色无关.
  * - RGB_PIXEL_TOTAL 在下一帧 SOF 锁存上一帧计数, 首帧读回可能为 0, 请在第 2 帧后再读.
  * - ROI 寄存器 0 起算闭区间; 上位机 1 起算需先减 1; 非法 ROI 退化为全幅统计.
@@ -89,8 +92,10 @@ const XAxisPixelCompare_Config *XAxisPixelCompare_LookupConfig(u16 DeviceId);
 #define POINT_Y      84        /* W  sample row, 0-based */
 #define POINT_PIXEL  88        /* R  latched video RBG at (POINT_X, POINT_Y) */
 
-#define AXI_LITE_REG_S00_AXI_SLV_REG23_OFFSET 92
-#define AXI_LITE_REG_S00_AXI_SLV_REG24_OFFSET 96
+/* --- 0x5C..0x60: error-count threshold / total --- */
+#define ERR_PIXEL_CNT       92 /* W/R slv_reg23: IRQ when frame err_cnt >= this (default 1) */
+#define ERR_PIXEL_CNT_TOTAL 96 /* R  previous-frame error count (latched at SOF) */
+
 #define AXI_LITE_REG_S00_AXI_SLV_REG25_OFFSET 100
 #define AXI_LITE_REG_S00_AXI_SLV_REG26_OFFSET 104
 #define AXI_LITE_REG_S00_AXI_SLV_REG27_OFFSET 108

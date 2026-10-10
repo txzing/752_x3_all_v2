@@ -7,10 +7,14 @@
 #define RELAY_CUTOFF        (78+0)
 #define EEPROM_WP			(78+1)
 
-#define SFP_TX_DIS			(78+8)
-#define SFP_TX_LOSS			(78+9)
 
+#define CHIPMAX96752_1_GPIO2			(78+5)
+#define CHIPMAX96752_1_GPIO4			(78+6)
+#define CHIPMAX96752_2_GPIO2			(78+10)
+#define CHIPMAX96752_2_GPIO4			(78+11)
 
+#define SFP_TX_DIS			(78+12)
+#define SFP_TX_LOSS			(78+13)
 
 extern XGpioPs Gpio;
 

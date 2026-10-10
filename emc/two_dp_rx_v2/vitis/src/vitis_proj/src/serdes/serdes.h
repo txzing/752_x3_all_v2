@@ -27,10 +27,10 @@ extern struct reginfo max96717_rgb888_gmsl2[];
 #endif // SER_CFG
 
 int serdes_i2c_write_8(i2c_no i2c, u8 addr, u16 reg, u8 data);
-void serdes_i2c_write_array_8(i2c_no i2c, struct reginfo *regarray);
+int serdes_i2c_write_array_8(i2c_no i2c, struct reginfo *regarray);
 
 int serdes_i2c_write_16(i2c_no i2c, u8 addr, u16 reg, u8 data);
-void serdes_i2c_write_array_16(i2c_no i2c, struct reginfo *regarray);
+int serdes_i2c_write_array_16(i2c_no i2c, struct reginfo *regarray);
 
 
 #endif // SER_CFG || DES_CFG

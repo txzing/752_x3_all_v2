@@ -196,9 +196,9 @@ int tpg_config(void)
         return(XST_FAILURE);
     }
 
-#if (defined R1080P60)
+#if (defined R1080)
     tpg_cfg(&tpg_inst0, 1080, 1920, colorFmtIn0, bckgndId0);
-#elif  (defined R4K30W)
+#elif  (defined R4K)
     tpg_cfg(&tpg_inst0, 2160, 3840, colorFmtIn0, bckgndId0);
 #else
     tpg_cfg(&tpg_inst0, 2160, 3840, colorFmtIn0, bckgndId0);
@@ -225,9 +225,9 @@ int tpg_config(void)
         return(XST_FAILURE);
     }
 
-#if (defined R1080P60)
+#if (defined R1080)
     tpg_cfg(&tpg_inst1, 1080, 1920, colorFmtIn1, bckgndId1);
-#elif  (defined R4K30W)
+#elif  (defined R4K)
 //    tpg_cfg(&tpg_inst1, 2160, 3840, colorFmtIn1, bckgndId1);
     tpg_cfg(&tpg_inst1, 1440, 2560, colorFmtIn1, bckgndId1);
 #else
@@ -255,9 +255,9 @@ int tpg_config(void)
 		return(XST_FAILURE);
 	}
 
-#if (defined R1080P60)
+#if (defined R1080)
 	tpg_cfg(&tpg_inst2, 1080, 1920, colorFmtIn2, bckgndId2);
-#elif  (defined R4K30W)
+#elif  (defined R4K)
 	tpg_cfg(&tpg_inst2, 2160, 3840, colorFmtIn2, bckgndId2);
 #else
 	tpg_cfg(&tpg_inst2, 1286, 1920, colorFmtIn2, bckgndId2);
@@ -284,9 +284,9 @@ int tpg_config(void)
 		return(XST_FAILURE);
 	}
 
-#if (defined R1080P60)
+#if (defined R1080)
 	tpg_cfg(&tpg_inst3, 1080, 1920, colorFmtIn3, bckgndId3);
-#elif  (defined R4K30W)
+#elif  (defined R4K)
 	tpg_cfg(&tpg_inst3, 2160, 3840, colorFmtIn3, bckgndId3);
 #else
 	tpg_cfg(&tpg_inst3, 1286, 1920, colorFmtIn3, bckgndId3);

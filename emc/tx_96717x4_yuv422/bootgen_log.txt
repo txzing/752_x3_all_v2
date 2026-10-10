@@ -1,0 +1,57 @@
+[INFO]   : Command line parsing completed successfully
+[INFO]   : BIF file parsing completed successfully
+[INFO]   : Parsing Partition Data to Image
+[INFO]   : Building image - the_ROM_image
+[INFO]   : Building the Partition Header Table
+[INFO]   : After build 
+           -- Dump of Binary Image ----
+           00000000 Len: 000008b8 Res: 00000000 "BootHeader"
+           00000000 Len: 00000040 Res: 00000000 "ImageHeaderTable"
+           00000000 Len: 00000020 Res: 00000000 "ImageHeader fsbl.elf"
+           00000000 Len: 00000028 Res: 00000000 "ImageHeader system_wrapper.bit"
+           00000000 Len: 00000024 Res: 00000780 "ImageHeader vitis_proj.elf"
+           00000000 Len: 00000040 Res: 00000000 "PartitionHeader fsbl.elf.0"
+           00000000 Len: 00000040 Res: 00000000 "PartitionHeader system_wrapper.bit.0"
+           00000000 Len: 00000040 Res: 00000000 "PartitionHeader vitis_proj.elf.0"
+           00000000 Len: 00000040 Res: 00001640 "PartitionHeader Null"
+           00000000 Len: 00021af8 Res: 00000000 "fsbl.elf.0"
+           00000000 Len: 00460d68 Res: 00000000 "system_wrapper.bit.0"
+           00000000 Len: 00079048 Res: 00000000 "vitis_proj.elf.0"
+           -- End of Dump
+[INFO]   : After align 
+           -- Dump of Binary Image ----
+           00000000 Len: 000008b8 Res: 00000000 "BootHeader"
+           000008c0 Len: 00000040 Res: 00000000 "ImageHeaderTable"
+           00000900 Len: 00000020 Res: 00000000 "ImageHeader fsbl.elf"
+           00000940 Len: 00000028 Res: 00000000 "ImageHeader system_wrapper.bit"
+           00000980 Len: 00000024 Res: 00000780 "ImageHeader vitis_proj.elf"
+           00001100 Len: 00000040 Res: 00000000 "PartitionHeader fsbl.elf.0"
+           00001140 Len: 00000040 Res: 00000000 "PartitionHeader system_wrapper.bit.0"
+           00001180 Len: 00000040 Res: 00000000 "PartitionHeader vitis_proj.elf.0"
+           000011c0 Len: 00000040 Res: 00001640 "PartitionHeader Null"
+           00002800 Len: 00021af8 Res: 00000000 "fsbl.elf.0"
+           00024300 Len: 00460d68 Res: 00000000 "system_wrapper.bit.0"
+           00485080 Len: 00079048 Res: 00000000 "vitis_proj.elf.0"
+           -- End of Dump
+[INFO]   : Partition Information: 
+[INFO]   : Image: fsbl.elf
+[INFO]   :        Partition 0: fsbl.elf.0,  Size: 137976
+[INFO]   : Image: system_wrapper.bit
+[INFO]   :        Partition 1: system_wrapper.bit.0,  Size: 4590952
+[INFO]   : Image: vitis_proj.elf
+[INFO]   :        Partition 2: vitis_proj.elf.0,  Size: 495688
+[INFO]   : After Link 
+           -- Dump of Binary Image ----
+           00000000 Len: 000008b8 Res: 00000000 "BootHeader"
+           000008c0 Len: 00000040 Res: 00000000 "ImageHeaderTable"
+           00000900 Len: 00000020 Res: 00000000 "ImageHeader fsbl.elf"
+           00000940 Len: 00000028 Res: 00000000 "ImageHeader system_wrapper.bit"
+           00000980 Len: 00000024 Res: 00000780 "ImageHeader vitis_proj.elf"
+           00001100 Len: 00000040 Res: 00000000 "PartitionHeader fsbl.elf.0"
+           00001140 Len: 00000040 Res: 00000000 "PartitionHeader system_wrapper.bit.0"
+           00001180 Len: 00000040 Res: 00000000 "PartitionHeader vitis_proj.elf.0"
+           000011c0 Len: 00000040 Res: 00001640 "PartitionHeader Null"
+           00002800 Len: 00021af8 Res: 00000000 "fsbl.elf.0"
+           00024300 Len: 00460d68 Res: 00000000 "system_wrapper.bit.0"
+           00485080 Len: 00079048 Res: 00000000 "vitis_proj.elf.0"
+           -- End of Dump

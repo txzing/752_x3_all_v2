@@ -8,6 +8,12 @@
 #define PL_LOCK_LED			(78+1)
 #define EEPROM_WP			(78+2)
 
+#define CHIPMAX96752_1_GPIO2			(78+3)
+#define CHIPMAX96752_1_GPIO4			(78+4)
+#define CHIPMAX96752_2_GPIO2			(78+5)
+#define CHIPMAX96752_2_GPIO4			(78+6)
+#define CHIPMAX96752_3_GPIO2			(78+7)
+#define CHIPMAX96752_3_GPIO4			(78+8)
 
 
 extern XGpioPs Gpio;

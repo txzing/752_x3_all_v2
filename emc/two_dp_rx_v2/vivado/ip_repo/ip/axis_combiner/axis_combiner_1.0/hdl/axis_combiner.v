@@ -472,7 +472,7 @@ always @ (posedge clk or negedge rst_n ) begin
 	end
     else begin
          m_axis_tvalid  <= s0_axis_tvalid;
-         m_axis_tuser   <= s0_axis_tuser ;
+         m_axis_tuser   <= s0_axis_tuser & s0_axis_tvalid;
          m_axis_tlast   <= s0_axis_tlast ;
          m_axis_tdata	<= com_data;
     end

@@ -93,7 +93,8 @@ static err_t tcp_update_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pb
 
     q = p;
 
-    if(!(memcmp("md5sum", p->payload, 6)))
+    /* Must match host header length: "md5sum"(6) + md5(16) + size(4) = 26. */
+    if(q->tot_len == 26 && !(memcmp("md5sum", p->payload, 6)))
     {
 		memcpy(md5sum, p->payload + 6, 16);
 		memcpy(&tsize, p->payload + 6 + 16, 4);

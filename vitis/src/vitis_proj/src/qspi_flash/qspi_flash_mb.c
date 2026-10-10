@@ -142,7 +142,7 @@ int qspi_init()
 
     XSpi_Config *XSpiConfigPtr;
 
-    //3?ê??ˉQSPI?y?ˉ
+    //初始化QSPI驱动
     XSpiConfigPtr = XSpi_LookupConfig(QSPI_DEVICE_ID);
     if (XSpiConfigPtr == NULL) {
         return XST_FAILURE;
@@ -302,7 +302,7 @@ int qspi_update(u32 total_bytes, const u8 *flash_data, int type)
     send_msg("Erase Operation Successful.\r\n");
 //    sprintf(msg, "INFO:Elapsed time = %2.3f sec.\r\n",elapsed_time);
 //    send_msg(msg);
-    //?òFLASH?DD?è?êy?Y
+    //擦除FLASH中的数据
 #endif
 #if 1
     printf("Performing Program Operation...\r\n");
@@ -342,7 +342,7 @@ int qspi_update(u32 total_bytes, const u8 *flash_data, int type)
 //    sprintf(msg, "INFO:Elapsed time = %2.3f sec.\r\n",elapsed_time);
 //    send_msg(msg);
 #endif
-    //ê1ó?QUAD?￡ê??óFLASH?D?á3?êy?Y2￠??DDD￡?é
+    //使用QUAD模式从FLASH读出数据并校验
     if (Flash_Config_Table[FCTIndex].FlashDeviceSize > SIXTEENMB)
     {
     	BufferPtr = &ReadBuffer[DATA_OFFSET + 4 + DUMMY_SIZE];
@@ -377,7 +377,7 @@ int qspi_update(u32 total_bytes, const u8 *flash_data, int type)
         	FlashRead(&XSpiInstance, read_addr, PAGE_SIZE, QUAD_READ_CMD);
         }
         if ((readed_len + PAGE_SIZE) <= total_bytes) {
-            //??±èD?è?FLASHó??óFLASH?D?á3?μ?êy?Y
+            //比对读出数据与写入FLASH的数据
             for (i = 0; i < PAGE_SIZE; i++)
                 if (BufferPtr[i] != flash_data[readed_len + i])
                     goto error_printf;

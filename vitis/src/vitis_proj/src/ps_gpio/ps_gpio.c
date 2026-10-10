@@ -38,6 +38,33 @@ int PsGpioSetup(XGpioPs *InstancePtr, u16 DeviceId)
 	XGpioPs_SetOutputEnablePin(InstancePtr, EEPROM_WP, 1);
 	XGpioPs_WritePin(&Gpio, EEPROM_WP, 0) ; // EEPROM write protect off
 
+
+	XGpioPs_SetDirectionPin(InstancePtr, CHIPMAX96752_1_GPIO2, 1) ;
+	XGpioPs_SetOutputEnablePin(InstancePtr, CHIPMAX96752_1_GPIO2, 1);
+	XGpioPs_WritePin(&Gpio, CHIPMAX96752_1_GPIO2, 1) ;
+
+	XGpioPs_SetDirectionPin(InstancePtr, CHIPMAX96752_1_GPIO4, 1) ;
+	XGpioPs_SetOutputEnablePin(InstancePtr, CHIPMAX96752_1_GPIO4, 1);
+	XGpioPs_WritePin(&Gpio, CHIPMAX96752_1_GPIO4, 1) ;
+
+
+	XGpioPs_SetDirectionPin(InstancePtr, CHIPMAX96752_2_GPIO2, 1) ;
+	XGpioPs_SetOutputEnablePin(InstancePtr, CHIPMAX96752_2_GPIO2, 1);
+	XGpioPs_WritePin(&Gpio, CHIPMAX96752_2_GPIO2, 1) ;
+
+	XGpioPs_SetDirectionPin(InstancePtr, CHIPMAX96752_2_GPIO4, 1) ;
+	XGpioPs_SetOutputEnablePin(InstancePtr, CHIPMAX96752_2_GPIO4, 1);
+	XGpioPs_WritePin(&Gpio, CHIPMAX96752_2_GPIO4, 1) ;
+
+
+	XGpioPs_SetDirectionPin(InstancePtr, CHIPMAX96752_3_GPIO2, 1) ;
+	XGpioPs_SetOutputEnablePin(InstancePtr, CHIPMAX96752_3_GPIO2, 1);
+	XGpioPs_WritePin(&Gpio, CHIPMAX96752_3_GPIO2, 1) ;
+
+	XGpioPs_SetDirectionPin(InstancePtr, CHIPMAX96752_3_GPIO4, 1) ;
+	XGpioPs_SetOutputEnablePin(InstancePtr, CHIPMAX96752_3_GPIO4, 1);
+	XGpioPs_WritePin(&Gpio, CHIPMAX96752_3_GPIO4, 1) ;
+
 	return XST_SUCCESS ;
 }
 

@@ -28,6 +28,7 @@ int main()
     __SW_VER__ = GetSoftWareVersion();
     bsp_printf("software ver = 0x%08x\n\r", __SW_VER__);
     bsp_printf("***************************\n\r");
+
 #elif defined (__SW_VER__)
 //    bsp_printf("software ver = 0x%08x\n\r", __SW_VER__);
     bsp_printf(TXT_GREEN "software ver = 0x%08x\n\r" TXT_RST, __SW_VER__);
@@ -124,13 +125,55 @@ int main()
 
 #if defined (SER_CFG) || defined (DES_CFG)
 
-	serdes_i2c_write_array_16(I2C_NO_1, max96856_dual_link);
-	serdes_i2c_write_array_16(I2C_NO_2, max96772_dual_link);
+	Status = serdes_i2c_write_array_16(I2C_NO_1, max96856_dual_link);
+	if (Status != I2C_OK) {
+		xil_printf("max96856 array cfg fail st=%d\r\n", Status);
+	}
+	Status = serdes_i2c_write_array_16(I2C_NO_2, max96772_dual_link);
+	if (Status != I2C_OK) {
+		xil_printf("max96772 array cfg fail st=%d\r\n", Status);
+	}
+
+	xgpio_i2c_reg16_write(I2C_NO_1, 0x90>>1, 0x0116, 0xA0, STRETCH_ON);//Control channel enabled to remote serializer
+//	xgpio_i2c_reg16_write(I2C_NO_1, 0x90>>1, 0x0116, 0xe0, STRETCH_ON);//Control channel disabled to remote serializer
+
+	/* ===== MAX96856：开 PT1，挂 SIOA，I2C ===== */
+	/* PT1_EN=1, PT1_I2CSEL=1, PT1_LINK_SEL=0(SIOA) */
+	xgpio_i2c_reg16_write(I2C_NO_1, 0x90>>1, 0x011E, 0xA0, STRETCH_ON);
+	/* PT1 速率默认即可：SLV/MST ≈397kHz */
+	xgpio_i2c_reg16_write(I2C_NO_1, 0x90>>1, 0x0122, 0x2D, STRETCH_ON);
+
+	//GPIO23
+	xgpio_i2c_reg16_write(I2C_NO_1, 0x90>>1, 0x018B, 0xFA, STRETCH_ON);
+	xgpio_i2c_reg16_write(I2C_NO_1, 0x90>>1, 0x018C, 0x62, STRETCH_ON);
+	xgpio_i2c_reg16_write(I2C_NO_1, 0x90>>1, 0x018D, 0x1A, STRETCH_ON);
+
+//772
+	/* DEV_772: 7-bit，你们现在是 0x90>>1 */
+	xgpio_i2c_reg16_write(I2C_NO_2, 0x90>>1, 0x0170, 0x00, STRETCH_ON); /* 关 SPI，GPIO5 与 SCLK 复用 */
+	xgpio_i2c_reg16_write(I2C_NO_2, 0x90>>1, 0x0003, 0x00, STRETCH_ON); /* 关 UART1，建议 RMW */
+
+	/* 释放 GPIO3(SDA1) / GPIO5(SCL1) */
+	xgpio_i2c_reg16_write(I2C_NO_2, 0x90>>1, 0x02B9, 0x01, STRETCH_ON);
+	xgpio_i2c_reg16_write(I2C_NO_2, 0x90>>1, 0x02BF, 0x01, STRETCH_ON);
+
+	/* 不开 XOVER（地址是 0x048A，不是 0x004E） */
+	xgpio_i2c_reg16_write(I2C_NO_2, 0x90>>1, 0x048A, 0x00, STRETCH_ON);
+
+	/* 远端 master 时序（772 在 PT1 脚上再生 I2C） */
+	xgpio_i2c_reg16_write(I2C_NO_2, 0x90>>1, 0x0480, 0x06, STRETCH_ON); /* I2C_PT_0 */
+	//不用配
+//	xgpio_i2c_reg16_write(I2C_NO_2, 0x90>>1, 0x0481, 0x26, STRETCH_ON); /* I2C_PT_1，上拉弱可再降速 */
+
+	xgpio_i2c_reg16_write(I2C_NO_2, 0x90>>1, 0x0001, 0x42, STRETCH_ON); /* 仅当当前就是 0x02 时直写 */
+	//GPIO4
+	xgpio_i2c_reg16_write(I2C_NO_2, 0x90>>1, 0x02bc, 0x43, STRETCH_ON);
+	xgpio_i2c_reg16_write(I2C_NO_2, 0x90>>1, 0x02bd, 0x44, STRETCH_ON);
+	xgpio_i2c_reg16_write(I2C_NO_2, 0x90>>1, 0x02be, 0x40, STRETCH_ON);
 
 #endif // SER_CFG || DES_CFG
 
 #if defined (UDP_UPDATE) || defined (TCP_UPDATE) || defined (TCP_COMMAND_SRV) || defined (UDP_COMMAND_SRV)
-    sleep(1);
     init_default_config();
     loadconfig(&global_config);
 	lwip_common_init(&server_netif);

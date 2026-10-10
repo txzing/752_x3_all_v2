@@ -142,7 +142,7 @@ int qspi_init()
 
     XQspiPs_Config *QspiConfig;
 
-    //3?那??‘QSPI?y?‘
+    //初始化QSPI驱动
     QspiConfig = XQspiPs_LookupConfig(QSPI_DEVICE_ID);
     if (QspiConfig == NULL) {
         return XST_FAILURE;
@@ -355,7 +355,7 @@ int qspi_update(u32 total_bytes, const u8 *flash_data, int type)
         	FlashRead(&QspiInstance, read_addr, PAGE_SIZE, QUAD_READ_CMD);
         }
         if ((readed_len + PAGE_SIZE) <= total_bytes) {
-            //??㊣豕D?豕?FLASH車??車FLASH?D?芍3?米?那y?Y
+            //比对从FLASH读出的数据与写入数据
             for (i = 0; i < PAGE_SIZE; i++)
                 if (BufferPtr[i] != flash_data[readed_len + i])
                     goto error_printf;

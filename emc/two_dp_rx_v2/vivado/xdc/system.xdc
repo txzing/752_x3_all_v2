@@ -32,39 +32,50 @@ set_property -dict {PACKAGE_PIN AK17 IOSTANDARD DIFF_SSTL12} [get_ports sys_clk_
 #rs232
 set_property -dict {PACKAGE_PIN P26 IOSTANDARD LVCMOS33} [get_ports uart_0_rxd]
 set_property -dict {PACKAGE_PIN R25 IOSTANDARD LVCMOS33} [get_ports uart_0_txd]
-set_property UNAVAILABLE_DURING_CALIBRATION true [get_ports uart_0_rxd]
-
 
 # EEPROM
 ## sda
 set_property -dict {PACKAGE_PIN M22 IOSTANDARD LVCMOS33} [get_ports i2c_0_sda_io]
-set_property UNAVAILABLE_DURING_CALIBRATION true [get_ports i2c_0_sda_io]
 ## scl
 set_property -dict {PACKAGE_PIN N22 IOSTANDARD LVCMOS33} [get_ports i2c_0_scl_io]
+set_property UNAVAILABLE_DURING_CALIBRATION true [get_ports i2c_0_sda_io]
+
 
 # 856
 ## sda
 set_property -dict {PACKAGE_PIN AG34 IOSTANDARD LVCMOS18} [get_ports i2c_1_sda_io]
+set_property PULLUP true [get_ports i2c_1_sda_io]
 ## scl
 set_property -dict {PACKAGE_PIN AF33 IOSTANDARD LVCMOS18} [get_ports i2c_1_scl_io]
+set_property PULLUP true [get_ports i2c_1_scl_io]
 
 # 772
 ## sda
 set_property -dict {PACKAGE_PIN Y30 IOSTANDARD LVCMOS18} [get_ports i2c_2_sda_io]
+set_property PULLUP true [get_ports i2c_2_sda_io]
 ## scl
 set_property -dict {PACKAGE_PIN W30 IOSTANDARD LVCMOS18} [get_ports i2c_2_scl_io]
+set_property PULLUP true [get_ports i2c_2_scl_io]
 
-#
+#856 PT1
+#MFP10/SDA1_RX1	TP-IIC
+#MFP11/SCL1_TX1	TP--IIC
 ## sda
-set_property -dict {PACKAGE_PIN N24 IOSTANDARD LVCMOS33} [get_ports i2c_3_sda_io]
+set_property -dict {PACKAGE_PIN AG29 IOSTANDARD LVCMOS18} [get_ports i2c_3_sda_io]
+set_property PULLUP true [get_ports i2c_3_sda_io]
 ## scl
-set_property -dict {PACKAGE_PIN M24 IOSTANDARD LVCMOS33} [get_ports i2c_3_scl_io]
+set_property -dict {PACKAGE_PIN AF29 IOSTANDARD LVCMOS18} [get_ports i2c_3_scl_io]
+set_property PULLUP true [get_ports i2c_3_scl_io]
 
-#
+#772 PT1
+#GPIO03/MOSI/SDA1_RX1	TP-IIC
+#GPIO05/SCLK/SCL1_TX1	TP--IIC
 ## sda
-set_property -dict {PACKAGE_PIN N21 IOSTANDARD LVCMOS33} [get_ports i2c_4_sda_io]
+set_property -dict {PACKAGE_PIN Y32 IOSTANDARD LVCMOS18} [get_ports i2c_4_sda_io]
+set_property PULLUP true [get_ports i2c_4_sda_io]
 ## scl
-set_property -dict {PACKAGE_PIN M21 IOSTANDARD LVCMOS33} [get_ports i2c_4_scl_io]
+set_property -dict {PACKAGE_PIN AB29 IOSTANDARD LVCMOS18} [get_ports i2c_4_scl_io]
+set_property PULLUP true [get_ports i2c_4_scl_io]
 
 
 
@@ -85,29 +96,41 @@ set_property -dict {PACKAGE_PIN L27 IOSTANDARD LVCMOS33} [get_ports {gpio_tri_io
 #SFP_TX_LOSS
 set_property -dict {PACKAGE_PIN M27 IOSTANDARD LVCMOS33} [get_ports {gpio_tri_io[5]}]
 
-#862_F_DIS_REM
-set_property -dict {PACKAGE_PIN AD31 IOSTANDARD LVCMOS18} [get_ports {gpio_tri_io[6]}]
+#862_GPIO23
+set_property -dict {PACKAGE_PIN AF30 IOSTANDARD LVCMOS18} [get_ports {gpio_tri_io[6]}]
+set_property PULLUP true [get_ports {gpio_tri_io[6]}]
 
-#862_LOCK
-set_property -dict {PACKAGE_PIN AD30 IOSTANDARD LVCMOS18} [get_ports {gpio_tri_io[7]}]
-
-#862_POWERDOWN
-set_property -dict {PACKAGE_PIN AE32 IOSTANDARD LVCMOS18} [get_ports {gpio_tri_io[8]}]
-
-#772_F_MS
-set_property -dict {PACKAGE_PIN AC28 IOSTANDARD LVCMOS18} [get_ports {gpio_tri_io[9]}]
-#772_LOCK
-set_property -dict {PACKAGE_PIN AE33 IOSTANDARD LVCMOS18} [get_ports {gpio_tri_io[10]}]
-#772_POWERDOWN
-set_property -dict {PACKAGE_PIN AF27 IOSTANDARD LVCMOS18} [get_ports {gpio_tri_io[11]}]
-
-
-
+#772_GPIO4
+set_property -dict {PACKAGE_PIN AA29 IOSTANDARD LVCMOS18} [get_ports {gpio_tri_io[7]}]
+set_property PULLUP true [get_ports {gpio_tri_io[7]}]
+set_property UNAVAILABLE_DURING_CALIBRATION true [get_ports {gpio_tri_io[7]}]
 
 #SFP
-set_property PACKAGE_PIN P6 [get_ports mgt_clk_0_clk_p]
-set_property PACKAGE_PIN M2 [get_ports sfp_0_rxp]
-set_property PACKAGE_PIN N4 [get_ports sfp_0_txp]
+#set_property PACKAGE_PIN P6 [get_ports mgt_clk_0_clk_p]
+#set_property PACKAGE_PIN M2 [get_ports sfp_0_rxp]
+#set_property PACKAGE_PIN N4 [get_ports sfp_0_txp]
+
+#RGMII
+set_property -dict {PACKAGE_PIN W33 IOSTANDARD LVCMOS18} [get_ports phy_reset_out]
+
+set_property -dict {PACKAGE_PIN AD33 IOSTANDARD LVCMOS18} [get_ports {rgmii_rd[3]}]
+set_property -dict {PACKAGE_PIN AC33 IOSTANDARD LVCMOS18} [get_ports {rgmii_rd[2]}]
+set_property -dict {PACKAGE_PIN AB31 IOSTANDARD LVCMOS18} [get_ports {rgmii_rd[1]}]
+set_property -dict {PACKAGE_PIN AB32 IOSTANDARD LVCMOS18} [get_ports {rgmii_rd[0]}]
+set_property -dict {PACKAGE_PIN AA32 IOSTANDARD LVCMOS18} [get_ports rgmii_rx_ctl]
+set_property -dict {PACKAGE_PIN AB30 IOSTANDARD LVCMOS18} [get_ports rgmii_rxc]
+
+set_property -dict {PACKAGE_PIN AD34 IOSTANDARD LVCMOS18} [get_ports {rgmii_td[3]}]
+set_property -dict {PACKAGE_PIN AC34 IOSTANDARD LVCMOS18} [get_ports {rgmii_td[2]}]
+set_property -dict {PACKAGE_PIN AC32 IOSTANDARD LVCMOS18} [get_ports {rgmii_td[1]}]
+set_property -dict {PACKAGE_PIN Y31 IOSTANDARD LVCMOS18} [get_ports {rgmii_td[0]}]
+set_property -dict {PACKAGE_PIN AD28 IOSTANDARD LVCMOS18} [get_ports rgmii_tx_ctl]
+set_property -dict {PACKAGE_PIN AC31 IOSTANDARD LVCMOS18} [get_ports rgmii_txc]
+
+set_property -dict {PACKAGE_PIN AB34 IOSTANDARD LVCMOS18} [get_ports mdio_mdc]
+set_property -dict {PACKAGE_PIN AA34 IOSTANDARD LVCMOS18} [get_ports mdio_mdio_io]
+
+
 
 ## Misc
 ##rx

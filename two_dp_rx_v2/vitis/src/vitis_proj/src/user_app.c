@@ -206,7 +206,10 @@ void uart_receive_process(void)
 			else if(current_ch == 2)
 			{
 				xil_printf("-------config max96772------\r\n");
-				serdes_i2c_write_array_16(I2C_NO_2, max96772_dual_link);
+				ret32 = (u32)serdes_i2c_write_array_16(I2C_NO_2, max96772_dual_link);
+				if (ret32 != (u32)I2C_OK) {
+					xil_printf("max96772 array cfg fail st=%d\r\n", (int)ret32);
+				}
 //				xgpio_i2c_reg16_write(I2C_NO_2, 0x90 >> 1, 0xe776, 0x02, STRETCH_ON);
 //				xgpio_i2c_reg16_write(I2C_NO_2, 0x90 >> 1, 0xe777, 0x80, STRETCH_ON);
 			}
@@ -237,33 +240,95 @@ void uart_receive_process(void)
 			dp_debug_info(UserInput, ch);
 
 		}
+		else if (UserInput == 'i')
+		{
+			u8 reg23 = 0xFF;
+			int st;
+
+			xil_printf("------------------touch intr ch_%u-----------------------\r\n",
+				   (unsigned)current_ch);
+			st = tp_touch_intr_read(current_ch, &reg23);
+			if (st != I2C_OK)
+			{
+				xil_printf("touch intr fail st=%d\r\n", st);
+			}
+			else
+			{
+				xil_printf("reg 0x23 = 0x%02x\r\n", reg23);
+			}
+		}
 		else if((UserInput == 'f') || (UserInput == 'F'))
 		{
 
 			xil_printf("------------detect info------------\r\n");
 			xil_printf("------------current_ch %d------------\r\n",current_ch);
+
+
+			/* bus scan (weak pull-up: STRETCH_ON) */
+			u8 found[16];
+			u8 fi;
+			int nfound;
+			xil_printf("*** I2C scan I2C_NO_current_ch ***\r\n");
+			nfound = xgpio_i2c_scan(current_ch, STRETCH_ON, found, (u8)(sizeof(found)));
+			xil_printf("found %d device(s):", nfound);
+			for (fi = 0; fi < (u8)nfound && fi < (u8)(sizeof(found)); fi++) {
+				xil_printf(" 0x%02x", found[fi]);
+			}
+			xil_printf("\r\n");
+			xil_printf("*** I2C scan I2C_NO_3 ***\r\n");
+			nfound = xgpio_i2c_scan(I2C_NO_3, STRETCH_ON, found, (u8)(sizeof(found)));
+			xil_printf("found %d device(s):", nfound);
+			for (fi = 0; fi < (u8)nfound && fi < (u8)(sizeof(found)); fi++) {
+				xil_printf(" 0x%02x", found[fi]);
+			}
+			xil_printf("\r\n");
+			xil_printf("*** I2C scan I2C_NO_4 ***\r\n");
+			nfound = xgpio_i2c_scan(I2C_NO_4, STRETCH_ON, found, (u8)(sizeof(found)));
+			xil_printf("found %d device(s):", nfound);
+			for (fi = 0; fi < (u8)nfound && fi < (u8)(sizeof(found)); fi++) {
+				xil_printf(" 0x%02x", found[fi]);
+			}
+			xil_printf("\r\n");
+
 			ret8 = 0;
 			if(current_ch == 1)
 			{
 				xil_printf("***********max96856 current_ch***********\r\n");
-				xil_printf("***GMSL link lock***\r\n");
-				xgpio_i2c_reg16_read(current_ch, 0x90>>1, 0x0000, &ret8, STRETCH_ON);
-				xil_printf("0x0000 == 0x%02x\r\n", ret8);
-				xgpio_i2c_reg16_read(current_ch, 0x90>>1, 0x0030, &ret8, STRETCH_ON);
-				xil_printf("0x0030 == 0x%02x\r\n", ret8);
-				xil_printf("***Video lock***\r\n");
-				xgpio_i2c_reg16_read(current_ch, 0x90>>1, 0x0094, &ret8, STRETCH_ON);
-				xil_printf("0x0094 == 0x%02x\r\n", ret8);
 
+				xil_printf("***GMSL link lock***\r\n");
+				dump_i2c_reg16_read(current_ch, 0x90>>1, 0x0000);
+				dump_i2c_reg16_read(current_ch, 0x90>>1, 0x0030);
+				xil_printf("***Video lock***\r\n");
+				dump_i2c_reg16_read(current_ch, 0x90>>1, 0x0094);
+				dump_i2c_reg16_read(current_ch, 0x90>>1, 0x0116);
+				dump_i2c_reg16_read(current_ch, 0x90>>1, 0x0117);
+
+				xil_printf("856 PT1 I2C1,0x6a\r\n");
+				dump_i2c_reg8_read(I2C_NO_3, 0x6a, 0x00);
+				dump_i2c_reg8_read(I2C_NO_3, 0x6a, 0x01);
+				dump_i2c_reg8_read(I2C_NO_3, 0x6a, 0x02);
+				dump_i2c_reg8_read(I2C_NO_3, 0x6a, 0x03);
+				dump_i2c_reg8_read(I2C_NO_3, 0x6a, 0x04);
+				dump_i2c_reg8_read(I2C_NO_3, 0x6a, 0x05);
+				dump_i2c_reg8_read(I2C_NO_3, 0x6a, 0x06);
+				dump_i2c_reg8_read(I2C_NO_3, 0x6a, 0x23);
+				xgpio_i2c_reg8_write(I2C_NO_3, 0x6a, 0x23, 0x55, STRETCH_ON);
+				dump_i2c_reg8_read(I2C_NO_3, 0x6a, 0x23);
+				xgpio_i2c_reg8_write(I2C_NO_3, 0x6a, 0x23, 0x00, STRETCH_ON);
 			}
 			else if(current_ch == 2)
 			{
 				xil_printf("***********max96722 current_ch***********\r\n");
+
 				xil_printf("***GMSL link lock***\r\n");
-				xgpio_i2c_reg16_read(current_ch, 0x90>>1, 0x0000, &ret8, STRETCH_ON);
-				xil_printf("0x0000 == 0x%02x\r\n", ret8);
-				xgpio_i2c_reg16_read(current_ch, 0x90>>1, 0x0013, &ret8, STRETCH_ON);
-				xil_printf("0x0013 == 0x%02x\r\n", ret8);
+				dump_i2c_reg16_read(current_ch, 0x90>>1, 0x0000);
+				dump_i2c_reg16_read(current_ch, 0x90>>1, 0x0013);
+
+				dump_i2c_reg16_read(current_ch, 0x90>>1, 0x0001);
+				dump_i2c_reg16_read(current_ch, 0x90>>1, 0x0004);
+				dump_i2c_reg16_read(current_ch, 0x90>>1, 0x0010);
+				dump_i2c_reg16_read(current_ch, 0x90>>1, 0x0011);
+
 				xil_printf("***Video lock***\r\n");
 				xgpio_i2c_reg16_read(current_ch, 0x90>>1, 0x0108, &ret8, STRETCH_ON);
 				xil_printf("0x0108 == 0x%02x\r\n", ret8);
@@ -273,6 +338,22 @@ void uart_receive_process(void)
 				xil_printf("0x07f0 == 0x%02x\r\n", ret8);
 				xgpio_i2c_reg16_read(current_ch, 0x90>>1, 0x07f1, &ret8, STRETCH_ON);
 				xil_printf("0x07f1 == 0x%02x\r\n", ret8);
+
+				xil_printf("772 PT1 I2C1,0x6a\r\n");
+				dump_i2c_reg8_read(I2C_NO_4, 0x6a, 0x00);
+				dump_i2c_reg8_read(I2C_NO_4, 0x6a, 0x01);
+				dump_i2c_reg8_read(I2C_NO_4, 0x6a, 0x02);
+				dump_i2c_reg8_read(I2C_NO_4, 0x6a, 0x03);
+				dump_i2c_reg8_read(I2C_NO_4, 0x6a, 0x04);
+				dump_i2c_reg8_read(I2C_NO_4, 0x6a, 0x05);
+				dump_i2c_reg8_read(I2C_NO_4, 0x6a, 0x06);
+				dump_i2c_reg8_read(I2C_NO_4, 0x6a, 0x23);
+				xgpio_i2c_reg8_write(I2C_NO_4, 0x6a, 0x23, 0x55, STRETCH_ON);
+				dump_i2c_reg8_read(I2C_NO_4, 0x6a, 0x23);
+				xgpio_i2c_reg8_write(I2C_NO_4, 0x6a, 0x23, 0x00, STRETCH_ON);
+
+
+
 			}
 		}
 /****************************************************************************/
@@ -571,7 +652,10 @@ void display_fresh(void)
 				    		if(fps < 10)
 							{
 								xil_printf("----------reconfig max96772 %d-----------\r\n",fps);
-								serdes_i2c_write_array_16(I2C_NO_2, max96772_dual_link);
+								ret32 = (u32)serdes_i2c_write_array_16(I2C_NO_2, max96772_dual_link);
+								if (ret32 != (u32)I2C_OK) {
+									xil_printf("max96772 reconfig fail st=%d\r\n", (int)ret32);
+								}
 //								xgpio_i2c_reg16_write(I2C_NO_2, 0x90 >> 1, 0xe776, 0x02, STRETCH_ON);
 //								xgpio_i2c_reg16_write(I2C_NO_2, 0x90 >> 1, 0xe777, 0x80, STRETCH_ON);
 								reconfig_flag[ch] = 3;
@@ -592,4 +676,52 @@ void display_fresh(void)
 		}
 #endif
 	}
+}
+
+int tp_touch_intr_read(u8 ch, u8 *reg23)
+{
+	i2c_no bus;
+	u8 addr7;
+	u32 bit;
+	u32 pins;
+	int st;
+
+	if (reg23 == NULL)
+	{
+		return I2C_ERR_PARAM;
+	}
+	if (ch == 1U)
+	{
+		bus = I2C_NO_3;
+		addr7 = 0x30;
+		bit = 5U; /* NL856 / ch1 touch */
+	}
+	else if (ch == 2U)
+	{
+		bus = I2C_NO_4;
+		addr7 = 0x6a;
+		bit = 9U; /* NL772 GPIO4 / ch2 touch */
+	}
+	else
+	{
+		return I2C_ERR_PARAM;
+	}
+
+	st = xgpio_i2c_reg8_write(bus, (char)addr7, 0x23, 0x00, STRETCH_ON);
+	if (st != I2C_OK)
+	{
+		return st;
+	}
+
+	pins = XGpio_DiscreteRead(&Axi_Gpio, 1);
+	CLB(pins, BIT32(bit));
+	XGpio_DiscreteWrite(&Axi_Gpio, 1, pins);
+	usleep(1 * 1000);
+
+	pins = XGpio_DiscreteRead(&Axi_Gpio, 1);
+	STB(pins, BIT32(bit));
+	XGpio_DiscreteWrite(&Axi_Gpio, 1, pins);
+	usleep(100 * 1000);
+
+	return xgpio_i2c_reg8_read(bus, (char)addr7, 0x23, reg23, STRETCH_ON);
 }

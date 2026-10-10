@@ -35,7 +35,7 @@
 
 #if defined(XPAR_XGPIO_I2C_0_AXI_GPIO_0_DEVICE_ID)
 extern XGpio XGpioInstI2c;
-
+extern u8 i2c_devices_list[255];
 #define XIO_I2C_NUM 	(5U)	// 1~16
 
 #define INPUT 1
@@ -100,6 +100,17 @@ typedef enum
     STRETCH_OFF = 0,
 	STRETCH_ON,
 } stretch_mode;
+
+/* I2C status: 0=OK; nonzero=fail (compatible with XST_SUCCESS checks) */
+typedef enum {
+	I2C_OK          = 0,  /* success (== XST_SUCCESS) */
+	I2C_ERR_NODEV   = 1,  /* 7-bit addr NACK */
+	I2C_ERR_XFER    = 2,  /* mid-xfer NACK after addr ACK */
+	I2C_ERR_TIMEOUT = 3,  /* clock stretch timeout */
+	I2C_ERR_PARAM   = 4,  /* bad arg: NULL / ch / len */
+	I2C_ERR_SKIPPED = 5,  /* continuous 已 STOP, 本字节未执行 */
+	I2C_ERR_BAD_FRAME = 6, /* net frame/csum/len mismatch, no bus */
+} i2c_status_t;
 
 typedef enum xgpio_i2c_bank_no
 {
@@ -191,17 +202,25 @@ void i2c_ack(i2c_no i2c);
 void i2c_nack(i2c_no i2c);
 void i2c_send_byte(i2c_no i2c, u8 txd);
 u8  i2c_recv_byte(i2c_no i2c);
+/* return: 0=ACK, 1=NACK, 2=TIMEOUT */
 u8  i2c_recv_ack(i2c_no i2c, stretch_mode st_mode);
 int xgpio_i2c_reg8_write(i2c_no i2c, char IIC_ADDR, char Addr, char Data, stretch_mode st_mode);
 int xgpio_i2c_reg8_read(i2c_no i2c, char IIC_ADDR, char Addr, u8 * ret, stretch_mode st_mode);
 int xgpio_i2c_reg16_write(i2c_no i2c, char IIC_ADDR, unsigned short Addr, char Data, stretch_mode st_mode);
 int xgpio_i2c_reg16_read(i2c_no i2c, char IIC_ADDR, unsigned short Addr, u8 * ret, stretch_mode st_mode);
 
-int xgpio_i2c_reg8_continuous_write(i2c_no i2c, u8 IIC_ADDR, u8 Addr, u8 *Data,u16 len, stretch_mode st_mode);
-int xgpio_i2c_reg8_continuous_read(i2c_no i2c, u8 IIC_ADDR, u8 Addr, u8 * ret, u16 len, stretch_mode st_mode);
-int xgpio_i2c_reg16_continuous_write(i2c_no i2c, u8 IIC_ADDR, u16 Addr, u8 *Data,u16 len, stretch_mode st_mode);
-int xgpio_i2c_reg16_continuous_read(i2c_no i2c, u8 IIC_ADDR, u16 Addr, u8 * ret,u16 len, stretch_mode st_mode);
+/* done: optional, data-phase bytes completed before fail (NULL ok); success => *done=len */
+int xgpio_i2c_reg8_continuous_write(i2c_no i2c, u8 IIC_ADDR, u8 Addr, u8 *Data,u16 len, stretch_mode st_mode, u16 *done);
+int xgpio_i2c_reg8_continuous_read(i2c_no i2c, u8 IIC_ADDR, u8 Addr, u8 * ret, u16 len, stretch_mode st_mode, u16 *done);
+int xgpio_i2c_reg16_continuous_write(i2c_no i2c, u8 IIC_ADDR, u16 Addr, u8 *Data,u16 len, stretch_mode st_mode, u16 *done);
+int xgpio_i2c_reg16_continuous_read(i2c_no i2c, u8 IIC_ADDR, u16 Addr, u8 * ret,u16 len, stretch_mode st_mode, u16 *done);
 
+void dump_i2c_reg8_read(i2c_no bus, u8 addr7, u8 reg);
+void dump_i2c_reg16_read(i2c_no bus, u8 addr7, u16 reg);
+/* 探测 7-bit 地址, ACK 则成功 */
+int xgpio_i2c_probe(i2c_no i2c, u8 addr7, stretch_mode st_mode);
+/* 扫描 0x03..0x77; 返回发现数; found_addrs 可为 NULL. 弱上拉用 STRETCH_OFF */
+int xgpio_i2c_scan(i2c_no i2c, stretch_mode st_mode, u8 *found_addrs, u8 found_max);
 
 //int xgpio_i2c_32b32_write(i2c_no i2c, char IIC_ADDR, unsigned int Addr, unsigned int Data, stretch_mode st_mode);
 //int xgpio_i2c_32b32_read(i2c_no i2c, char IIC_ADDR, unsigned int Addr, unsigned int * ret, stretch_mode st_mode);

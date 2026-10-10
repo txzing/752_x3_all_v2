@@ -26,13 +26,10 @@ int xgpio_setup(void)
 	CLB(ret32, BIT32(3));//SFP_TX_LOSS
 	CLB(ret32, BIT32(4));//SFP_TX_DIS
 	CLB(ret32, BIT32(5));//SFP_TX_LOSS
-	CLB(ret32, BIT32(6));//862_F_DIS_REM
-	CLB(ret32, BIT32(7));//862_LOCK
-	STB(ret32, BIT32(8));//862_POWERDOWN
-	CLB(ret32, BIT32(9));//772_F_DIS_REM
-	CLB(ret32, BIT32(10));//772_LOCK
-	STB(ret32, BIT32(11));//772_POWERDOWN
-    XGpio_DiscreteWrite(&Axi_Gpio, 1, ret32);
+	STB(ret32, BIT32(6));//862_GPIO23
+	STB(ret32, BIT32(7));//NL772_GPIO4
+	
+	XGpio_DiscreteWrite(&Axi_Gpio, 1, ret32);
 
 
 	/* Initialize the GPIO driver */
@@ -44,7 +41,7 @@ int xgpio_setup(void)
 	XGpio_SetDataDirection(&XGpioOutput_oldi, 1, 0x0);
 	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
 	usleep(10*1000);
-	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x3);
+	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0xf);
 	usleep(10*1000);
 	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
 

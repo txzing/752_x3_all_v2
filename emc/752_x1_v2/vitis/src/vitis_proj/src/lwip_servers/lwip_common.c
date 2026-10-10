@@ -298,7 +298,7 @@ int lwip_common_init(struct netif *netif)
 	VC_inst.send_pic_start = 0;
 	VC_inst.video_sending = 0;
 	VC_inst.send_video_start = 0;
-	err_ch = current_ch;
+	err_ch = 0;
 #endif
 
 	return XST_SUCCESS;
@@ -477,6 +477,160 @@ static int req_len_at_least(uint16_t minimum)
 	       (req_frame_len() >= minimum);
 }
 
+/*
+ * ========== Ethernet I2C 0x20(read) / 0x21(write) ==========
+ * one parser: read rsp=14+2*len, write rsp=14+len
+ * [2:3]=seq echo; [11]xfer [12]done bstat[len] (+read data)
+ * BAD_FRAME(6)/PARAM no bus; len==1 single API, len>1 continuous
+ * opt: bit0=reg16, bit1=stretch; len 1..64
+ */
+static void i2c_net_cmd(int is_write)
+{
+	uint8_t ch, addr7, len, opt, xfer, cmd;
+	uint16_t reg0, i, done, sl, expect;
+	uint8_t data[64];
+	uint8_t bstat[64];
+	stretch_mode sm;
+	int st, frame_ok;
+
+	cmd = is_write ? 0x21U : 0x20U;
+	frame_ok = 1;
+	len = 1U;
+	if (receivelen >= 11) {
+		len = receivebuf[7];
+	} else {
+		frame_ok = 0;
+	}
+
+	if ((len == 0U) || (len > 64) ||
+	    ((14 + (is_write ? (int)len : (int)len * 2)) > (int)ARRAY_SIZE(send_buf))) {
+		len = 1U;
+		xfer = (uint8_t)I2C_ERR_PARAM;
+		done = 0;
+		memset(bstat, xfer, 1);
+		if (!is_write) {
+			memset(data, 0xFF, 1);
+		}
+		goto pack;
+	}
+
+	expect = is_write ? (uint16_t)(12U + len) : 12U;
+	if (!req_len_match(expect) ||
+	    (checksum(receivebuf, (int16_t)(expect - 1U)) != receivebuf[expect - 1U])) {
+		frame_ok = 0;
+	}
+
+	done = 0;
+	memset(bstat, (uint8_t)I2C_ERR_PARAM, len);
+	if (!is_write) {
+		memset(data, 0xFF, len);
+	}
+
+	if (!frame_ok) {
+		xfer = (uint8_t)I2C_ERR_BAD_FRAME;
+		memset(bstat, xfer, len);
+		goto pack;
+	}
+
+	ch    = receivebuf[5];
+	addr7 = receivebuf[6];
+	reg0  = ((uint16_t)receivebuf[8] << 8) | receivebuf[9];
+	opt   = receivebuf[10];
+
+	if ((ch >= (uint8_t)I2C_NO_BUTT) || (addr7 > 0x7FU) ||
+	    ((opt & (uint8_t)(~0x03U)) != 0U) ||
+	    (((opt & 0x01U) == 0U) &&
+	     ((uint16_t)(reg0 + (uint16_t)len - 1U) > 0x00FFU))) {
+		xfer = (uint8_t)I2C_ERR_PARAM;
+		memset(bstat, xfer, len);
+		goto pack;
+	}
+
+	sm = (opt & 0x02U) ? STRETCH_ON : STRETCH_OFF;
+	if (len == 1U) {
+		if (is_write) {
+			st = (opt & 0x01U)
+				? xgpio_i2c_reg16_write((i2c_no)ch, (char)addr7, reg0,
+						(char)receivebuf[11], sm)
+				: xgpio_i2c_reg8_write((i2c_no)ch, (char)addr7,
+						(char)(reg0 & 0xFFU), (char)receivebuf[11], sm);
+		} else {
+			st = (opt & 0x01U)
+				? xgpio_i2c_reg16_read((i2c_no)ch, (char)addr7, reg0,
+						&data[0], sm)
+				: xgpio_i2c_reg8_read((i2c_no)ch, (char)addr7,
+						(char)(reg0 & 0xFFU), &data[0], sm);
+		}
+		xfer = (uint8_t)st;
+		if (st == I2C_OK) {
+			done = 1;
+			bstat[0] = (uint8_t)I2C_OK;
+		} else {
+			bstat[0] = (uint8_t)st;
+			if (!is_write) {
+				data[0] = 0xFF;
+			}
+		}
+	} else {
+		if (is_write) {
+			st = (opt & 0x01U)
+				? xgpio_i2c_reg16_continuous_write((i2c_no)ch, addr7, reg0,
+						&receivebuf[11], len, sm, &done)
+				: xgpio_i2c_reg8_continuous_write((i2c_no)ch, addr7,
+						(u8)(reg0 & 0xFFU), &receivebuf[11], len, sm, &done);
+		} else {
+			st = (opt & 0x01U)
+				? xgpio_i2c_reg16_continuous_read((i2c_no)ch, addr7, reg0,
+						data, len, sm, &done)
+				: xgpio_i2c_reg8_continuous_read((i2c_no)ch, addr7,
+						(u8)(reg0 & 0xFFU), data, len, sm, &done);
+		}
+		xfer = (uint8_t)st;
+		if (st == I2C_OK) {
+			memset(bstat, (uint8_t)I2C_OK, len);
+		} else {
+			for (i = 0; i < len; i++) {
+				if (i < done) {
+					bstat[i] = (uint8_t)I2C_OK;
+				} else if (i == done) {
+					bstat[i] = (uint8_t)st;
+					if (!is_write) {
+						data[i] = 0xFF;
+					}
+				} else {
+					bstat[i] = (uint8_t)I2C_ERR_SKIPPED;
+					if (!is_write) {
+						data[i] = 0xFF;
+					}
+				}
+			}
+		}
+	}
+
+pack:
+	sendlen = 14 + (is_write ? (int)len : (int)len * 2);
+	sl = (uint16_t)sendlen;
+	if (receivelen >= 11) {
+		memcpy(send_buf, receivebuf, 11);
+	} else {
+		memset(send_buf, 0, 11);
+		if (receivelen >= 4) {
+			memcpy(send_buf + 2, receivebuf + 2, 2);
+		}
+		send_buf[4] = cmd;
+	}
+	send_buf[7] = len;
+	send_buf[11] = xfer;
+	send_buf[12] = (uint8_t)done;
+	memcpy(send_buf + 13, bstat, len);
+	if (!is_write) {
+		memcpy(send_buf + 13 + len, data, len);
+	}
+	memcpy(send_buf, &sl, 2);
+	send_buf[sendlen - 1] = checksum(send_buf, sendlen - 1);
+}
+
+
 void msg_cmd_0x10(void)//read mem
 {
 	if (!req_len_match(10))
@@ -487,11 +641,7 @@ void msg_cmd_0x10(void)//read mem
 
 	memcpy(&msg_addr,receivebuf+5,4);
 	msg_value = Xil_In32(msg_addr); // don't use signed int, otherwise hardfail
-	//mdata=htonl(mdata);
 	sendlen=receivelen + 4;
-//	xil_printf("msg_addr %x\r\n",msg_addr);
-//	xil_printf("msg_value %x\r\n",msg_value);
-//	xil_printf("sendlen %x\r\n",sendlen);
 	memcpy(send_buf,receivebuf,receivelen);
 	memcpy(send_buf+9,&msg_value,4);
 	memcpy(send_buf,&sendlen,2);
@@ -508,8 +658,6 @@ void msg_cmd_0x11(void)//write mem
 
 	memcpy(&msg_addr,receivebuf+5,4);
 	memcpy(&msg_value,receivebuf+9,4);
-	//msg_value=htonl(msg_value);
-	//*(volatile unsigned int *)(msg_addr) = msg_value;
 	Xil_Out32(msg_addr, msg_value);
 	msg_value = Xil_In32(msg_addr); // don't use signed int, otherwise hardfail
 	sendlen=receivelen;
@@ -566,110 +714,14 @@ void msg_cmd_0x13(void)//write block men
 
 void msg_cmd_0x20(void)
 {
-	uint8_t addr;
-	uint8_t ch;
-	uint8_t len;
-	uint8_t flag;
-	uint16_t reg_addr;
-	uint8_t data[256];
-
-	ch       = receivebuf[5];
-	addr     = receivebuf[6];
-	len      = receivebuf[7];
-	reg_addr = ((uint16_t)receivebuf[8] << 8) | receivebuf[9];
-	flag     = receivebuf[10];
-
-//	xil_printf("ch: %x\r\n", ch);
-//	xil_printf("addr: %x\r\n", addr);
-//	xil_printf("len: %x\r\n", len);
-//	xil_printf("reg_addr: %x\r\n", reg_addr);
-//	xil_printf("flag: %x\r\n", flag);
-
-	if (!req_len_match(12) || len == 0U)
-	{
-		ack_fail_request();
-		return;
-	}
-	if ((int)receivelen + (int)len + 1 > (int)ARRAY_SIZE(send_buf))
-	{
-		ack_fail_request();
-		return;
-	}
-
-	if (flag == 1)
-	{
-		Status = xgpio_i2c_reg8_continuous_read(ch, addr, reg_addr, data, len, STRETCH_OFF);
-	}
-	else
-	{
-		Status = xgpio_i2c_reg16_continuous_read(ch, addr, reg_addr, data, len, STRETCH_OFF);
-	}
-
-	sendlen=receivelen;
-	memcpy(send_buf,receivebuf,sendlen);
-	memcpy(send_buf + (sendlen-1),&Status,1);
-	if (Status == XST_SUCCESS)
-	{
-		memcpy(send_buf + (sendlen), data, len);
-	}
-	else
-	{
-		memset(send_buf + (sendlen), 0, len);
-		send_buf[2] = 0xFF;
-		send_buf[3] = 0xFF;
-	}
-	sendlen = sendlen + len + 1;
-	memcpy(send_buf,&sendlen,2);
-	send_buf[sendlen-1] = checksum(send_buf,sendlen-1); //
-
+	i2c_net_cmd(0);
 }
 
 void msg_cmd_0x21(void)
 {
-	printf("recv ch\r\n");
-	uint8_t addr;
-	uint8_t ch;
-	uint8_t value;
-	uint8_t flag;
-	uint16_t reg_addr;
-
-	ch =receivebuf[5];
-	addr = receivebuf[6];
-	reg_addr = (uint16_t)receivebuf[7] << 8 | receivebuf[8];
-	flag = receivebuf[9];
-	value = receivebuf[11];
-//	xil_printf("ch %x\r\n",ch);
-//	xil_printf("addr %x\r\n",addr);
-//	xil_printf("reg_addr %x\r\n",reg_addr);
-//	xil_printf("flag %x\r\n",flag);
-//	xil_printf("value %x\r\n",value);
-	if (!req_len_match(13))
-	{
-		ack_fail_request();
-		return;
-	}
-
-	if(flag == 1)
-	{
-		Status = xgpio_i2c_reg8_write(ch,addr,reg_addr,value,STRETCH_OFF);
-	}
-	else
-	{
-		Status = xgpio_i2c_reg16_write(ch,addr,reg_addr,value,STRETCH_OFF);
-	}
-
-	sendlen=receivelen;
-	memcpy(send_buf,receivebuf,sendlen);
-	/* 偏移 10：0 成功，非 0 失败；同时置预留 FF FF 便于上位机统一判断 */
-	memcpy(send_buf+10,&Status,1);
-	if (Status != XST_SUCCESS)
-	{
-		send_buf[2] = 0xFF;
-		send_buf[3] = 0xFF;
-	}
-	memcpy(send_buf,&sendlen,2);
-	send_buf[sendlen-1] = checksum(send_buf,sendlen-1); //
+	i2c_net_cmd(1);
 }
+
 
 #if defined (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES)
 void msg_cmd_0x30(void)
@@ -924,6 +976,45 @@ void msg_cmd_0x30(void)
 		Xil_Out32(base_addr + POINT_Y, p_y & 0xFFFFU);
 		ack_copy_request();
 	}
+	else if (cmd_index == 0xb)
+	{
+		/* 设置错误像素个数阈值 ERR_PIXEL_CNT（达到该个数才产生中断，默认 1） */
+		u32 err_cnt_thr = 0U;
+
+		if (!req_len_at_least(12))
+		{
+			ack_fail_request();
+			return;
+		}
+		memcpy(&err_cnt_thr, receivebuf + 7, 4);
+		base_addr = pixel_compare_axi_base_eth(ch);
+		if (base_addr == 0U)
+		{
+			ack_fail_request();
+			return;
+		}
+		xil_printf("ERR_PIXEL_CNT ch%d = %u\r\n", (int)ch, (unsigned)err_cnt_thr);
+		Xil_Out32(base_addr + ERR_PIXEL_CNT, err_cnt_thr);
+		ack_copy_request();
+	}
+	else if (cmd_index == 0x0c)
+	{
+		/* Touch INT: clear 0x23, pulse GPIO2 then GPIO4, return 0x23. ch=1..3. */
+		u8 reg23 = 0xFF;
+		int st;
+
+		st = tp_touch_intr_read(ch, &reg23);
+		if (st != I2C_OK)
+		{
+			ack_fail_request();
+			return;
+		}
+		memcpy(send_buf, receivebuf, 7);
+		send_buf[7] = reg23;
+		sendlen = 9;
+		memcpy(send_buf, &sendlen, 2);
+		send_buf[sendlen - 1] = checksum(send_buf, sendlen - 1);
+	}
 	else
 	{
 		ack_fail_request();
@@ -969,7 +1060,7 @@ void msg_cmd_0x40(void)
 	}
 	if(cmd_index == 2)
 	{
-		uint32_t ver = 0x00300000; // keep same as type==0 in qspi_update()
+		uint32_t ver = 0x00800000; // keep same as type==0 in qspi_update()
 		msg_send = ver;
 
 		memcpy(send_buf,receivebuf,7);
@@ -1142,11 +1233,23 @@ void msg_cmd_0x40(void)
 
 #if defined (XPAR_XV_TPG_NUM_INSTANCES)
 
+/* Host ch is 1-based (1..VIDEO_SRC_COUNT) -> 0-based TPG index. */
+static int video_host_ch_to_idx(u8 host_ch, u8 *idx)
+{
+	if ((host_ch < 1U) || (host_ch > (u8)VIDEO_SRC_COUNT) || (idx == NULL))
+	{
+		return XST_FAILURE;
+	}
+	*idx = (u8)(host_ch - 1U);
+	return XST_SUCCESS;
+}
+
 void msg_cmd_0x50(void)
 {
 	uint8_t cmd_index;
+	uint8_t host_ch;
 	uint8_t ch;
-	XV_tpg *inst;
+	XV_tpg *inst = NULL;
 
 	if (!req_len_at_least(8))
 	{
@@ -1155,12 +1258,22 @@ void msg_cmd_0x50(void)
 	}
 
 	memcpy(&cmd_index, receivebuf + 5, 1);
-	memcpy(&ch, receivebuf + 6, 1);
-	inst = tpg_get_instance(ch);
-	if (inst == NULL)
+	memcpy(&host_ch, receivebuf + 6, 1);
+
+	/* cmd 7 (POC voltage) does not need TPG instance */
+	if (cmd_index != 7U)
 	{
-		ack_fail_request();
-		return;
+		if (video_host_ch_to_idx(host_ch, &ch) != XST_SUCCESS)
+		{
+			ack_fail_request();
+			return;
+		}
+		inst = tpg_get_instance(ch);
+		if (inst == NULL)
+		{
+			ack_fail_request();
+			return;
+		}
 	}
 
 	if (cmd_index == 0U)
@@ -1248,6 +1361,233 @@ void msg_cmd_0x50(void)
 		send_buf[21] = b;
 		sendlen = 23;
 		memcpy(send_buf, &sendlen, 2);
+		send_buf[sendlen - 1] = checksum(send_buf, sendlen - 1);
+	}
+	/* cmd 7: read 4-port POC voltage (mV) and reply over network */
+	else if (cmd_index == 7U)
+	{
+		u16 get_volt_port1 = 0;
+		u16 get_volt_port2 = 0;
+		u16 get_volt_port3 = 0;
+		u16 get_volt_port4 = 0;
+
+		get_adc_voltage(0, &get_volt_port1);
+		get_adc_voltage(1, &get_volt_port2);
+		get_adc_voltage(2, &get_volt_port3);
+		get_adc_voltage(3, &get_volt_port4);
+
+		xil_printf("\r\n------------------------\r\n");
+		xil_printf("Detect port poc Voltage\r\n");
+		xil_printf("Port1 poc Voltage = %d\r\n", get_volt_port1);
+		xil_printf("Port2 poc Voltage = %d\r\n", get_volt_port2);
+		xil_printf("Port3 poc Voltage = %d\r\n", get_volt_port3);
+		xil_printf("Port4 poc Voltage = %d\r\n", get_volt_port4);
+		xil_printf("------------------------\r\n");
+
+		memcpy(send_buf, receivebuf, 7);
+		memcpy(send_buf + 7, &get_volt_port1, 2);
+		memcpy(send_buf + 9, &get_volt_port2, 2);
+		memcpy(send_buf + 11, &get_volt_port3, 2);
+		memcpy(send_buf + 13, &get_volt_port4, 2);
+		sendlen = 16;
+		memcpy(send_buf, &sendlen, 2);
+		send_buf[sendlen - 1] = checksum(send_buf, sendlen - 1);
+	}
+	else
+	{
+		ack_fail_request();
+	}
+}
+
+void msg_cmd_0x51(void)
+{
+	uint8_t cmd_index;
+	uint8_t host_ch;
+	uint8_t ch;
+	u16 width;
+	u16 height;
+	u8 fps;
+	u16 h_fp, h_sw, h_bp, v_fp, v_sw, v_bp;
+	u8 h_pol, v_pol;
+	const video_src_cfg_t *cfg;
+
+	/*
+	 * Host channel is 1-based (1..VIDEO_SRC_COUNT = TPG count).
+	 * get ch source sub=0 len=10 reply: ch + source type
+	 * get ch count  sub=1 len=9  reply: count at offset 7
+	 * set           sub=2 len=27:
+	 *   ch wLE hLE fps | h_fp h_sw h_bp h_pol | v_fp v_sw v_bp v_pol | csum
+	 * get soft      sub=3: reply same layout (applied timing)
+	 * save          sub=4 len=8: persist runtime geom to EEPROM (explicit)
+	 * get meas      sub=5 len=13: ch wLE hLE fps (TPG mon measured)
+	 * success: ack_copy / filled reply; fail: rsvd=FFFF
+	 */
+	sendlen = 0;
+
+	if (!req_len_at_least(8))
+	{
+		ack_fail_request();
+		return;
+	}
+
+	cmd_index = receivebuf[5];
+
+	if (cmd_index == 0U)
+	{
+		u8 src;
+
+		/* Query channel source type for host ch (1-based). */
+		host_ch = receivebuf[6];
+		if (video_host_ch_to_idx(host_ch, &ch) != XST_SUCCESS)
+		{
+			ack_fail_request();
+			return;
+		}
+		src = video_src_source_type(ch);
+		sendlen = 10;
+		memset(send_buf, 0, (size_t)sendlen);
+		memcpy(send_buf, &sendlen, 2);
+		send_buf[2] = receivebuf[2];
+		send_buf[3] = receivebuf[3];
+		send_buf[4] = 0x51;
+		send_buf[5] = 0;
+		send_buf[6] = host_ch;
+		send_buf[7] = src;
+		send_buf[sendlen - 1] = checksum(send_buf, sendlen - 1);
+	}
+	else if (cmd_index == 1U)
+	{
+		/* Query channel count (== TPG instance count). */
+		sendlen = 9;
+		memset(send_buf, 0, (size_t)sendlen);
+		memcpy(send_buf, &sendlen, 2);
+		send_buf[2] = receivebuf[2];
+		send_buf[3] = receivebuf[3];
+		send_buf[4] = 0x51;
+		send_buf[5] = 1;
+		send_buf[6] = receivebuf[6];
+		send_buf[7] = video_src_host_count();
+		send_buf[sendlen - 1] = checksum(send_buf, sendlen - 1);
+	}
+	else if (cmd_index == 2U)
+	{
+		if (!req_len_at_least(27))
+		{
+			ack_fail_request();
+			return;
+		}
+		host_ch = receivebuf[6];
+		if (video_host_ch_to_idx(host_ch, &ch) != XST_SUCCESS)
+		{
+			ack_fail_request();
+			return;
+		}
+		memcpy(&width, receivebuf + 7, 2);
+		memcpy(&height, receivebuf + 9, 2);
+		fps = receivebuf[11];
+		memcpy(&h_fp, receivebuf + 12, 2);
+		memcpy(&h_sw, receivebuf + 14, 2);
+		memcpy(&h_bp, receivebuf + 16, 2);
+		h_pol = receivebuf[18];
+		memcpy(&v_fp, receivebuf + 19, 2);
+		memcpy(&v_sw, receivebuf + 21, 2);
+		memcpy(&v_bp, receivebuf + 23, 2);
+		v_pol = receivebuf[25];
+		if (video_src_set_timing(ch, width, height, fps,
+					 h_fp, h_sw, h_bp, h_pol,
+					 v_fp, v_sw, v_bp, v_pol) != XST_SUCCESS)
+		{
+			ack_fail_request();
+			return;
+		}
+		ack_copy_request();
+	}
+	else if (cmd_index == 3U)
+	{
+		u16 t16;
+
+		host_ch = receivebuf[6];
+		if (video_host_ch_to_idx(host_ch, &ch) != XST_SUCCESS)
+		{
+			ack_fail_request();
+			return;
+		}
+		cfg = video_src_cfg_get(ch);
+		if (cfg == NULL)
+		{
+			ack_fail_request();
+			return;
+		}
+		sendlen = 27;
+		memset(send_buf, 0, (size_t)sendlen);
+		memcpy(send_buf, &sendlen, 2);
+		send_buf[2] = receivebuf[2];
+		send_buf[3] = receivebuf[3];
+		send_buf[4] = 0x51;
+		send_buf[5] = 3;
+		send_buf[6] = host_ch;
+		memcpy(send_buf + 7, &cfg->width, 2);
+		memcpy(send_buf + 9, &cfg->height, 2);
+		send_buf[11] = cfg->fps;
+		t16 = (u16)cfg->h_fp;
+		memcpy(send_buf + 12, &t16, 2);
+		t16 = (u16)cfg->h_sw;
+		memcpy(send_buf + 14, &t16, 2);
+		t16 = (u16)cfg->h_bp;
+		memcpy(send_buf + 16, &t16, 2);
+		send_buf[18] = (u8)cfg->h_pol;
+		t16 = (u16)cfg->v_fp;
+		memcpy(send_buf + 19, &t16, 2);
+		t16 = (u16)cfg->v_sw;
+		memcpy(send_buf + 21, &t16, 2);
+		t16 = (u16)cfg->v_bp;
+		memcpy(send_buf + 23, &t16, 2);
+		send_buf[25] = (u8)cfg->v_pol;
+		send_buf[sendlen - 1] = checksum(send_buf, sendlen - 1);
+	}
+	else if (cmd_index == 4U)
+	{
+		/* Explicit save - same intent as 0x40/11 eth saveconfig. */
+		if (!req_len_match(8))
+		{
+			ack_fail_request();
+			return;
+		}
+		if (video_inject_save_nv() != XST_SUCCESS)
+		{
+			ack_fail_request();
+			return;
+		}
+		ack_copy_request();
+	}
+	else if (cmd_index == 5U)
+	{
+		u16 mw;
+		u16 mh;
+		u8 mfps;
+
+		host_ch = receivebuf[6];
+		if (video_host_ch_to_idx(host_ch, &ch) != XST_SUCCESS)
+		{
+			ack_fail_request();
+			return;
+		}
+		if (video_src_get_measured(ch, &mw, &mh, &mfps) != XST_SUCCESS)
+		{
+			ack_fail_request();
+			return;
+		}
+		sendlen = 13;
+		memset(send_buf, 0, (size_t)sendlen);
+		memcpy(send_buf, &sendlen, 2);
+		send_buf[2] = receivebuf[2];
+		send_buf[3] = receivebuf[3];
+		send_buf[4] = 0x51;
+		send_buf[5] = 5;
+		send_buf[6] = host_ch;
+		memcpy(send_buf + 7, &mw, 2);
+		memcpy(send_buf + 9, &mh, 2);
+		send_buf[11] = mfps;
 		send_buf[sendlen - 1] = checksum(send_buf, sendlen - 1);
 	}
 	else

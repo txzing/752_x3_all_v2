@@ -69,7 +69,10 @@ void udp_update_recv_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p,
     upcb->remote_port = port;
     client_pcb = upcb;
 
-    if (!(memcmp("md5sum", p->payload, 6)))
+    /* Must match host header length: "md5sum"(6) + md5(16) + size(4) = 26.
+     * Without tot_len check, a BOOT.bin chunk that happens to start with
+     * "md5sum" is treated as a command and dropped from rxbuffer. */
+    if (q->tot_len == 26 && !(memcmp("md5sum", p->payload, 6)))
     {
     	memcpy(md5sum, p->payload + 6, 16);
     	memcpy(&tsize, p->payload + 6 + 16, 4);
@@ -87,6 +90,15 @@ void udp_update_recv_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p,
 		}
 		else
 		{
+			/* expected md5sum[] likely stale/zero if header UDP was lost */
+			bsp_printf("expect md5: ");
+			{
+				int i;
+				for (i = 0; i < 16; i++)
+					bsp_printf("%02x", md5sum[i]);
+			}
+			bsp_printf("\r\ntsize=%lu total_bytes=%lu\r\n",
+				   (unsigned long)tsize, (unsigned long)total_bytes);
 			reset_update_state();
 			udp_update_svr_send_msg("md5sum != cacl_md5sum\r\n");
 		}
@@ -104,6 +116,14 @@ void udp_update_recv_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p,
 		}
 		else
 		{
+			bsp_printf("expect md5: ");
+			{
+				int i;
+				for (i = 0; i < 16; i++)
+					bsp_printf("%02x", md5sum[i]);
+			}
+			bsp_printf("\r\ntsize=%lu total_bytes=%lu\r\n",
+				   (unsigned long)tsize, (unsigned long)total_bytes);
 			reset_update_state();
 			udp_update_svr_send_msg("md5sum != cacl_md5sum\r\n");
 		}

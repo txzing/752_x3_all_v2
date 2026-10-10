@@ -154,7 +154,7 @@ int handle_err_pic_transfer(int channel)
 	}
 	else // 当前帧发送完成[channel]
 	{
-        xil_printf("err Channel %d: Video frame complete. pkg_cnt:%d\r\n", packet_p.Channel_ID, currentChannel->pkg_cnt - 1);
+//        xil_printf("err Channel %d: Video frame complete. pkg_cnt:%d\r\n", packet_p.Channel_ID, currentChannel->pkg_cnt - 1);
 		currentChannel->send_err_start[channel - 1] = 0; // 停止图片发送
 		currentChannel->pkg_cnt = 1;
 

@@ -1,0 +1,34 @@
+#-----------------------------------------------------------
+# Vivado v2017.4 (64-bit)
+# SW Build 2086221 on Fri Dec 15 20:55:39 MST 2017
+# IP Build 2085800 on Fri Dec 15 22:25:07 MST 2017
+# Start of session at: Tue Oct 19 09:28:41 2021
+# Process ID: 27320
+# Current directory: C:/work/library_of_hdmi/axis_passthrough_mon
+# Command line: vivado.exe -gui_launcher_event rodinguilauncherevent27880 C:\work\library_of_hdmi\axis_passthrough_mon\axis_passthrough_mon.xpr
+# Log file: C:/work/library_of_hdmi/axis_passthrough_mon/vivado.log
+# Journal file: C:/work/library_of_hdmi/axis_passthrough_mon\vivado.jou
+#-----------------------------------------------------------
+start_gui
+open_project C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.xpr
+INFO: [Project 1-313] Project file moved from 'D:/repo_us/hdl/library/axis_passthrough_mon' since last save.
+Scanning sources...
+Finished scanning sources
+INFO: [IP_Flow 19-234] Refreshing IP repositories
+INFO: [IP_Flow 19-1700] Loaded user IP repository 'c:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new'.
+INFO: [IP_Flow 19-2313] Loaded Vivado IP repository 'C:/Xilinx/Vivado/2017.4/data/ip'.
+open_project: Time (s): cpu = 00:00:38 ; elapsed = 00:00:29 . Memory (MB): peak = 1143.113 ; gain = 452.203
+update_compile_order -fileset sources_1
+ipx::open_ipxact_file {C:\work\library_of_hdmi\axis_passthrough_mon\axis_passthrough_mon.srcs\sources_1\new\component.xml}
+ipx::unload_core c:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/component.xml
+set_property part xc7a100tfgg484-2 [current_project]
+INFO: [Project 1-154] The current project board 'xilinx.com:zcu102:part0:3.1' is reset to empty (None). Use 'Project Settings' part selector (GUI) or issue set_property Tcl Command to set the board again.
+ipx::open_ipxact_file {C:\work\library_of_hdmi\axis_passthrough_mon\axis_passthrough_mon.srcs\sources_1\new\component.xml}
+set_property core_revision 4 [ipx::current_core]
+ipx::create_xgui_files [ipx::current_core]
+ipx::update_checksums [ipx::current_core]
+ipx::save_core [ipx::current_core]
+update_ip_catalog -rebuild -repo_path c:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new
+INFO: [IP_Flow 19-725] Reloaded user IP repository 'c:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new'
+exit
+INFO: [Common 17-206] Exiting Vivado at Tue Oct 19 09:34:32 2021...

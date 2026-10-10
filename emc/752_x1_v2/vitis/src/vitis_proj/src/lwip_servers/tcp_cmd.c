@@ -77,6 +77,7 @@ static void dispatch_command(uint16_t cmd)
     case 0x40: msg_cmd_0x40(); break;
 #if defined (XPAR_XV_TPG_NUM_INSTANCES)
     case 0x50: msg_cmd_0x50(); break;
+    case 0x51: msg_cmd_0x51(); break;
 #endif
     default: ack_fail_request(); break;
     }

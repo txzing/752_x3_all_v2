@@ -17,45 +17,50 @@ set_property IOSTANDARD LVCMOS33 [get_ports eeprom_scl_io]
 
 # unused
 ## sda
-set_property PACKAGE_PIN AA12 [get_ports i2c_0_sda_io]
-set_property IOSTANDARD LVCMOS33 [get_ports i2c_0_sda_io]
+set_property -dict {PACKAGE_PIN AA12 IOSTANDARD LVCMOS33} [get_ports i2c_0_sda_io]
+set_property PULLUP true [get_ports i2c_0_sda_io]
 ## scl
-set_property PACKAGE_PIN Y12 [get_ports i2c_0_scl_io]
-set_property IOSTANDARD LVCMOS33 [get_ports i2c_0_scl_io]
-
+set_property -dict {PACKAGE_PIN Y12 IOSTANDARD LVCMOS33} [get_ports i2c_0_scl_io]
+set_property PULLUP true [get_ports i2c_0_scl_io]
 
 # ch_0
+#pcb F_SDA1
+#pcb F_SCL1
 ## sda
-set_property PACKAGE_PIN Y8 [get_ports i2c_1_sda_io]
-set_property IOSTANDARD LVCMOS18 [get_ports i2c_1_sda_io]
+set_property -dict {PACKAGE_PIN Y8 IOSTANDARD LVCMOS18} [get_ports i2c_1_sda_io]
+set_property PULLUP true [get_ports i2c_1_sda_io]
 ## scl
-set_property PACKAGE_PIN W8 [get_ports i2c_1_scl_io]
-set_property IOSTANDARD LVCMOS18 [get_ports i2c_1_scl_io]
+set_property -dict {PACKAGE_PIN W8 IOSTANDARD LVCMOS18} [get_ports i2c_1_scl_io]
+set_property PULLUP true [get_ports i2c_1_scl_io]
 
 # ch_1
+#pcb F_SDA2
+#pcb F_SCL2
 ## sda
-set_property PACKAGE_PIN C1 [get_ports i2c_2_sda_io]
-set_property IOSTANDARD LVCMOS18 [get_ports i2c_2_sda_io]
+set_property -dict {PACKAGE_PIN C1 IOSTANDARD LVCMOS18} [get_ports i2c_2_sda_io]
+set_property PULLUP true [get_ports i2c_2_sda_io]
 ## scl
-set_property PACKAGE_PIN B1 [get_ports i2c_2_scl_io]
-set_property IOSTANDARD LVCMOS18 [get_ports i2c_2_scl_io]
+set_property -dict {PACKAGE_PIN B1 IOSTANDARD LVCMOS18} [get_ports i2c_2_scl_io]
+set_property PULLUP true [get_ports i2c_2_scl_io]
 
 # ch_2
+#pcb F_SDA0
+#pcb F_SCL0
 ## sda
-set_property PACKAGE_PIN V9 [get_ports i2c_3_sda_io]
-set_property IOSTANDARD LVCMOS18 [get_ports i2c_3_sda_io]
+set_property -dict {PACKAGE_PIN V9 IOSTANDARD LVCMOS18} [get_ports i2c_3_sda_io]
+set_property PULLUP true [get_ports i2c_3_sda_io]
 ## scl
-set_property PACKAGE_PIN U9 [get_ports i2c_3_scl_io]
-set_property IOSTANDARD LVCMOS18 [get_ports i2c_3_scl_io]
+set_property -dict {PACKAGE_PIN U9 IOSTANDARD LVCMOS18} [get_ports i2c_3_scl_io]
+set_property PULLUP true [get_ports i2c_3_scl_io]
 
 # unused
 # ch_3
 ## sda
-set_property PACKAGE_PIN C9 [get_ports i2c_4_sda_io]
-set_property IOSTANDARD LVCMOS18 [get_ports i2c_4_sda_io]
+set_property -dict {PACKAGE_PIN C9 IOSTANDARD LVCMOS18} [get_ports i2c_4_sda_io]
+set_property PULLUP true [get_ports i2c_4_sda_io]
 ## scl
-set_property PACKAGE_PIN B9 [get_ports i2c_4_scl_io]
-set_property IOSTANDARD LVCMOS18 [get_ports i2c_4_scl_io]
+set_property -dict {PACKAGE_PIN B9 IOSTANDARD LVCMOS18} [get_ports i2c_4_scl_io]
+set_property PULLUP true [get_ports i2c_4_scl_io]
 
 
 # relay_ctrl
@@ -66,6 +71,27 @@ set_property -dict {PACKAGE_PIN AF11 IOSTANDARD LVCMOS33} [get_ports {gpio_tri_i
 
 # EEPROM WRITE PROTECT
 set_property -dict {PACKAGE_PIN AB14 IOSTANDARD LVCMOS33} [get_ports {gpio_tri_io[2]}]
+
+# 752 GPIO2_1
+set_property -dict {PACKAGE_PIN A2 IOSTANDARD LVCMOS18} [get_ports {gpio_tri_io[3]}]
+set_property PULLUP true [get_ports {gpio_tri_io[3]}]
+# 752 GPIO4_1
+set_property -dict {PACKAGE_PIN E9 IOSTANDARD LVCMOS18} [get_ports {gpio_tri_io[4]}]
+set_property PULLUP true [get_ports {gpio_tri_io[4]}]
+
+# 752 GPIO2_2
+set_property -dict {PACKAGE_PIN B8 IOSTANDARD LVCMOS18} [get_ports {gpio_tri_io[5]}]
+set_property PULLUP true [get_ports {gpio_tri_io[5]}]
+# 752 GPIO4_2
+set_property -dict {PACKAGE_PIN D5 IOSTANDARD LVCMOS18} [get_ports {gpio_tri_io[6]}]
+set_property PULLUP true [get_ports {gpio_tri_io[6]}]
+
+# 752 GPIO2_3
+set_property -dict {PACKAGE_PIN D7 IOSTANDARD LVCMOS18} [get_ports {gpio_tri_io[7]}]
+set_property PULLUP true [get_ports {gpio_tri_io[7]}]
+# 752 GPIO4_3
+set_property -dict {PACKAGE_PIN F3 IOSTANDARD LVCMOS18} [get_ports {gpio_tri_io[8]}]
+set_property PULLUP true [get_ports {gpio_tri_io[8]}]
 
 ################################################################################################
 

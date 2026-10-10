@@ -142,7 +142,7 @@ int qspi_init()
 
     XQspiPs_Config *QspiConfig;
 
-    //??????QSPI????
+    //初始化QSPI驱动
     QspiConfig = XQspiPs_LookupConfig(QSPI_DEVICE_ID);
     if (QspiConfig == NULL) {
         return XST_FAILURE;
@@ -153,7 +153,7 @@ int qspi_init()
         return XST_FAILURE;
     }
 
-    //?è??×?????????????????????
+    //设置片选保持有效并驱动HOLD
     XQspiPs_SetOptions(&QspiInstance,
     XQSPIPS_FORCE_SSELECT_OPTION | XQSPIPS_HOLD_B_DRIVE_OPTION);
     //设置QSPI时钟的分频系数
@@ -164,7 +164,7 @@ int qspi_init()
     FlashReadID();
     bsp_printf("FCTIndex: %d \n\r", FCTIndex);
     show_flash_info(FCTIndex);
-    //????FLASH Quad????
+    //使能FLASH Quad模式
     FlashQuadEnable(&QspiInstance);
 
 	/* Status cmd - SR or FSR selection */
@@ -355,7 +355,7 @@ int qspi_update(u32 total_bytes, const u8 *flash_data, int type)
         	FlashRead(&QspiInstance, read_addr, PAGE_SIZE, QUAD_READ_CMD);
         }
         if ((readed_len + PAGE_SIZE) <= total_bytes) {
-            //??±?????FLASH????FLASH????????????
+            //比对从FLASH读出的数据与写入数据
             for (i = 0; i < PAGE_SIZE; i++)
                 if (BufferPtr[i] != flash_data[readed_len + i])
                     goto error_printf;

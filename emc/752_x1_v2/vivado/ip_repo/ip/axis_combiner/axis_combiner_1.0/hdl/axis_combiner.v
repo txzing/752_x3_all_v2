@@ -453,8 +453,8 @@ always @ (posedge clk or negedge rst_n) begin
     end  
 end
 
-wire [23:0] s1;
-wire [23:0] s2;
+wire [CHANNEL_IN_W - 1:0] s1;
+wire [CHANNEL_IN_W - 1:0] s2;
 
 assign s1 = s0_axis_tdata_dly1;
 assign s2 = fifo_q[CHANNEL_IN_W - 1 : 0];
@@ -468,11 +468,11 @@ always @ (posedge clk or negedge rst_n ) begin
 		m_axis_tvalid   <= 1'd0;
         m_axis_tuser    <= 1'd0;
         m_axis_tlast    <= 1'd0;
-        m_axis_tdata    <= 48'd0;
+        m_axis_tdata    <= 'd0;
 	end
     else begin
          m_axis_tvalid  <= s0_axis_tvalid;
-         m_axis_tuser   <= s0_axis_tuser ;
+         m_axis_tuser   <= s0_axis_tuser & s0_axis_tvalid;
          m_axis_tlast   <= s0_axis_tlast ;
          m_axis_tdata	<= com_data;
     end

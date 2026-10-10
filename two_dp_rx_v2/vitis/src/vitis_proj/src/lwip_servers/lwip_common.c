@@ -381,8 +381,6 @@ void loadconfig(config_Settings_t * config_p)
 
     memset(ReadBuffer, 0, sizeof(ReadBuffer));
 
-    config_Settings_t config;
-
     Status = EepromReadData(ReadBuffer, sizeof(ReadBuffer), 0);
 
     if (Status != XST_SUCCESS)
@@ -479,6 +477,160 @@ static int req_len_at_least(uint16_t minimum)
 	       (req_frame_len() >= minimum);
 }
 
+/*
+ * ========== Ethernet I2C 0x20(read) / 0x21(write) ==========
+ * one parser: read rsp=14+2*len, write rsp=14+len
+ * [2:3]=seq echo; [11]xfer [12]done bstat[len] (+read data)
+ * BAD_FRAME(6)/PARAM no bus; len==1 single API, len>1 continuous
+ * opt: bit0=reg16, bit1=stretch; len 1..64
+ */
+static void i2c_net_cmd(int is_write)
+{
+	uint8_t ch, addr7, len, opt, xfer, cmd;
+	uint16_t reg0, i, done, sl, expect;
+	uint8_t data[64];
+	uint8_t bstat[64];
+	stretch_mode sm;
+	int st, frame_ok;
+
+	cmd = is_write ? 0x21U : 0x20U;
+	frame_ok = 1;
+	len = 1U;
+	if (receivelen >= 11) {
+		len = receivebuf[7];
+	} else {
+		frame_ok = 0;
+	}
+
+	if ((len == 0U) || (len > 64) ||
+	    ((14 + (is_write ? (int)len : (int)len * 2)) > (int)ARRAY_SIZE(send_buf))) {
+		len = 1U;
+		xfer = (uint8_t)I2C_ERR_PARAM;
+		done = 0;
+		memset(bstat, xfer, 1);
+		if (!is_write) {
+			memset(data, 0xFF, 1);
+		}
+		goto pack;
+	}
+
+	expect = is_write ? (uint16_t)(12U + len) : 12U;
+	if (!req_len_match(expect) ||
+	    (checksum(receivebuf, (int16_t)(expect - 1U)) != receivebuf[expect - 1U])) {
+		frame_ok = 0;
+	}
+
+	done = 0;
+	memset(bstat, (uint8_t)I2C_ERR_PARAM, len);
+	if (!is_write) {
+		memset(data, 0xFF, len);
+	}
+
+	if (!frame_ok) {
+		xfer = (uint8_t)I2C_ERR_BAD_FRAME;
+		memset(bstat, xfer, len);
+		goto pack;
+	}
+
+	ch    = receivebuf[5];
+	addr7 = receivebuf[6];
+	reg0  = ((uint16_t)receivebuf[8] << 8) | receivebuf[9];
+	opt   = receivebuf[10];
+
+	if ((ch >= (uint8_t)I2C_NO_BUTT) || (addr7 > 0x7FU) ||
+	    ((opt & (uint8_t)(~0x03U)) != 0U) ||
+	    (((opt & 0x01U) == 0U) &&
+	     ((uint16_t)(reg0 + (uint16_t)len - 1U) > 0x00FFU))) {
+		xfer = (uint8_t)I2C_ERR_PARAM;
+		memset(bstat, xfer, len);
+		goto pack;
+	}
+
+	sm = (opt & 0x02U) ? STRETCH_ON : STRETCH_OFF;
+	if (len == 1U) {
+		if (is_write) {
+			st = (opt & 0x01U)
+				? xgpio_i2c_reg16_write((i2c_no)ch, (char)addr7, reg0,
+						(char)receivebuf[11], sm)
+				: xgpio_i2c_reg8_write((i2c_no)ch, (char)addr7,
+						(char)(reg0 & 0xFFU), (char)receivebuf[11], sm);
+		} else {
+			st = (opt & 0x01U)
+				? xgpio_i2c_reg16_read((i2c_no)ch, (char)addr7, reg0,
+						&data[0], sm)
+				: xgpio_i2c_reg8_read((i2c_no)ch, (char)addr7,
+						(char)(reg0 & 0xFFU), &data[0], sm);
+		}
+		xfer = (uint8_t)st;
+		if (st == I2C_OK) {
+			done = 1;
+			bstat[0] = (uint8_t)I2C_OK;
+		} else {
+			bstat[0] = (uint8_t)st;
+			if (!is_write) {
+				data[0] = 0xFF;
+			}
+		}
+	} else {
+		if (is_write) {
+			st = (opt & 0x01U)
+				? xgpio_i2c_reg16_continuous_write((i2c_no)ch, addr7, reg0,
+						&receivebuf[11], len, sm, &done)
+				: xgpio_i2c_reg8_continuous_write((i2c_no)ch, addr7,
+						(u8)(reg0 & 0xFFU), &receivebuf[11], len, sm, &done);
+		} else {
+			st = (opt & 0x01U)
+				? xgpio_i2c_reg16_continuous_read((i2c_no)ch, addr7, reg0,
+						data, len, sm, &done)
+				: xgpio_i2c_reg8_continuous_read((i2c_no)ch, addr7,
+						(u8)(reg0 & 0xFFU), data, len, sm, &done);
+		}
+		xfer = (uint8_t)st;
+		if (st == I2C_OK) {
+			memset(bstat, (uint8_t)I2C_OK, len);
+		} else {
+			for (i = 0; i < len; i++) {
+				if (i < done) {
+					bstat[i] = (uint8_t)I2C_OK;
+				} else if (i == done) {
+					bstat[i] = (uint8_t)st;
+					if (!is_write) {
+						data[i] = 0xFF;
+					}
+				} else {
+					bstat[i] = (uint8_t)I2C_ERR_SKIPPED;
+					if (!is_write) {
+						data[i] = 0xFF;
+					}
+				}
+			}
+		}
+	}
+
+pack:
+	sendlen = 14 + (is_write ? (int)len : (int)len * 2);
+	sl = (uint16_t)sendlen;
+	if (receivelen >= 11) {
+		memcpy(send_buf, receivebuf, 11);
+	} else {
+		memset(send_buf, 0, 11);
+		if (receivelen >= 4) {
+			memcpy(send_buf + 2, receivebuf + 2, 2);
+		}
+		send_buf[4] = cmd;
+	}
+	send_buf[7] = len;
+	send_buf[11] = xfer;
+	send_buf[12] = (uint8_t)done;
+	memcpy(send_buf + 13, bstat, len);
+	if (!is_write) {
+		memcpy(send_buf + 13 + len, data, len);
+	}
+	memcpy(send_buf, &sl, 2);
+	send_buf[sendlen - 1] = checksum(send_buf, sendlen - 1);
+}
+
+
 void msg_cmd_0x10(void)//read mem
 {
 	if (!req_len_match(10))
@@ -489,11 +641,7 @@ void msg_cmd_0x10(void)//read mem
 
 	memcpy(&msg_addr,receivebuf+5,4);
 	msg_value = Xil_In32(msg_addr); // don't use signed int, otherwise hardfail
-	//mdata=htonl(mdata);
 	sendlen=receivelen + 4;
-//	xil_printf("msg_addr %x\r\n",msg_addr);
-//	xil_printf("msg_value %x\r\n",msg_value);
-//	xil_printf("sendlen %x\r\n",sendlen);
 	memcpy(send_buf,receivebuf,receivelen);
 	memcpy(send_buf+9,&msg_value,4);
 	memcpy(send_buf,&sendlen,2);
@@ -510,8 +658,6 @@ void msg_cmd_0x11(void)//write mem
 
 	memcpy(&msg_addr,receivebuf+5,4);
 	memcpy(&msg_value,receivebuf+9,4);
-	//msg_value=htonl(msg_value);
-	//*(volatile unsigned int *)(msg_addr) = msg_value;
 	Xil_Out32(msg_addr, msg_value);
 	msg_value = Xil_In32(msg_addr); // don't use signed int, otherwise hardfail
 	sendlen=receivelen;
@@ -568,110 +714,14 @@ void msg_cmd_0x13(void)//write block men
 
 void msg_cmd_0x20(void)
 {
-	uint8_t addr;
-	uint8_t ch;
-	uint8_t len;
-	uint8_t flag;
-	uint16_t reg_addr;
-	uint8_t data[256];
-
-	ch       = receivebuf[5];
-	addr     = receivebuf[6];
-	len      = receivebuf[7];
-	reg_addr = ((uint16_t)receivebuf[8] << 8) | receivebuf[9];
-	flag     = receivebuf[10];
-
-//	xil_printf("ch: %x\r\n", ch);
-//	xil_printf("addr: %x\r\n", addr);
-//	xil_printf("len: %x\r\n", len);
-//	xil_printf("reg_addr: %x\r\n", reg_addr);
-//	xil_printf("flag: %x\r\n", flag);
-
-	if (!req_len_match(12) || len == 0U)
-	{
-		ack_fail_request();
-		return;
-	}
-	if ((int)receivelen + (int)len + 1 > (int)ARRAY_SIZE(send_buf))
-	{
-		ack_fail_request();
-		return;
-	}
-
-	if (flag == 1)
-	{
-		Status = xgpio_i2c_reg8_continuous_read(ch, addr, reg_addr, data, len, STRETCH_OFF);
-	}
-	else
-	{
-		Status = xgpio_i2c_reg16_continuous_read(ch, addr, reg_addr, data, len, STRETCH_OFF);
-	}
-
-	sendlen=receivelen;
-	memcpy(send_buf,receivebuf,sendlen);
-	memcpy(send_buf + (sendlen-1),&Status,1);
-	if (Status == XST_SUCCESS)
-	{
-		memcpy(send_buf + (sendlen), data, len);
-	}
-	else
-	{
-		memset(send_buf + (sendlen), 0, len);
-		send_buf[2] = 0xFF;
-		send_buf[3] = 0xFF;
-	}
-	sendlen = sendlen + len + 1;
-	memcpy(send_buf,&sendlen,2);
-	send_buf[sendlen-1] = checksum(send_buf,sendlen-1); //
-
+	i2c_net_cmd(0);
 }
 
 void msg_cmd_0x21(void)
 {
-	printf("recv ch\r\n");
-	uint8_t addr;
-	uint8_t ch;
-	uint8_t value;
-	uint8_t flag;
-	uint16_t reg_addr;
-
-	ch =receivebuf[5];
-	addr = receivebuf[6];
-	reg_addr = (uint16_t)receivebuf[7] << 8 | receivebuf[8];
-	flag = receivebuf[9];
-	value = receivebuf[11];
-//	xil_printf("ch %x\r\n",ch);
-//	xil_printf("addr %x\r\n",addr);
-//	xil_printf("reg_addr %x\r\n",reg_addr);
-//	xil_printf("flag %x\r\n",flag);
-//	xil_printf("value %x\r\n",value);
-	if (!req_len_match(13))
-	{
-		ack_fail_request();
-		return;
-	}
-
-	if(flag == 1)
-	{
-		Status = xgpio_i2c_reg8_write(ch,addr,reg_addr,value,STRETCH_OFF);
-	}
-	else
-	{
-		Status = xgpio_i2c_reg16_write(ch,addr,reg_addr,value,STRETCH_OFF);
-	}
-
-	sendlen=receivelen;
-	memcpy(send_buf,receivebuf,sendlen);
-	/* 偏移 10：0 成功，非 0 失败；同时置预留 FF FF 便于上位机统一判断 */
-	memcpy(send_buf+10,&Status,1);
-	if (Status != XST_SUCCESS)
-	{
-		send_buf[2] = 0xFF;
-		send_buf[3] = 0xFF;
-	}
-	memcpy(send_buf,&sendlen,2);
-	send_buf[sendlen-1] = checksum(send_buf,sendlen-1); //
+	i2c_net_cmd(1);
 }
+
 
 #if defined (XPAR_AXI_PIXEL_COMPARE_NUM_INSTANCES)
 void msg_cmd_0x30(void)
@@ -946,6 +996,24 @@ void msg_cmd_0x30(void)
 		xil_printf("ERR_PIXEL_CNT ch%d = %u\r\n", (int)ch, (unsigned)err_cnt_thr);
 		Xil_Out32(base_addr + ERR_PIXEL_CNT, err_cnt_thr);
 		ack_copy_request();
+	}
+	else if (cmd_index == 0x0c)
+	{
+		/* Touch INT: clear 0x23, pulse GPIO, return 0x23. ch=1 or 2. */
+		u8 reg23 = 0xFF;
+		int st;
+
+		st = tp_touch_intr_read(ch, &reg23);
+		if (st != I2C_OK)
+		{
+			ack_fail_request();
+			return;
+		}
+		memcpy(send_buf, receivebuf, 7);
+		send_buf[7] = reg23;
+		sendlen = 9;
+		memcpy(send_buf, &sendlen, 2);
+		send_buf[sendlen - 1] = checksum(send_buf, sendlen - 1);
 	}
 	else
 	{

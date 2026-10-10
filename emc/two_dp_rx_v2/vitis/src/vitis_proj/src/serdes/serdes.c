@@ -100,9 +100,7 @@ struct reginfo max9296_rgb888_gmsl2[] =
 
 struct reginfo max96856_dual_link[] =
 {
-	{0x90, 0x0002, 0x80},
 	{0x90, SEQUENCE_WAIT_MS, 0x80},//delay for a while
-
 	{0x90, 0x0192, 0x08},
 	{0x90, 0x02DA, 0x9F},
 	{0x90, 0x0105, 0xE7},
@@ -198,9 +196,14 @@ int serdes_i2c_write_8(i2c_no i2c, u8 addr, u16 reg, u8 data)
 }
 
 
-void serdes_i2c_write_array_8(i2c_no i2c, struct reginfo *regarray)
+int serdes_i2c_write_array_8(i2c_no i2c, struct reginfo *regarray)
 {
 	int i = 0;
+	int st;
+
+	if (regarray == NULL) {
+		return I2C_ERR_PARAM;
+	}
 
 	while (regarray[i].reg != SEQUENCE_END)
 	{
@@ -210,10 +213,16 @@ void serdes_i2c_write_array_8(i2c_no i2c, struct reginfo *regarray)
 		}
 		else
 		{
-			serdes_i2c_write_8(i2c, regarray[i].addr, regarray[i].reg, regarray[i].val);
+			st = serdes_i2c_write_8(i2c, regarray[i].addr, regarray[i].reg, regarray[i].val);
+			if (st != I2C_OK) {
+				xil_printf("serdes wr8 fail i2c=%d a=0x%02x r=0x%04x st=%d\r\n",
+					(int)i2c, regarray[i].addr, regarray[i].reg, st);
+				return st;
+			}
 		}
 		i++;
 	}
+	return I2C_OK;
 }
 
 int serdes_i2c_write_16(i2c_no i2c, u8 addr, u16 reg, u8 data)
@@ -224,9 +233,14 @@ int serdes_i2c_write_16(i2c_no i2c, u8 addr, u16 reg, u8 data)
 }
 
 
-void serdes_i2c_write_array_16(i2c_no i2c, struct reginfo *regarray)
+int serdes_i2c_write_array_16(i2c_no i2c, struct reginfo *regarray)
 {
 	int i = 0;
+	int st;
+
+	if (regarray == NULL) {
+		return I2C_ERR_PARAM;
+	}
 
 	while (regarray[i].reg != SEQUENCE_END)
 	{
@@ -236,10 +250,16 @@ void serdes_i2c_write_array_16(i2c_no i2c, struct reginfo *regarray)
 		}
 		else
 		{
-			serdes_i2c_write_16(i2c, regarray[i].addr, regarray[i].reg, regarray[i].val);
+			st = serdes_i2c_write_16(i2c, regarray[i].addr, regarray[i].reg, regarray[i].val);
+			if (st != I2C_OK) {
+				xil_printf("serdes wr16 fail i2c=%d a=0x%02x r=0x%04x st=%d\r\n",
+					(int)i2c, regarray[i].addr, regarray[i].reg, st);
+				return st;
+			}
 		}
 		i++;
 	}
+	return I2C_OK;
 }
 
 

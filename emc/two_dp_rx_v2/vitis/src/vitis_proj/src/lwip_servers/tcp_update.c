@@ -5,13 +5,17 @@
 
 static struct tcp_pcb *client_pcb = NULL;
 
-//static u8 rxbuffer[MAX_FLASH_LEN];
-//static u32 total_bytes = 0;
 static int start_update_flag = 0 ;
 static int start_update_type = 0 ;
 static uint8_t md5sum[16];
 static uint32_t tsize;
-//static int send_msg_enabled = 0 ;
+
+static void reset_update_state(void)
+{
+	memset(md5sum, 0, 16);
+	tsize = 0;
+	total_bytes = 0;
+}
 
 void print_tcp_update_header(void)
 {
@@ -43,54 +47,18 @@ void tcp_update_svr_send_msg(const char *msg)
 
 void tcp_update_process_print(u8 percent)
 {
-    switch (percent)
-    {
-		case 0:
-			tcp_update_svr_send_msg("0%..");
-			bsp_printf("0%%..");
-			break;
-		case 1:
-			tcp_update_svr_send_msg("10%..");
-			bsp_printf("10%%..");
-			break;
-		case 2:
-			tcp_update_svr_send_msg("20%..");
-			bsp_printf("20%%..");
-			break;
-		case 3:
-			tcp_update_svr_send_msg("30%..");
-			bsp_printf("30%%..");
-			break;
-		case 4:
-			tcp_update_svr_send_msg("40%..");
-			bsp_printf("40%%..");
-			break;
-		case 5:
-			tcp_update_svr_send_msg("50%..");
-			bsp_printf("50%%..");
-			break;
-		case 6:
-			tcp_update_svr_send_msg("60%..");
-			bsp_printf("60%%..");
-			break;
-		case 7:
-			tcp_update_svr_send_msg("70%..");
-			bsp_printf("70%%..");
-			break;
-		case 8:
-			tcp_update_svr_send_msg("80%..");
-			bsp_printf("80%%..");
-			break;
-		case 9:
-			tcp_update_svr_send_msg("90%..");
-			bsp_printf("90%%..");
-			break;
-		case 10:
-			tcp_update_svr_send_msg("100%\r\n");
-			bsp_printf("100%%\r\n");
-		default:
-			break;
-    }
+	char msg[16];
+	if (percent <= 9U)
+	{
+		sprintf(msg, "%u0%%..", percent);
+		tcp_update_svr_send_msg(msg);
+		bsp_printf("%u0%%..", percent);
+	}
+	else if (percent == 10U)
+	{
+		tcp_update_svr_send_msg("100%\r\n");
+		bsp_printf("100%%\r\n");
+	}
 }
 
 /** Close a tcp session */
@@ -125,7 +93,8 @@ static err_t tcp_update_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pb
 
     q = p;
 
-    if(!(memcmp("md5sum", p->payload, 6)))
+    /* Must match host header length: "md5sum"(6) + md5(16) + size(4) = 26. */
+    if(q->tot_len == 26 && !(memcmp("md5sum", p->payload, 6)))
     {
 		memcpy(md5sum, p->payload + 6, 16);
 		memcpy(&tsize, p->payload + 6 + 16, 4);
@@ -143,9 +112,7 @@ static err_t tcp_update_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pb
 		}
 		else
 		{
-			memset(md5sum, 0, 16);
-			tsize = 0;
-			total_bytes = 0;
+			reset_update_state();
 			tcp_update_svr_send_msg("md5sum != cacl_md5sum\r\n");
 		}
 		NOP();
@@ -162,9 +129,7 @@ static err_t tcp_update_recv_callback(void *arg, struct tcp_pcb *tpcb, struct pb
 		}
 		else
 		{
-			memset(md5sum, 0, 16);
-			tsize = 0;
-			total_bytes = 0;
+			reset_update_state();
 			tcp_update_svr_send_msg("md5sum != cacl_md5sum\r\n");
 		}
 		NOP();

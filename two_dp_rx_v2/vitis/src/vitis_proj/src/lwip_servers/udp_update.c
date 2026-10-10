@@ -5,13 +5,17 @@
 
 static struct udp_pcb *client_pcb = NULL;
 
-//static u8 rxbuffer[MAX_FLASH_LEN];
-//static u32 total_bytes = 0;
 static int start_update_flag = 0 ;
 static int start_update_type = 0 ;
 static uint8_t md5sum[16];
 static uint32_t tsize;
-//static int send_msg_enabled = 0 ;
+
+static void reset_update_state(void)
+{
+	memset(md5sum, 0, 16);
+	tsize = 0;
+	total_bytes = 0;
+}
 
 void print_udp_update_header(void)
 {
@@ -41,53 +45,17 @@ void udp_update_svr_send_msg(const char *msg)
 
 void udp_update_process_print(u8 percent)
 {
-    switch (percent)
-    {
-		case 0:
-			udp_update_svr_send_msg("0%..");
-			bsp_printf("0%%..");
-			break;
-		case 1:
-			udp_update_svr_send_msg("10%..");
-			bsp_printf("10%%..");
-			break;
-		case 2:
-			udp_update_svr_send_msg("20%..");
-			bsp_printf("20%%..");
-			break;
-		case 3:
-			udp_update_svr_send_msg("30%..");
-			bsp_printf("30%%..");
-			break;
-		case 4:
-			udp_update_svr_send_msg("40%..");
-			bsp_printf("40%%..");
-			break;
-		case 5:
-			udp_update_svr_send_msg("50%..");
-			bsp_printf("50%%..");
-			break;
-		case 6:
-			udp_update_svr_send_msg("60%..");
-			bsp_printf("60%%..");
-			break;
-		case 7:
-			udp_update_svr_send_msg("70%..");
-			bsp_printf("70%%..");
-			break;
-		case 8:
-			udp_update_svr_send_msg("80%..");
-			bsp_printf("80%%..");
-			break;
-		case 9:
-			udp_update_svr_send_msg("90%..");
-			bsp_printf("90%%..");
-			break;
-		case 10:
-			udp_update_svr_send_msg("100%\r\n");
-			bsp_printf("100%%\r\n");
-		default:
-			break;
+	char msg[16];
+	if (percent <= 9U)
+	{
+		sprintf(msg, "%u0%%..", percent);
+		udp_update_svr_send_msg(msg);
+		bsp_printf("%u0%%..", percent);
+	}
+	else if (percent == 10U)
+	{
+		udp_update_svr_send_msg("100%\r\n");
+		bsp_printf("100%%\r\n");
 	}
 }
 
@@ -101,7 +69,10 @@ void udp_update_recv_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p,
     upcb->remote_port = port;
     client_pcb = upcb;
 
-    if (!(memcmp("md5sum", p->payload, 6)))
+    /* Must match host header length: "md5sum"(6) + md5(16) + size(4) = 26.
+     * Without tot_len check, a BOOT.bin chunk that happens to start with
+     * "md5sum" is treated as a command and dropped from rxbuffer. */
+    if (q->tot_len == 26 && !(memcmp("md5sum", p->payload, 6)))
     {
     	memcpy(md5sum, p->payload + 6, 16);
     	memcpy(&tsize, p->payload + 6 + 16, 4);
@@ -119,9 +90,16 @@ void udp_update_recv_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p,
 		}
 		else
 		{
-			memset(md5sum, 0, 16);
-			tsize = 0;
-			total_bytes = 0;
+			/* expected md5sum[] likely stale/zero if header UDP was lost */
+			bsp_printf("expect md5: ");
+			{
+				int i;
+				for (i = 0; i < 16; i++)
+					bsp_printf("%02x", md5sum[i]);
+			}
+			bsp_printf("\r\ntsize=%lu total_bytes=%lu\r\n",
+				   (unsigned long)tsize, (unsigned long)total_bytes);
+			reset_update_state();
 			udp_update_svr_send_msg("md5sum != cacl_md5sum\r\n");
 		}
         NOP();
@@ -138,9 +116,15 @@ void udp_update_recv_callback(void *arg, struct udp_pcb *upcb, struct pbuf *p,
 		}
 		else
 		{
-			memset(md5sum, 0, 16);
-			tsize = 0;
-			total_bytes = 0;
+			bsp_printf("expect md5: ");
+			{
+				int i;
+				for (i = 0; i < 16; i++)
+					bsp_printf("%02x", md5sum[i]);
+			}
+			bsp_printf("\r\ntsize=%lu total_bytes=%lu\r\n",
+				   (unsigned long)tsize, (unsigned long)total_bytes);
+			reset_update_state();
 			udp_update_svr_send_msg("md5sum != cacl_md5sum\r\n");
 		}
 		NOP();

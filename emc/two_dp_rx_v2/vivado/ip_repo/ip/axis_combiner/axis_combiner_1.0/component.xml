@@ -215,7 +215,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>01fedea0</spirit:value>
+            <spirit:value>040d7b19</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -231,7 +231,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>01fedea0</spirit:value>
+            <spirit:value>040d7b19</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -534,7 +534,7 @@
       <spirit:file>
         <spirit:name>hdl/axis_combiner.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_36f3768a</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_542a7f06</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
@@ -621,11 +621,11 @@
       <xilinx:xpmLibraries>
         <xilinx:xpmLibrary>XPM_FIFO</xilinx:xpmLibrary>
       </xilinx:xpmLibraries>
-      <xilinx:coreRevision>1</xilinx:coreRevision>
+      <xilinx:coreRevision>2</xilinx:coreRevision>
       <xilinx:upgrades>
         <xilinx:canUpgradeFrom>xilinx.com:user:axis_combiner:1.0</xilinx:canUpgradeFrom>
       </xilinx:upgrades>
-      <xilinx:coreCreationDateTime>2026-04-17T02:51:45Z</xilinx:coreCreationDateTime>
+      <xilinx:coreCreationDateTime>2026-07-20T01:29:10Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@732429eb_ARCHIVE_LOCATION">d:/workdir/cariad/emc/test/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@251bca60_ARCHIVE_LOCATION">d:/workdir/cariad/emc/test/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0</xilinx:tag>
@@ -842,12 +842,23 @@
         <xilinx:tag xilinx:name="ui.data.coregen.dd@3801c2c0_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@290f5c4b_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0</xilinx:tag>
         <xilinx:tag xilinx:name="ui.data.coregen.dd@72ac1bc2_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@504c9b00_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2067ebc2_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@39758776_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1d289d48_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5ac31bb4_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5caf237c_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6bc3acd_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@41a2df01_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@514b73b1_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7baaa1c_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@32084491_ARCHIVE_LOCATION">d:/workdir/cariad/ccu/752_x3_all_v2/bk/vivado/ip_repo/ip/axis_combiner/axis_combiner_1.0</xilinx:tag>
       </xilinx:tags>
     </xilinx:coreExtensions>
     <xilinx:packagingInfo>
       <xilinx:xilinxVersion>2020.1</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="83244748"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="45e1ac52"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="75fb8780"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="e3fbbc61"/>
       <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="f4b2e906"/>
       <xilinx:checksum xilinx:scope="parameters" xilinx:value="af4de382"/>

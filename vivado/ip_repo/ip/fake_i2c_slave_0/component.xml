@@ -1,0 +1,524 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spirit:component xmlns:xilinx="http://www.xilinx.com" xmlns:spirit="http://www.spiritconsortium.org/XMLSchema/SPIRIT/1685-2009" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <spirit:vendor>xilinx.com</spirit:vendor>
+  <spirit:library>user</spirit:library>
+  <spirit:name>fake_i2c_slave_0</spirit:name>
+  <spirit:version>1.1</spirit:version>
+  <spirit:busInterfaces>
+    <spirit:busInterface>
+      <spirit:name>sys_rst_n</spirit:name>
+      <spirit:busType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="reset" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="reset_rtl" spirit:version="1.0"/>
+      <spirit:slave/>
+      <spirit:portMaps>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>RST</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>sys_rst_n</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+      </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>POLARITY</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SYS_RST_N.POLARITY" spirit:choiceRef="choice_list_9d8b0d81">ACTIVE_LOW</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+    </spirit:busInterface>
+    <spirit:busInterface>
+      <spirit:name>sys_clk</spirit:name>
+      <spirit:busType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="clock" spirit:version="1.0"/>
+      <spirit:abstractionType spirit:vendor="xilinx.com" spirit:library="signal" spirit:name="clock_rtl" spirit:version="1.0"/>
+      <spirit:slave/>
+      <spirit:portMaps>
+        <spirit:portMap>
+          <spirit:logicalPort>
+            <spirit:name>CLK</spirit:name>
+          </spirit:logicalPort>
+          <spirit:physicalPort>
+            <spirit:name>sys_clk</spirit:name>
+          </spirit:physicalPort>
+        </spirit:portMap>
+      </spirit:portMaps>
+      <spirit:parameters>
+        <spirit:parameter>
+          <spirit:name>ASSOCIATED_BUSIF</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SYS_CLK.ASSOCIATED_BUSIF"/>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>FREQ_HZ</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SYS_CLK.FREQ_HZ"/>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>ASSOCIATED_ASYNC_RESET</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SYS_CLK.ASSOCIATED_ASYNC_RESET">sys_rst_n</spirit:value>
+        </spirit:parameter>
+        <spirit:parameter>
+          <spirit:name>ASSOCIATED_RESET</spirit:name>
+          <spirit:value spirit:id="BUSIFPARAM_VALUE.SYS_CLK.ASSOCIATED_RESET">sys_rst_n</spirit:value>
+        </spirit:parameter>
+      </spirit:parameters>
+    </spirit:busInterface>
+  </spirit:busInterfaces>
+  <spirit:model>
+    <spirit:views>
+      <spirit:view>
+        <spirit:name>xilinx_anylanguagesynthesis</spirit:name>
+        <spirit:displayName>Synthesis</spirit:displayName>
+        <spirit:envIdentifier>:vivado.xilinx.com:synthesis</spirit:envIdentifier>
+        <spirit:language>Verilog</spirit:language>
+        <spirit:modelName>fake_i2c_slave_0</spirit:modelName>
+        <spirit:fileSetRef>
+          <spirit:localName>xilinx_anylanguagesynthesis_view_fileset</spirit:localName>
+        </spirit:fileSetRef>
+        <spirit:parameters>
+          <spirit:parameter>
+            <spirit:name>viewChecksum</spirit:name>
+            <spirit:value>653fc3e8</spirit:value>
+          </spirit:parameter>
+        </spirit:parameters>
+      </spirit:view>
+      <spirit:view>
+        <spirit:name>xilinx_anylanguagebehavioralsimulation</spirit:name>
+        <spirit:displayName>Simulation</spirit:displayName>
+        <spirit:envIdentifier>:vivado.xilinx.com:simulation</spirit:envIdentifier>
+        <spirit:language>Verilog</spirit:language>
+        <spirit:modelName>fake_i2c_slave_0</spirit:modelName>
+        <spirit:fileSetRef>
+          <spirit:localName>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:localName>
+        </spirit:fileSetRef>
+        <spirit:parameters>
+          <spirit:parameter>
+            <spirit:name>viewChecksum</spirit:name>
+            <spirit:value>653fc3e8</spirit:value>
+          </spirit:parameter>
+        </spirit:parameters>
+      </spirit:view>
+      <spirit:view>
+        <spirit:name>xilinx_xpgui_1</spirit:name>
+        <spirit:displayName>UI Layout</spirit:displayName>
+        <spirit:envIdentifier>:vivado.xilinx.com:xgui.ui</spirit:envIdentifier>
+        <spirit:fileSetRef>
+          <spirit:localName>xilinx_xpgui_1_view_fileset</spirit:localName>
+        </spirit:fileSetRef>
+        <spirit:parameters>
+          <spirit:parameter>
+            <spirit:name>viewChecksum</spirit:name>
+            <spirit:value>bd58dade</spirit:value>
+          </spirit:parameter>
+        </spirit:parameters>
+      </spirit:view>
+    </spirit:views>
+    <spirit:ports>
+      <spirit:port>
+        <spirit:name>sys_clk</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>sys_rst_n</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>scl</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>sda_in</spirit:name>
+        <spirit:wire>
+          <spirit:direction>in</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>sda_t</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>wire</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+      <spirit:port>
+        <spirit:name>sda_o</spirit:name>
+        <spirit:wire>
+          <spirit:direction>out</spirit:direction>
+          <spirit:wireTypeDefs>
+            <spirit:wireTypeDef>
+              <spirit:typeName>reg</spirit:typeName>
+              <spirit:viewNameRef>xilinx_anylanguagesynthesis</spirit:viewNameRef>
+              <spirit:viewNameRef>xilinx_anylanguagebehavioralsimulation</spirit:viewNameRef>
+            </spirit:wireTypeDef>
+          </spirit:wireTypeDefs>
+        </spirit:wire>
+      </spirit:port>
+    </spirit:ports>
+    <spirit:modelParameters>
+      <spirit:modelParameter xsi:type="spirit:nameValueTypeType" spirit:dataType="integer">
+        <spirit:name>I2C_SLAVE_ADDR</spirit:name>
+        <spirit:displayName>I2c Slave Addr</spirit:displayName>
+        <spirit:value spirit:format="bitString" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.I2C_SLAVE_ADDR" spirit:bitStringLength="7">&quot;0010011&quot;</spirit:value>
+      </spirit:modelParameter>
+      <spirit:modelParameter spirit:dataType="integer">
+        <spirit:name>I2C_SLAVE_REG_MODE</spirit:name>
+        <spirit:displayName>I2c Slave Reg Mode</spirit:displayName>
+        <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.I2C_SLAVE_REG_MODE">0</spirit:value>
+      </spirit:modelParameter>
+      <spirit:modelParameter spirit:dataType="integer">
+        <spirit:name>I2C_SLAVE_DAT_MODE</spirit:name>
+        <spirit:displayName>I2c Slave Dat Mode</spirit:displayName>
+        <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.I2C_SLAVE_DAT_MODE">0</spirit:value>
+      </spirit:modelParameter>
+      <spirit:modelParameter spirit:dataType="integer">
+        <spirit:name>REG_DEVICE_ADDR</spirit:name>
+        <spirit:displayName>Reg Device Addr</spirit:displayName>
+        <spirit:value spirit:format="bitString" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.REG_DEVICE_ADDR" spirit:bitStringLength="16">0x0000</spirit:value>
+      </spirit:modelParameter>
+      <spirit:modelParameter spirit:dataType="integer">
+        <spirit:name>SDA_T_POLARITY</spirit:name>
+        <spirit:displayName>Sda T Polarity</spirit:displayName>
+        <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.SDA_T_POLARITY">0</spirit:value>
+      </spirit:modelParameter>
+      <spirit:modelParameter spirit:dataType="integer">
+        <spirit:name>DEVICE_ADDR_BIT</spirit:name>
+        <spirit:displayName>Device Addr Bit</spirit:displayName>
+        <spirit:value spirit:format="long" spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.DEVICE_ADDR_BIT">1</spirit:value>
+      </spirit:modelParameter>
+    </spirit:modelParameters>
+  </spirit:model>
+  <spirit:choices>
+    <spirit:choice>
+      <spirit:name>choice_list_8af5a703</spirit:name>
+      <spirit:enumeration>0</spirit:enumeration>
+      <spirit:enumeration>1</spirit:enumeration>
+    </spirit:choice>
+    <spirit:choice>
+      <spirit:name>choice_list_9d8b0d81</spirit:name>
+      <spirit:enumeration>ACTIVE_HIGH</spirit:enumeration>
+      <spirit:enumeration>ACTIVE_LOW</spirit:enumeration>
+    </spirit:choice>
+  </spirit:choices>
+  <spirit:fileSets>
+    <spirit:fileSet>
+      <spirit:name>xilinx_anylanguagesynthesis_view_fileset</spirit:name>
+      <spirit:file>
+        <spirit:name>rtl/reset_sync.v</spirit:name>
+        <spirit:fileType>verilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>rtl/fake_i2c_slave_0.v</spirit:name>
+        <spirit:fileType>verilogSource</spirit:fileType>
+        <spirit:userFileType>CHECKSUM_f287dc5b</spirit:userFileType>
+      </spirit:file>
+    </spirit:fileSet>
+    <spirit:fileSet>
+      <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
+      <spirit:file>
+        <spirit:name>rtl/reset_sync.v</spirit:name>
+        <spirit:fileType>verilogSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>rtl/fake_i2c_slave_0.v</spirit:name>
+        <spirit:fileType>verilogSource</spirit:fileType>
+      </spirit:file>
+    </spirit:fileSet>
+    <spirit:fileSet>
+      <spirit:name>xilinx_xpgui_1_view_fileset</spirit:name>
+      <spirit:file>
+        <spirit:name>xgui/fake_i2c_slave_0_v1_1.tcl</spirit:name>
+        <spirit:fileType>tclSource</spirit:fileType>
+        <spirit:userFileType>CHECKSUM_bd58dade</spirit:userFileType>
+        <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
+      </spirit:file>
+    </spirit:fileSet>
+  </spirit:fileSets>
+  <spirit:description>fake_i2c_slave_0</spirit:description>
+  <spirit:parameters>
+    <spirit:parameter>
+      <spirit:name>I2C_SLAVE_ADDR</spirit:name>
+      <spirit:displayName>I2c Slave Addr(7bit device addr)</spirit:displayName>
+      <spirit:value spirit:format="bitString" spirit:resolve="user" spirit:id="PARAM_VALUE.I2C_SLAVE_ADDR" spirit:bitStringLength="7">&quot;0010011&quot;</spirit:value>
+    </spirit:parameter>
+    <spirit:parameter>
+      <spirit:name>I2C_SLAVE_REG_MODE</spirit:name>
+      <spirit:displayName>I2c Slave Reg Mode(0--1 byte reg addr,1--2 byte reg addr)</spirit:displayName>
+      <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.I2C_SLAVE_REG_MODE" spirit:choiceRef="choice_list_8af5a703" spirit:bitStringLength="1">0</spirit:value>
+    </spirit:parameter>
+    <spirit:parameter>
+      <spirit:name>I2C_SLAVE_DAT_MODE</spirit:name>
+      <spirit:displayName>I2c Slave Dat Mode(0--1 byte data,1--2 byte data)</spirit:displayName>
+      <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.I2C_SLAVE_DAT_MODE" spirit:choiceRef="choice_list_8af5a703" spirit:bitStringLength="1">0</spirit:value>
+      <spirit:vendorExtensions>
+        <xilinx:parameterInfo>
+          <xilinx:enablement>
+            <xilinx:isEnabled xilinx:id="PARAM_ENABLEMENT.I2C_SLAVE_DAT_MODE">false</xilinx:isEnabled>
+          </xilinx:enablement>
+        </xilinx:parameterInfo>
+      </spirit:vendorExtensions>
+    </spirit:parameter>
+    <spirit:parameter>
+      <spirit:name>Component_Name</spirit:name>
+      <spirit:value spirit:resolve="user" spirit:id="PARAM_VALUE.Component_Name" spirit:order="1">i2c_slave_v1_0</spirit:value>
+    </spirit:parameter>
+    <spirit:parameter>
+      <spirit:name>REG_DEVICE_ADDR</spirit:name>
+      <spirit:displayName>Reg Device Addr</spirit:displayName>
+      <spirit:value spirit:format="bitString" spirit:resolve="user" spirit:id="PARAM_VALUE.REG_DEVICE_ADDR" spirit:bitStringLength="16">0x0000</spirit:value>
+    </spirit:parameter>
+    <spirit:parameter>
+      <spirit:name>SDA_T_POLARITY</spirit:name>
+      <spirit:displayName>Sda T Polarity(High level or low level as output)</spirit:displayName>
+      <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.SDA_T_POLARITY" spirit:choiceRef="choice_list_8af5a703" spirit:bitStringLength="1">0</spirit:value>
+    </spirit:parameter>
+    <spirit:parameter>
+      <spirit:name>DEVICE_ADDR_BIT</spirit:name>
+      <spirit:displayName>Device Addr Bitt(Whether the device address is stored in the upper 7 bits or the lower 7 bits,1 is upper 7 bits)</spirit:displayName>
+      <spirit:value spirit:format="long" spirit:resolve="user" spirit:id="PARAM_VALUE.DEVICE_ADDR_BIT" spirit:choiceRef="choice_list_8af5a703" spirit:bitStringLength="1">1</spirit:value>
+    </spirit:parameter>
+  </spirit:parameters>
+  <spirit:vendorExtensions>
+    <xilinx:coreExtensions>
+      <xilinx:supportedFamilies>
+        <xilinx:family xilinx:lifeCycle="Production">virtex7</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">qvirtex7</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">kintex7</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">kintex7l</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">qkintex7</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">qkintex7l</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">akintex7</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">artix7</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">artix7l</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">aartix7</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">qartix7</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">zynq</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">qzynq</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">azynq</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">spartan7</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">aspartan7</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">virtexu</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">zynquplus</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">virtexuplus</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">virtexuplusHBM</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">virtexuplus58g</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">kintexuplus</xilinx:family>
+        <xilinx:family xilinx:lifeCycle="Production">kintexu</xilinx:family>
+      </xilinx:supportedFamilies>
+      <xilinx:taxonomies>
+        <xilinx:taxonomy>/UserIP</xilinx:taxonomy>
+      </xilinx:taxonomies>
+      <xilinx:displayName>fake_i2c_slave_0</xilinx:displayName>
+      <xilinx:definitionSource>package_project</xilinx:definitionSource>
+      <xilinx:coreRevision>18</xilinx:coreRevision>
+      <xilinx:upgrades>
+        <xilinx:canUpgradeFrom>xilinx.com:user:fake_i2c_slave_0:1.0</xilinx:canUpgradeFrom>
+      </xilinx:upgrades>
+      <xilinx:coreCreationDateTime>2026-09-22T07:07:13Z</xilinx:coreCreationDateTime>
+      <xilinx:tags>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4ac968ec_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@521f7363_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@44f8e65a_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@8156163_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3e2b8e82_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1149bd69_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5fa63539_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@25780cce_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@f732b51_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@d6f7af3_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@68359b3e_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@e9d862c_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@f6952ed_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@34cc10bf_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1447bb39_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@28e2f31a_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2fe929f4_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3efb8445_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7d88ba02_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@23f8fd0b_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@57a31ae8_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5f8d34a8_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3ba295e2_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4d5a1209_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@41cf92fe_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@609ba78d_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@63bca885_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3a9a4607_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5461061f_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@58ac4dbb_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@35d5e390_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5dc87a2b_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@210db21b_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@11a72d22_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@14180bd2_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@194d67e3_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@77426031_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/ip/fake_iic/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6edebe90_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@237021fd_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@ee33358_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6a884626_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7a83d7b9_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5a6a1871_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@29558c51_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@644e0d00_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@68e4f19_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6fcd723c_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7183e4d0_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4e077756_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@258a0efc_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@886bbe6_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5c291c25_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@e7d6847_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@44a91ef8_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3a3297ad_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5ae5122_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@66194cab_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@49fb0894_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@e798014_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@286110f1_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6b485ff_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2aa1ea61_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3a2c4a88_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@739f8e38_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3f3fe6e9_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2d284b6b_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7482e02d_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@73aba1d6_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1ec63ffd_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2debcb8d_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@54aa8b99_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5a2fd651_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@74c34d63_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1af6a0b6_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4ef56dc8_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3bea0e42_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5f8b0443_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7674a762_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@40203aeb_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@14c28480_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3710c79c_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7093bf30_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@688a1a32_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2b4efd95_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2e27a97f_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5412fc02_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@c230b8c_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6171f107_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@ee9cfc9_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@71a05aed_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6d485ca3_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@165d9d5a_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@44af33c3_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2f1080f1_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5aceaa20_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3a8ed370_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@47b7b994_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5f3cda4a_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2270d28b_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1849094f_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5d05aa2e_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1886cb47_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1750a20f_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@65205e83_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@ceaf6b4_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@44f3887a_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@474fa0d8_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@64229c88_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@28876bed_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2d72fe9d_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@73a97b70_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5bf694f9_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7d7e3c4f_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3711a85f_ARCHIVE_LOCATION">c:/Users/tangx/Desktop/edp_proj/zxd_A/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@56669fc8_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1ecea4ea_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@be65899_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6ed30755_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4d71fc44_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@6d53f099_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4e24f45f_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@103fa3c_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@54d36e29_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2d009519_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7adf4b38_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@36f2df85_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@617fcd04_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4cfa527e_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@61fb6c26_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@34bc7f9d_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@116826bf_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1081d6d_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4b4785f0_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2496fcb8_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@36cd80f3_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7749e087_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@527bcf76_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@4bcc0d90_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@11e85472_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5b7c9ba_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@84da282_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@26a9b7ee_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@48f81e75_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@73cfc29_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@71b54257_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@53492f8a_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3d51ec0_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@2e1b3c5c_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@13cba086_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3ff380f3_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@5966acf1_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@1b3c7ecc_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@52b98e09_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7f8c3829_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@3d88d3e1_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@40a861fc_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@301399b6_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+        <xilinx:tag xilinx:name="ui.data.coregen.dd@7c3676b9_ARCHIVE_LOCATION">d:/workdir/cariad/test_i2c/two_dp_rx_v2/vivado/ip_repo/ip/fake_i2c_slave_0</xilinx:tag>
+      </xilinx:tags>
+    </xilinx:coreExtensions>
+    <xilinx:packagingInfo>
+      <xilinx:xilinxVersion>2020.1</xilinx:xilinxVersion>
+      <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="a13618b4"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="cc783fc8"/>
+      <xilinx:checksum xilinx:scope="ports" xilinx:value="cad5913e"/>
+      <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="05f94b5b"/>
+      <xilinx:checksum xilinx:scope="parameters" xilinx:value="0c27b215"/>
+    </xilinx:packagingInfo>
+  </spirit:vendorExtensions>
+</spirit:component>

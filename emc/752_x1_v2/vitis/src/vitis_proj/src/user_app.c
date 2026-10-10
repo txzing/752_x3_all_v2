@@ -147,6 +147,7 @@ void uart_receive_process(void)
 			xil_printf("(pixel compare not in BSP)\r\n");
 #endif
 			xil_printf("------------------------\r\n");
+
 		}
 #if defined (XPAR_XV_TPG_NUM_INSTANCES)
 		else if(UserInput == 't')
@@ -238,11 +239,56 @@ void uart_receive_process(void)
 				Xil_Out32(XAxisPixelCompare_ConfigTable[ch].S00_axi_BaseAddr + STATUS, 0x0);
 			}
 		}
+
+		else if (UserInput == 'i')
+		{
+			u8 reg23 = 0xFF;
+			int st;
+
+			xil_printf("------------------max96752 ch_%d intr-----------------------\r\n", current_ch);
+			st = tp_touch_intr_read(current_ch, &reg23);
+			if (st != I2C_OK)
+			{
+				xil_printf("touch intr fail st=%d\r\n", st);
+			}
+			else
+			{
+				xil_printf("reg 0x23 = 0x%02x\r\n", reg23);
+			}
+		}
+
 		else if((UserInput == 'f') || (UserInput == 'F'))
 		{
 
 			xil_printf("------------detect info------------\r\n");
 			xil_printf("------------current_ch %d------------\r\n",current_ch);
+
+			/* bus scan (weak pull-up: STRETCH_ON) */
+			u8 found[16];
+			u8 fi;
+			int nfound;
+			xil_printf("\r\n");
+			xil_printf("*** I2C scan I2C_NO_1 ***\r\n");
+			nfound = xgpio_i2c_scan(I2C_NO_1, STRETCH_ON, found, (u8)(sizeof(found)));
+			xil_printf("found %d device(s):", nfound);
+			for (fi = 0; fi < (u8)nfound && fi < (u8)(sizeof(found)); fi++) {
+				xil_printf(" 0x%02x", found[fi]);
+			}
+			xil_printf("\r\n");
+			xil_printf("*** I2C scan I2C_NO_2 ***\r\n");
+			nfound = xgpio_i2c_scan(I2C_NO_2, STRETCH_ON, found, (u8)(sizeof(found)));
+			xil_printf("found %d device(s):", nfound);
+			for (fi = 0; fi < (u8)nfound && fi < (u8)(sizeof(found)); fi++) {
+				xil_printf(" 0x%02x", found[fi]);
+			}
+			xil_printf("\r\n");
+			xil_printf("*** I2C scan I2C_NO_3 ***\r\n");
+			nfound = xgpio_i2c_scan(I2C_NO_3, STRETCH_ON, found, (u8)(sizeof(found)));
+			xil_printf("found %d device(s):", nfound);
+			for (fi = 0; fi < (u8)nfound && fi < (u8)(sizeof(found)); fi++) {
+				xil_printf(" 0x%02x", found[fi]);
+			}
+			xil_printf("\r\n");
 
 			ret8 = 0;
 			xil_printf("***********96752 current_ch***********\r\n");
@@ -278,6 +324,17 @@ void uart_receive_process(void)
 			xil_printf("0x0003 == 0x%02x\r\n", ret8);
 			xgpio_i2c_reg16_read(current_ch, 0x90>>1, 0x0050, &ret8, STRETCH_ON);
 			xil_printf("0x0050 == 0x%02x\r\n", ret8);
+
+			xgpio_i2c_reg16_read(current_ch, 0x90>>1, 0x0001, &ret8, STRETCH_ON);
+			xil_printf("0x0001 == 0x%02x\r\n", ret8);
+			xgpio_i2c_reg16_read(current_ch, 0x90>>1, 0x0013, &ret8, STRETCH_ON);
+			xil_printf("0x0013 == 0x%02x\r\n", ret8);
+			xgpio_i2c_reg16_read(current_ch, 0x90>>1, 0x004e, &ret8, STRETCH_ON);
+			xil_printf("0x004e == 0x%02x\r\n", ret8);
+			xgpio_i2c_reg16_read(current_ch, 0x90>>1, 0x020c, &ret8, STRETCH_ON);
+			xil_printf("0x020c == 0x%02x\r\n", ret8);
+
+
 
 			xil_printf("------------------------\r\n");
 		}
@@ -553,10 +610,6 @@ void display_fresh(void)
 				{
 					pixel_err_cnt[ch] = 0U;
 					pixel_err[ch] = 0U;
-#if defined (UDP_VIDEO) || defined (TCP_VIDEO)
-					VC_inst.send_err_start[ch] = 0U;
-					VC_inst.pkg_cnt = 1U;
-#endif
 				}
 			}
 			else
@@ -573,7 +626,7 @@ void display_fresh(void)
 //					xil_printf("----------pixel_cp_start_%d_cnt %d-----------\r\n",ch+1,pixel_cp_start_cnt[ch]);
 					pixel_cp_start_cnt[ch] = pixel_cp_start_cnt[ch] + 1;
 				}
-				else if(pixel_cp_start_cnt[ch] == 3U)
+				else if(pixel_cp_start_cnt[ch] == 5U)
 				{
 					pixel_cp_start[ch] = 0U;
 					pixel_cp_start_cnt[ch] = 0U;
@@ -605,6 +658,7 @@ void display_fresh(void)
 #endif
 		        	vdma_lvds_path_op(ch, 0U);
 #if defined (UDP_COMMAND_SRV) && defined (UDP_VIDEO)
+		        	/* cable down 上报：refresh 在 pixel_err!=0 时会跳过，仍发当前快照 */
 		        	if (err_auto_send)
 		        	{
 		        		vcmp_m_refresh_channel(ch);
@@ -648,6 +702,46 @@ void display_fresh(void)
 	}
 }
 
+static void tp_pulse_pin(u32 pin)
+{
+	XGpioPs_WritePin(&Gpio, pin, 0);
+	usleep(1 * 1000);
+	XGpioPs_WritePin(&Gpio, pin, 1);
+}
+
+int tp_touch_intr_read(u8 ch, u8 *reg23)
+{
+	u32 gpio2;
+	u32 gpio4;
+	int st;
+
+	if (reg23 == NULL)
+	{
+		return I2C_ERR_PARAM;
+	}
+	if (ch == 1U)
+	{
+		gpio2 = CHIPMAX96752_1_GPIO2;
+		gpio4 = CHIPMAX96752_1_GPIO4;
+	}
+	else
+	{
+		return I2C_ERR_PARAM;
+	}
+
+	st = xgpio_i2c_reg8_write((i2c_no)ch, 0x50, 0x23, 0x00, STRETCH_ON);
+	if (st != I2C_OK)
+	{
+		return st;
+	}
+
+	tp_pulse_pin(gpio2);
+	usleep(500 * 1000);
+	tp_pulse_pin(gpio4);
+	usleep(100 * 1000);
+
+	return xgpio_i2c_reg8_read((i2c_no)ch, 0x50, 0x23, reg23, STRETCH_ON);
+}
 
 /*
  *
