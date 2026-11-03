@@ -55,7 +55,13 @@ bsp config fs_interface 1
 bsp setlib -name lwip211
 bsp config lwip_dhcp false
 bsp config phy_link_speed CONFIG_LINKSPEED1000
-
+bsp config mem_size 134217728
+bsp config memp_n_pbuf 4096
+bsp config memp_n_tcp_pcb 1024
+bsp config memp_n_tcp_seg 1024
+bsp config pbuf_pool_size 4096
+bsp config tcp_snd_buf 65536
+bsp config tcp_wnd 8192
 bsp regenerate
 
 platform write

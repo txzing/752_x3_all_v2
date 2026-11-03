@@ -194,6 +194,49 @@ void uart_receive_process(void)
 				switch_ch = 2;
 			}
 		}
+		else if(UserInput == 'r')
+		{
+			u32 bit;
+			u32 pins;
+			int Status ;
+			if (current_ch == 1U)
+			{
+				bit = 4U; // NL856 NL8620PDB
+				xil_printf("------------reset NL856 NL8620PDB------------\r\n");
+			}
+			else if (current_ch == 2U)
+			{
+				bit = 8U; // NL772 NL7720PDB
+				xil_printf("------------reset NL772 NL7720PDB------------\r\n");
+			}
+
+			pins = XGpio_DiscreteRead(&Axi_Gpio, 1);
+			CLB(pins, BIT32(bit));
+			XGpio_DiscreteWrite(&Axi_Gpio, 1, pins);
+			usleep(1 * 1000);
+			pins = XGpio_DiscreteRead(&Axi_Gpio, 1);
+			STB(pins, BIT32(bit));
+			XGpio_DiscreteWrite(&Axi_Gpio, 1, pins);
+			usleep(10 * 1000);
+
+			if (current_ch == 1U)
+			{
+				Status = serdes_i2c_write_array_16(I2C_NO_1, max96856_dual_link);
+				if (Status != I2C_OK)
+				{
+					xil_printf("max96856 array cfg fail st=%d\r\n", Status);
+				}
+			}
+			else if (current_ch == 2U)
+			{
+				Status = serdes_i2c_write_array_16(I2C_NO_2, max96772_dual_link);
+				if (Status != I2C_OK)
+				{
+					xil_printf("max96772 array cfg fail st=%d\r\n", Status);
+				}
+			}
+			lock_status[current_ch - 1] = 0;
+		}
 		else if((UserInput == 'z') || (UserInput == 'Z'))
 		{
 
@@ -517,13 +560,13 @@ void display_fresh(void)
 //					xil_printf("----------pixel_cp_start_%d_cnt %d-----------\r\n",ch+1,pixel_cp_start_cnt[ch]);
 					pixel_cp_start_cnt[ch] = pixel_cp_start_cnt[ch] + 1;
 				}
-				else if(pixel_cp_start_cnt[ch] == 6U)
+				else if(pixel_cp_start_cnt[ch] == 3U)
 				{
 					pixel_cp_start[ch] = 0U;
 					pixel_cp_start_cnt[ch] = 0U;
 					base_addr = pixel_compare_axi_base_eth(ch + 1);
 					Xil_Out32(base_addr + STATUS, 0x1);
-					xil_printf("----------pixel_cp_%d_start-----------\r\n",ch+1);
+					xil_printf("\r\n----------pixel_cp_%d_start-----------\r\n",ch+1);
 				}
 				else
 				{
@@ -532,14 +575,36 @@ void display_fresh(void)
 
 			}
 
-
-		    Disp_State_Detect(ch + 1);
-
 		    if (lock_status[ch] == 0)
 		    {
-		        if (clear_flag[ch] < 2)
+		        if (clear_flag[ch] == 17)
 		        {
-		            clear_flag[ch]++;
+		            switch (ch)
+		            {
+		                case 0:
+		                {
+
+		                	xil_printf("\r\n----------cable down reset max96856-----------\r\n");
+		                	xgpio_i2c_reg16_write(I2C_NO_1, 0x90>>1, 0x0001, 0xC0, STRETCH_ON);
+		                	usleep(1*1000);
+		                	xgpio_i2c_reg16_write(I2C_NO_1, 0x90>>1, 0x0001, 0x00, STRETCH_ON);
+		                	usleep(10*1000);
+		                	serdes_i2c_write_array_16(I2C_NO_1, max96856_dual_link);
+
+		                	break;
+		                }
+		                case 1:
+		                {
+		                	xil_printf("\r\n----------cable down reset max96772-----------\r\n");
+		                	xgpio_i2c_reg16_write(I2C_NO_2, 0x90>>1, 0x0010, 0xB0, STRETCH_ON);
+		                	usleep(1*1000);
+		                	xgpio_i2c_reg16_write(I2C_NO_2, 0x90>>1, 0x0010, 0x20, STRETCH_ON);
+		                	usleep(10*1000);
+		                	serdes_i2c_write_array_16(I2C_NO_2, max96772_dual_link);
+		                }
+		                default: break;
+		            }
+		            clear_flag[ch] = 3;
 		        }
 
 		        if (clear_flag[ch] == 1)
@@ -569,6 +634,7 @@ void display_fresh(void)
 		                	clear_vdma_3();
 		                	clear_vdma_4();
 		                	XGpio_DiscreteWrite(&XGpioOutput_oldi, 1, 0x0);
+		                	xgpio_i2c_reg16_write(I2C_NO_2, 0x90>>1, 0x0010, 0x20, STRETCH_ON);
 #if defined (UDP_COMMAND_SRV) && defined (UDP_VIDEO)
 		                	if (err_auto_send)
 		                	{
@@ -582,6 +648,10 @@ void display_fresh(void)
 		            }
 		        }
 
+		        if (clear_flag[ch] < 18)
+		        {
+		            clear_flag[ch]++;
+		        }
 		        reconfig_flag[ch] = 0;
 		    }
 		    else  //locked
@@ -638,7 +708,7 @@ void display_fresh(void)
 				    		fps = Xil_In32(base_addr + FPS);
 				    		if(fps < 10)
 							{
-								xil_printf("----------reconfig max96856 %d-----------\r\n",fps);
+								xil_printf("\r\n----------reconfig max96856 %d-----------\r\n",fps);
 	//							serdes_i2c_write_array_16(I2C_NO_1, max96856_dual_link);
 								xgpio_i2c_reg16_write(I2C_NO_1, 0x90 >> 1, 0x01E7, 0x05, STRETCH_ON);
 								reconfig_flag[ch] = 3;
@@ -651,7 +721,7 @@ void display_fresh(void)
 				    		fps = Xil_In32(base_addr + FPS);
 				    		if(fps < 10)
 							{
-								xil_printf("----------reconfig max96772 %d-----------\r\n",fps);
+								xil_printf("\r\n----------reconfig max96772 %d-----------\r\n",fps);
 								ret32 = (u32)serdes_i2c_write_array_16(I2C_NO_2, max96772_dual_link);
 								if (ret32 != (u32)I2C_OK) {
 									xil_printf("max96772 reconfig fail st=%d\r\n", (int)ret32);
@@ -673,6 +743,8 @@ void display_fresh(void)
 
 		        clear_flag[ch] = 0;
 		    }
+
+		    Disp_State_Detect(ch + 1);
 		}
 #endif
 	}
@@ -710,7 +782,9 @@ int tp_touch_intr_read(u8 ch, u8 *reg23)
 	st = xgpio_i2c_reg8_write(bus, (char)addr7, 0x23, 0x00, STRETCH_ON);
 	if (st != I2C_OK)
 	{
-		return st;
+		xgpio_i2c_reg8_write(bus, (char)addr7, 0x23, 0x00, STRETCH_ON);
+		bsp_printf(TXT_RED "\r\n__FILE__:%s, __LINE__:%d\r\n" TXT_RST,__FILE__, __LINE__);
+//		return st;
 	}
 
 	pins = XGpio_DiscreteRead(&Axi_Gpio, 1);
@@ -723,5 +797,12 @@ int tp_touch_intr_read(u8 ch, u8 *reg23)
 	XGpio_DiscreteWrite(&Axi_Gpio, 1, pins);
 	usleep(100 * 1000);
 
-	return xgpio_i2c_reg8_read(bus, (char)addr7, 0x23, reg23, STRETCH_ON);
+	st = xgpio_i2c_reg8_read(bus, (char)addr7, 0x23, reg23, STRETCH_ON);
+	if (st != I2C_OK)
+	{
+		st = xgpio_i2c_reg8_read(bus, (char)addr7, 0x23, reg23, STRETCH_ON);
+	    bsp_printf(TXT_RED "\r\n__FILE__:%s, __LINE__:%d\r\n" TXT_RST,__FILE__, __LINE__);
+	}
+
+	return st;
 }

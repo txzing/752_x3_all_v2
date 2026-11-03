@@ -15,6 +15,24 @@
 // 
 // Revision:
 // Revision 0.01 - File Created
+// Revision 1.1  - 2026-10-28
+//   Per-channel retrain. Clock IDELAY RST/EN_VTC no longer follow the shared
+//   IDELAYCTRL ready pin. A path reset (reset, active high) remeasures the bit
+//   period and realigns that instance only. dlyctrl_rst stays power-on only.
+//   See rx_clkdelay_1to7.v Rev 1.1.
+// Revision 1.2  - 2026-10-28
+//   State 7 no longer waits for CNTVALUEOUT >= 64. That count is ~21 taps
+//   with the 1100 ps DELAY_VALUE cap, so Rev 1.1 never asserted rx_ready
+//   and the receiver output no video. See rx_clkdelay_1to7.v Rev 1.2.
+// Revision 1.4  - 2026-10-28
+//   State 7 takes the first CNTVALUEOUT >= 8. A 1M-cycle timeout finishes
+//   training with 21 taps if the sample never arrives. See rx_clkdelay Rev 1.4.
+// Revision 1.5  - 2026-10-29
+//   Clock IDELAY EN_VTC is high only while idelay_rdy is low, and its RST
+//   stays low. Rev 1.4 sampled CNTVALUEOUT with EN_VTC high (invalid) and
+//   pulsed RST, so the calibrated tap was cleared and the timeout broadcast
+//   tap 0. A channel reset now re-reads that tap without dlyctrl_rst.
+//   See rx_clkdelay_1to7.v Rev 1.5.
 // Additional Comments:
 // 
 //////////////////////////////////////////////////////////////////////////////////
@@ -32,7 +50,8 @@ module lvds4x2_1to7 #
 )
 (
    input            refclk,
-   input            reset,                  // reset (active high)
+   input            reset,                  // per-channel MMCM and training reset (active high)
+   input            dlyctrl_rst,            // IDELAYCTRL reset, shared by all channels, power-on only
    // Receivers
    input            clkin1_p,  clkin1_n,    // lvds channel 1 clock input
    input  [3:0]     datain1_p, datain1_n,   // lvds channel 1 data inputs
@@ -69,7 +88,9 @@ BUFG bg_ref(
 	.O 			(clk300_g)) ;
 
 
-assign idly_reset_int = reset | !cmt_locked;
+// Bank-wide calibration reset. Do not OR in per-channel reset or cmt_locked:
+// ch0 and ch2 share one HP bank, and IDELAYCTRL.RST clears every IDELAY in that bank.
+assign idly_reset_int = dlyctrl_rst;
 
 //
 //  Idelay control block

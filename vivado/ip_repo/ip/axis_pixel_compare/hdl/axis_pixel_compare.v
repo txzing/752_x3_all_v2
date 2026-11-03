@@ -28,6 +28,8 @@
 //                    ERR_* readback not gated by stream_invalid.
 //   2026-07-21 2.23  Timing (300MHz): delay TOTAL/IRQ/HOLD*_r/COL*_r commit by 1 cycle after
 //                    frame_end (break err_cnt + thr compare -> HOLD CE fo path).
+//   2026-10-28 2.23  Timing: tdata/col/line mid snapshot is registered every beat
+//                    (no CE). Same-cycle SOF path unchanged. IP version stays 2.23.
 //
 // Behaviour summary (matches current netlist):
 // - Frame compare: |ref-video|>TH on any channel -> count error pixel;
@@ -215,7 +217,8 @@ reg [31:0] err_pixel_cnt_frame; // running error count in current frame (IRQ use
 reg [31:0] err_pixel_cnt_total; // AXI readback: previous frame count, latched at SOF
 
 // Decode helpers (combinational)
-wire err_beat     = pixel_compare_valid && pixel_error_detected;
+// Isolate compare result: keep this net so the 32-bit counter carry is not folded into err_col reset.
+(* DONT_TOUCH = "yes" *) wire err_beat = pixel_compare_valid && pixel_error_detected;
 wire sof_err_beat = frame_end && err_beat;
 wire mid_err_beat = (!frame_end) && err_beat;
 
@@ -250,12 +253,12 @@ begin
     else
     begin
         mid_err_beat_q <= mid_err_beat;
-        if (mid_err_beat)
-        begin
-            tdata_mid_q <= s_axis_tdata;
-            col_mid_q   <= col_cnt;
-            line_mid_q  <= line_cnt;
-        end
+        // 2026-10-28: sample every beat. CE=mid_err_beat put the mask
+        // compare on these flops and missed 300 MHz (WNS -0.115).
+        // Readers use the values with mid_err_beat_q, one cycle later.
+        tdata_mid_q <= s_axis_tdata;
+        col_mid_q   <= col_cnt;
+        line_mid_q  <= line_cnt;
     end
 end
 

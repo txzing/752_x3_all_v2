@@ -402,7 +402,7 @@ static void Dprx_DetectResolution(void *InstancePtr)
     // 打印最终检测结果
     if (training_done)
     {
-        xil_printf("\r\n *** Detected resolution: %lu x %lu @ %luHz, BPC = %lu ***\n\r",
+        xil_printf("\r\n *** Detected resolution: %lu x %lu @ %luHz, BPC = %lu ***\r\n",
                    DpHres, DpVres, recv_frame_clk_int, dp_conf.bpc);
     }
 }
@@ -421,15 +421,15 @@ static void Dprx_InterruptHandlerVmChange(void *InstancePtr)
 
 	XDpRxSs *DpRxSsInst = (XDpRxSs *)InstancePtr;
 	xil_printf("modify_dp_%d ",DpRxSsInst->DpPtr->Config.DeviceId);
-	xil_printf("Dprx_InterruptHandlerVmChange\n\r");
-	xil_printf("vblank_count%d ",vblank_count);
-	xil_printf("training_done%d ",training_done);
+	xil_printf("Dprx_InterruptHandlerVmChange\r\n");
+//	xil_printf("vblank_count%d ",vblank_count);
+//	xil_printf("training_done%d ",training_done);
 //	if (vblank_count >= 50 && training_done == 1)
 	if (vblank_count >= 4 && training_done == 1)
 	{
-		xil_printf("Dprx_InterruptHandlerVmChange !\r\n");
-		xil_printf("*** Interrupt > Video "
-						"Mode change ***\n\r");
+//		xil_printf("Dprx_InterruptHandlerVmChange !\r\n");
+//		xil_printf("*** Interrupt > Video "
+//						"Mode change ***\r\n");
 		XDp_RxDtgDis(DpRxSsInst->DpPtr);
 
 		start_tracking = 0;
@@ -440,8 +440,8 @@ static void Dprx_InterruptHandlerVmChange(void *InstancePtr)
 static void Dprx_InterruptHandlerNoVideo(void *InstancePtr)
 {
 	XDpRxSs *DpRxSsInst = (XDpRxSs *)InstancePtr;
-	xil_printf("modify_dp_%d ",DpRxSsInst->DpPtr->Config.DeviceId);
-	xil_printf("*** No Video detected ***\n\r");
+//	xil_printf("modify_dp_%d ",DpRxSsInst->DpPtr->Config.DeviceId);
+//	xil_printf("*** No Video detected ***\r\n");
 
 	XDp_WriteReg(DpRxSsInst->DpPtr->Config.BaseAddr,
 		     XDP_RX_VIDEO_UNSUPPORTED, 1);
@@ -481,7 +481,7 @@ static void Dprx_InterruptHandlerVideo(void *InstancePtr)
 {
 	XDpRxSs *DpRxSsInst = (XDpRxSs *)InstancePtr;
 	xil_printf("modify_dp_%d ",DpRxSsInst->DpPtr->Config.DeviceId);
-	xil_printf("*** Interrupt > Video detected ***\n\r");
+	xil_printf("*** Interrupt > Video detected ***\r\n");
 	XDp_WriteReg(DpRxSsInst->DpPtr->Config.BaseAddr, XDP_RX_VIDEO_UNSUPPORTED , 0);
 
 }
@@ -495,9 +495,9 @@ void Dprx_InterruptHandlerLinkBW(void *InstancePtr)
 
 	XVphy rx_VPhy_Instance;
 	XDpRxSs *DpRxSsInst = (XDpRxSs *)InstancePtr;
-	xil_printf("modify_dp_%d ",DpRxSsInst->DpPtr->Config.DeviceId);
-	xil_printf("Dprx_InterruptHandlerLinkBW\r\n");
-	xil_printf("DpRxSsInst->UsrOpt.LinkRate = 0x%x\r\n",DpRxSsInst->UsrOpt.LinkRate);
+//	xil_printf("modify_dp_%d ",DpRxSsInst->DpPtr->Config.DeviceId);
+//	xil_printf("Dprx_InterruptHandlerLinkBW\r\n");
+//	xil_printf("DpRxSsInst->UsrOpt.LinkRate = 0x%x\r\n",DpRxSsInst->UsrOpt.LinkRate);
 	switch(DpRxSsInst->DpPtr->Config.DeviceId)
 	{
 		case 0x0: rx_VPhy_Instance = rx_VPhy_Instance_0; break;
@@ -560,8 +560,8 @@ void Dprx_InterruptHandlerPllReset(void *InstancePtr)
 #endif
 		default: rx_VPhy_Instance = rx_VPhy_Instance_0; break;
 	}
-	xil_printf("modify_dp_%d ",DpRxSsInst->DpPtr->Config.DeviceId);
-	xil_printf("Dprx_InterruptHandlerPllReset start\r\n");
+//	xil_printf("modify_dp_%d ",DpRxSsInst->DpPtr->Config.DeviceId);
+//	xil_printf("Dprx_InterruptHandlerPllReset start\r\n");
 	XVphy_BufgGtReset(&rx_VPhy_Instance, XVPHY_DIR_RX,(TRUE));
 	XVphy_ResetGtPll(&rx_VPhy_Instance, 0, XVPHY_CHANNEL_ID_CHA,
 			 XVPHY_DIR_RX, (TRUE));
@@ -585,7 +585,7 @@ void Dprx_InterruptHandlerPllReset(void *InstancePtr)
 	}
 	else
 	{
-		xil_printf("Dprx_InterruptHandlerPllReset SUCCESS\r\n");
+//		xil_printf("Dprx_InterruptHandlerPllReset SUCCESS\r\n");
 	}
 }
 
@@ -597,17 +597,17 @@ void Dprx_InterruptHandlerTrainingDone(void *InstancePtr)
 	dp_conf.LaneCount =XDp_ReadReg(DpRxSsInst->Config.DpSubCore.DpConfig.BaseAddr,XDP_RX_DPCD_LANE_COUNT_SET);
 	dp_conf.LineRate = DpRxSsInst->UsrOpt.LinkRate;
 
-	xil_printf("modify_dp_%d ",DpRxSsInst->DpPtr->Config.DeviceId);
-	xil_printf("Dprx_InterruptHandlerTrainingDone\r\n");
-	xil_printf("> Interrupt: Training done !!! " "(BW: 0x%x, Lanes: 0x%x, Status: "
-		    "0x%x;0x%x).\n\r", dp_conf.LineRate, dp_conf.LaneCount,
-		    XDp_ReadReg(DpRxSsInst->Config.DpSubCore.DpConfig.BaseAddr,
-				XDP_RX_DPCD_LANE01_STATUS),
-		    XDp_ReadReg(DpRxSsInst->Config.DpSubCore.DpConfig.BaseAddr,
-				XDP_RX_DPCD_LANE23_STATUS));
+//	xil_printf("modify_dp_%d ",DpRxSsInst->DpPtr->Config.DeviceId);
+//	xil_printf("Dprx_InterruptHandlerTrainingDone\r\n");
+//	xil_printf("> Interrupt: Training done !!! " "(BW: 0x%x, Lanes: 0x%x, Status: "
+//		    "0x%x;0x%x).\r\n", dp_conf.LineRate, dp_conf.LaneCount,
+//		    XDp_ReadReg(DpRxSsInst->Config.DpSubCore.DpConfig.BaseAddr,
+//				XDP_RX_DPCD_LANE01_STATUS),
+//		    XDp_ReadReg(DpRxSsInst->Config.DpSubCore.DpConfig.BaseAddr,
+//				XDP_RX_DPCD_LANE23_STATUS));
 
 
-	xil_printf("Reset Video DTG in DisplayPort Controller...\r\n");
+//	xil_printf("Reset Video DTG in DisplayPort Controller...\r\n");
 	XDp_RxDtgDis(DpRxSsInst->DpPtr);
 	XDp_RxDtgEn(DpRxSsInst->DpPtr);
 
@@ -637,8 +637,8 @@ static void Dprx_InterruptHandlerTrainingLost(void *InstancePtr)
 void Dprx_InterruptHandlerBwChange(void *InstancePtr)
 {
 	XDpRxSs *DpRxSsInst = (XDpRxSs *)InstancePtr;
-	xil_printf("modify_dp_%d ",DpRxSsInst->DpPtr->Config.DeviceId);
-	xil_printf("> Interrupt: Bandwidth Change !\n\r");
+//	xil_printf("modify_dp_%d ",DpRxSsInst->DpPtr->Config.DeviceId);
+//	xil_printf("> Interrupt: Bandwidth Change !\r\n");
 }
 
 void Dprx_InterruptHandlerUplug(void *InstancePtr)
@@ -665,7 +665,7 @@ void Dprx_InterruptHandlerPwr(void *InstancePtr)
 
 	XDp_ReadReg(DpRxSsInst->DpPtr->Config.BaseAddr,XDP_RX_DPCD_SET_POWER_STATE);
 	xil_printf("modify_dp_%d ",DpRxSsInst->DpPtr->Config.DeviceId);
-	xil_printf("Dprx_InterruptHandlerPwr\n\r");
+	xil_printf("Dprx_InterruptHandlerPwr\r\n");
 
 }
 
@@ -673,14 +673,14 @@ void Dprx_InterruptHandlerInfoPkt(void *InstancePtr)
 {
 	XDpRxSs *DpRxSsInst = (XDpRxSs *)InstancePtr;
 	xil_printf("modify_dp_%d ",DpRxSsInst->DpPtr->Config.DeviceId);
-	xil_printf("Dprx_InterruptHandlerInfoPkt\n\r");
+	xil_printf("Dprx_InterruptHandlerInfoPkt\r\n");
 
 }
 void Dprx_InterruptHandlerExtPkt(void *InstancePtr)
 {
 	XDpRxSs *DpRxSsInst = (XDpRxSs *)InstancePtr;
 	xil_printf("modify_dp_%d ",DpRxSsInst->DpPtr->Config.DeviceId);
-	xil_printf("Dprx_InterruptHandlerExtPkt\n\r");
+	xil_printf("Dprx_InterruptHandlerExtPkt\r\n");
 }
 
 /*****************************************************************************/
@@ -1198,14 +1198,14 @@ int DPRxInitialize()
 	XDpRxSs_Config *DPRxSSConfig_0;
 	DPRxSSConfig_0 = XDpRxSs_LookupConfig(XPAR_DPRXSS_0_DEVICE_ID);
 	if (DPRxSSConfig_0 == NULL) {
-		xil_printf("ERR: DPRX SS core not found!\n\r");
+		xil_printf("ERR: DPRX SS core not found!\r\n");
 		return (XST_FAILURE);
 	}
 	Status = XDpRxSs_CfgInitialize(&DpRxSsInst_0, DPRxSSConfig_0,
 				DPRxSSConfig_0->BaseAddress);
 
 	if (Status != XST_SUCCESS) {
-		xil_printf("ERR: DPRX SS initialize failed!\n\r");
+		xil_printf("ERR: DPRX SS initialize failed!\r\n");
 		return (XST_FAILURE);
 	}
 
@@ -1257,14 +1257,14 @@ int DPRxInitialize()
 	XDpRxSs_Config *DPRxSSConfig_1;
 	DPRxSSConfig_1 = XDpRxSs_LookupConfig(XPAR_DPRXSS_1_DEVICE_ID);
 	if (DPRxSSConfig_1 == NULL) {
-		xil_printf("ERR: DPRX SS core not found!\n\r");
+		xil_printf("ERR: DPRX SS core not found!\r\n");
 		return (XST_FAILURE);
 	}
 	Status = XDpRxSs_CfgInitialize(&DpRxSsInst_1, DPRxSSConfig_1,
 				DPRxSSConfig_1->BaseAddress);
 
 	if (Status != XST_SUCCESS) {
-		xil_printf("ERR: DPRX SS initialize failed!\n\r");
+		xil_printf("ERR: DPRX SS initialize failed!\r\n");
 		return (XST_FAILURE);
 	}
 
@@ -1335,7 +1335,7 @@ int DpPt_SetupIntrSystem()
 				(XInterruptHandler)XDpRxSs_DpIntrHandler,
 				&DpRxSsInst_0);
 	if (Status != XST_SUCCESS) {
-		xil_printf("ERR:0 DP RX SS DP interrupt connect failed!\n\r");
+		xil_printf("ERR:0 DP RX SS DP interrupt connect failed!\r\n");
 		return XST_FAILURE;
 	}
 #endif
@@ -1346,7 +1346,7 @@ int DpPt_SetupIntrSystem()
 				(XInterruptHandler)XDpRxSs_DpIntrHandler,
 				&DpRxSsInst_1);
 	if (Status != XST_SUCCESS) {
-		xil_printf("ERR:1 DP RX SS DP interrupt connect failed!\n\r");
+		xil_printf("ERR:1 DP RX SS DP interrupt connect failed!\r\n");
 		return XST_FAILURE;
 	}
 #endif
@@ -1356,7 +1356,7 @@ int DpPt_SetupIntrSystem()
 				(XInterruptHandler)XTmrCtr_InterruptHandler,
 				&TmrCtr);
 	if (Status != XST_SUCCESS) {
-		xil_printf("ERR: Timer interrupt connect failed!\n\r");
+		xil_printf("ERR: Timer interrupt connect failed!\r\n");
 		return XST_FAILURE;
 	}
 
@@ -1503,23 +1503,23 @@ void report_info(u8 ch)
 ******************************************************************************/
 void dp_app_help()
 {
-	xil_printf("\n\n\r");
-	xil_printf("-----------------------------------------------------\n\r");
-	xil_printf("--                       Menu                      --\n\r");
-	xil_printf("-----------------------------------------------------\n\r");
-	xil_printf("\n\r");
-	xil_printf(" Select option\n\r");
-	xil_printf(" 2 = Reset AUX Logic  \n\r");
-	xil_printf(" h = Assert HPD pulse (see log: AUX REQ before/after)\n\r");
-	xil_printf(" e = Report VPHY Error & Status  \n\r");
-	xil_printf(" c = Core Info  \n\r");
-	xil_printf(" r = Reset DTG  \n\r");
-	xil_printf(" p = Report register info  \n\r");
+	xil_printf("\r\n");
+	xil_printf("-----------------------------------------------------\r\n");
+	xil_printf("--                       Menu                      --\r\n");
+	xil_printf("-----------------------------------------------------\r\n");
+	xil_printf("\r\n");
+	xil_printf(" Select option\r\n");
+	xil_printf(" 2 = Reset AUX Logic  \r\n");
+	xil_printf(" h = Assert HPD pulse (see log: AUX REQ before/after)\r\n");
+	xil_printf(" e = Report VPHY Error & Status  \r\n");
+	xil_printf(" c = Core Info  \r\n");
+	xil_printf(" r = Reset DTG  \r\n");
+	xil_printf(" p = Report register info  \r\n");
 	xil_printf(" m = Report Video MSA Attributes, Time Stamps "
-	                "Values  \n\r");
-	xil_printf(" . = Show Menu  \n\r");
-	xil_printf("\n\r");
-	xil_printf("-----------------------------------------------------\n\r");
+	                "Values  \r\n");
+	xil_printf(" . = Show Menu  \r\n");
+	xil_printf("\r\n");
+	xil_printf("-----------------------------------------------------\r\n");
 }
 
 void dp_debug_info(u8 UserInput, u8 ch)
@@ -1572,7 +1572,7 @@ void dp_debug_info(u8 UserInput, u8 ch)
 			u32 const rc0 = XDp_ReadReg(b, XDP_RX_REQ_COUNT);
 			u32 const er0 = XDp_ReadReg(b, XDP_RX_REQ_ERROR_COUNT);
 
-			xil_printf("\r\n- HPD pulse (FPGA Sink -> Source HPD pin) -\n\r");
+			xil_printf("\r\n- HPD pulse (FPGA Sink -> Source HPD pin) -\r\n");
 			xil_printf("AUX before: REQ_COUNT=%lu ERR_COUNT=%lu\r\n",
 				   (unsigned long)rc0, (unsigned long)er0);
 			/* Do not strip training/link IRQs; mask reg is 1=masked (see xdp_intr). */
@@ -1598,11 +1598,11 @@ void dp_debug_info(u8 UserInput, u8 ch)
 			XDpRxSs_ReportMsaInfo(&DpRxSsInst);
 			break;
 		case 'm':
-			xil_printf(" XDP_RX_USER_FIFO_OVERFLOW (0x110) = 0x%x\n\r",
+			xil_printf(" XDP_RX_USER_FIFO_OVERFLOW (0x110) = 0x%x\r\n",
 			XDp_ReadReg(DpRxSsInst->DpPtr->Config.BaseAddr,
 				    XDP_RX_USER_FIFO_OVERFLOW));
 			XDpRxSs_ReportMsaInfo(&DpRxSsInst);
-			xil_printf(" XDP_RX_LINE_RESET_DISABLE (0x008) = 0x%x\n\r",
+			xil_printf(" XDP_RX_LINE_RESET_DISABLE (0x008) = 0x%x\r\n",
 			XDp_ReadReg(DpRxSsInst->DpPtr->Config.BaseAddr,
 				    XDP_RX_LINE_RESET_DISABLE));
 			break;
@@ -1628,7 +1628,7 @@ void dp_init(void)
 	user_config.user_format = 1;
 	user_config.mst_check_flag= 0;
 	xil_printf("\n********************************"
-			 "********************************\n\r");
+			 "********************************\r\n");
 
 	/* EDID mode start with pass-through mode. */
 	use_monitor_edid = 0; //是否使用显示器的EDID, 作为 DP rx模块的EDID
@@ -1648,12 +1648,12 @@ void dp_init(void)
 	}
 
 #endif
-	xil_printf("\n********************************"
-			 "********************************\n\r");
-	xil_printf("            DisplayPort rx \n\r");
-	xil_printf("%s %s\n\r\r\n", __DATE__  ,__TIME__ );
-	xil_printf("\n********************************"
-			 "********************************\n\r");
+//	xil_printf("\n********************************"
+//			 "********************************\r\n");
+//	xil_printf("            DisplayPort rx \r\n");
+//	xil_printf("%s %s\r\n", __DATE__  ,__TIME__ );
+//	xil_printf("\n********************************"
+//			 "********************************\r\n");
 
 	dp_init_peripherals();
 
@@ -1671,7 +1671,7 @@ void dp_init(void)
 	/* Setup interrupt handling */
 	Status = DpPt_SetupIntrSystem();
 	if (Status != XST_SUCCESS) {
-		xil_printf("ERR:Interrupt set up failed!\n\r");
+		xil_printf("ERR:Interrupt set up failed!\r\n");
 		return XST_FAILURE;
 	}
 

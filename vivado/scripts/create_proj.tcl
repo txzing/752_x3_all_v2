@@ -1,25 +1,13 @@
 # Configuration - Can be modified by the user
-#set xsa_filename [lindex $argv 1]
-put [pwd]
-
-set project_path [lindex $argv 0]
-#set project_name vivado_proj
-set project_name [lindex $argv 1]
-#set part name
-set part_name [lindex $argv 2]
-#set BD_name system
-set bd_filename [lindex $argv 3]
-#set BD_name [file rootname [lrange [file split $bd_filename] end end]]
-set BD_name [file rootname [file tail $bd_filename]]
-set xdc_filename [lindex $argv 4]
-#set design_name $BD_name
-#set ip_repo_path [pwd]/ip_repo
-set ip_repo_path [lindex $argv 5]
+set project_name vivado_proj
+set BD_name system
+set design_name $BD_name
+set ip_repo_path [pwd]/ip_repo
 set ip_cache_path [pwd]/ip_cache
 set current_vivado_version [version -short]
 
 # Create a new project
-create_project $project_name $project_path -part $part_name
+create_project $project_name ./$project_name -part xczu2cg-sfvc784-1-e
 set_property target_language Verilog [current_project]
 
 # Create 'sources_1' fileset (if not found)
@@ -43,8 +31,8 @@ if {[string equal [get_filesets -quiet constrs_1] ""]} {
   create_fileset -constrset -quiet constrs_1
 }
 # Add constraint files
-add_files -fileset constrs_1 -norecurse -scan_for_includes $xdc_filename
-import_files -fileset constrs_1 -norecurse $xdc_filename
+add_files -fileset constrs_1 -norecurse -scan_for_includes ./xdc
+import_files -fileset constrs_1 -norecurse ./xdc
 
 # Create 'sim_1' fileset (if not found)
 if {[string equal [get_filesets -quiet sim_1] ""]} {
@@ -69,17 +57,19 @@ validate_bd_design
 save_bd_design
 
 # Create the HDL wrapper
-export_ip_user_files -of_objects [get_files $project_path/$project_name.srcs/sources_1/bd/$BD_name/$BD_name.bd] -sync -no_script -force -quiet
-make_wrapper -files [get_files $project_path/$project_name.srcs/sources_1/bd/$BD_name/$BD_name.bd] -top
+export_ip_user_files -of_objects  [get_files  ./$project_name/$project_name.srcs/sources_1/bd/$BD_name/$BD_name.bd] -sync -no_script -force -quiet
+make_wrapper -files [get_files ./$project_name/$project_name.srcs/sources_1/bd/$BD_name/$BD_name.bd] -top
 #make_wrapper -files [get_files ./$project_name/$project_name.srcs/sources_1/top.v] -top
 
 
 # Add the wrapper to the fileset
 set obj [get_filesets sources_1]
 if { [string first $current_vivado_version "2020.2 2021.1 2021.2 2022.1"] != -1 } {
-    set files [list "[file normalize [glob "$project_path/$project_name.gen/sources_1/bd/$BD_name/hdl/*_wrapper*"]]"]
+	#set files [list "[file normalize [glob "./$project_name/$project_name.gen/sources_1/bd/$BD_name/hdl/${BD_name}_wrapper.v"]]"]
+    set files [list "[file normalize [glob "./$project_name/$project_name.gen/sources_1/bd/$BD_name/hdl/*_wrapper*"]]"]
 } elseif { [string first $current_vivado_version "2018.1 2018.2 2018.3 2019.1 2019.2 2020.1"] != -1 } {
-    set files [list "[file normalize [glob "$project_path/$project_name.srcs/sources_1/bd/$BD_name/hdl/*_wrapper*"]]"]
+	#set files [list "[file normalize [glob "./$project_name/$project_name.srcs/sources_1/bd/$BD_name/hdl/${BD_name}_wrapper.v"]]"]
+    set files [list "[file normalize [glob "./$project_name/$project_name.srcs/sources_1/bd/$BD_name/hdl/*_wrapper*"]]"]
 }
 #set files [list \
 #               [file normalize $origin_dir/generated-src/Top.$CONFIG.v] \
@@ -157,6 +147,27 @@ update_compile_order -fileset sources_1
 
 #set_property STEPS.WRITE_BITSTREAM.ARGS.BIN_FILE true [get_runs impl_1]
 
+# system_clkgrp.xdc names clk_pl_0, which the PS IP creates during
+# implementation. Synthesis must not read it, and implementation must
+# read it after every other XDC. Banks 65 and 66 are one clock region,
+# so opt_design keeps a single IDELAYCTRL.
+set clkgrp [get_files -quiet -of_objects [get_filesets constrs_1] *system_clkgrp.xdc]
+if {[llength $clkgrp]} {
+  set_property USED_IN {implementation} $clkgrp
+  set_property PROCESSING_ORDER LATE $clkgrp
+  puts "CLKGRP USED_IN=[get_property USED_IN $clkgrp] PROCESSING_ORDER=[get_property PROCESSING_ORDER $clkgrp]"
+} else {
+  puts "WARN: system_clkgrp.xdc was not added to constrs_1"
+}
+set idelay_hook [file normalize [file join [file dirname [info script]] scripts merge_idelayctrl.tcl]]
+if {[file exists $idelay_hook] && [llength [get_runs -quiet impl_1]]} {
+  set_property STEPS.OPT_DESIGN.TCL.POST $idelay_hook [get_runs impl_1]
+  puts "OPT_DESIGN.TCL.POST $idelay_hook"
+} else {
+  puts "WARN: IDELAYCTRL merge hook not applied: $idelay_hook"
+}
+
+close_project
 ######
 #exit
 ######

@@ -1,0 +1,271 @@
+#-----------------------------------------------------------
+# Vivado v2017.4 (64-bit)
+# SW Build 2086221 on Fri Dec 15 20:55:39 MST 2017
+# IP Build 2085800 on Fri Dec 15 22:25:07 MST 2017
+# Start of session at: Tue Oct 26 15:24:55 2021
+# Process ID: 21388
+# Current directory: C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.runs/synth_1
+# Command line: vivado.exe -log axis_passthrough_mon.vds -product Vivado -mode batch -messageDb vivado.pb -notrace -source axis_passthrough_mon.tcl
+# Log file: C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.runs/synth_1/axis_passthrough_mon.vds
+# Journal file: C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.runs/synth_1\vivado.jou
+#-----------------------------------------------------------
+source axis_passthrough_mon.tcl -notrace
+Command: synth_design -top axis_passthrough_mon -part xc7a100tfgg484-2
+Starting synth_design
+Attempting to get a license for feature 'Synthesis' and/or device 'xc7a100t'
+INFO: [Common 17-349] Got license for feature 'Synthesis' and/or device 'xc7a100t'
+INFO: Launching helper process for spawning children vivado processes
+INFO: Helper process launched with PID 18940 
+---------------------------------------------------------------------------------
+Starting Synthesize : Time (s): cpu = 00:00:15 ; elapsed = 00:00:16 . Memory (MB): peak = 363.000 ; gain = 99.582
+---------------------------------------------------------------------------------
+INFO: [Synth 8-638] synthesizing module 'axis_passthrough_mon' [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:2]
+	Parameter WIDTH bound to: 48 - type: integer 
+	Parameter TUSER_WIDTH bound to: 1 - type: integer 
+INFO: [Synth 8-5534] Detected attribute (* DONT_TOUCH = "yes" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:12]
+INFO: [Synth 8-5534] Detected attribute (* keep = "true" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:12]
+INFO: [Synth 8-5534] Detected attribute (* mark_debug = "true" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:12]
+INFO: [Synth 8-5534] Detected attribute (* DONT_TOUCH = "yes" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:13]
+INFO: [Synth 8-5534] Detected attribute (* keep = "true" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:13]
+INFO: [Synth 8-5534] Detected attribute (* mark_debug = "true" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:13]
+INFO: [Synth 8-5534] Detected attribute (* DONT_TOUCH = "yes" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:14]
+INFO: [Synth 8-5534] Detected attribute (* keep = "true" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:14]
+INFO: [Synth 8-5534] Detected attribute (* mark_debug = "true" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:14]
+INFO: [Synth 8-5534] Detected attribute (* DONT_TOUCH = "yes" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:15]
+INFO: [Synth 8-5534] Detected attribute (* keep = "true" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:15]
+INFO: [Synth 8-5534] Detected attribute (* mark_debug = "true" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:15]
+INFO: [Synth 8-5534] Detected attribute (* DONT_TOUCH = "yes" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:16]
+INFO: [Synth 8-5534] Detected attribute (* keep = "true" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:16]
+INFO: [Synth 8-5534] Detected attribute (* mark_debug = "true" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:16]
+INFO: [Synth 8-5534] Detected attribute (* DONT_TOUCH = "yes" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:18]
+INFO: [Synth 8-5534] Detected attribute (* keep = "true" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:18]
+INFO: [Synth 8-5534] Detected attribute (* DONT_TOUCH = "yes" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:19]
+INFO: [Synth 8-5534] Detected attribute (* keep = "true" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:19]
+INFO: [Synth 8-5534] Detected attribute (* DONT_TOUCH = "yes" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:20]
+INFO: [Synth 8-5534] Detected attribute (* keep = "true" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:20]
+INFO: [Synth 8-5534] Detected attribute (* DONT_TOUCH = "yes" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:21]
+INFO: [Synth 8-5534] Detected attribute (* keep = "true" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:21]
+INFO: [Synth 8-5534] Detected attribute (* DONT_TOUCH = "yes" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:22]
+INFO: [Synth 8-5534] Detected attribute (* keep = "true" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:22]
+INFO: [Synth 8-5534] Detected attribute (* DONT_TOUCH = "yes" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:31]
+INFO: [Synth 8-5534] Detected attribute (* keep = "true" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:31]
+INFO: [Synth 8-5534] Detected attribute (* MARK_DEBUG = "TRUE" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:31]
+INFO: [Synth 8-5534] Detected attribute (* DONT_TOUCH = "yes" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:32]
+INFO: [Synth 8-5534] Detected attribute (* keep = "true" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:32]
+INFO: [Synth 8-5534] Detected attribute (* MARK_DEBUG = "TRUE" *) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:32]
+INFO: [Synth 8-256] done synthesizing module 'axis_passthrough_mon' (1#1) [C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.srcs/sources_1/new/axis_passthrough_mon.v:2]
+WARNING: [Synth 8-3331] design axis_passthrough_mon has unconnected port aresetn
+---------------------------------------------------------------------------------
+Finished Synthesize : Time (s): cpu = 00:00:18 ; elapsed = 00:00:19 . Memory (MB): peak = 414.598 ; gain = 151.180
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Constraint Validation : Time (s): cpu = 00:00:18 ; elapsed = 00:00:19 . Memory (MB): peak = 414.598 ; gain = 151.180
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xc7a100tfgg484-2
+---------------------------------------------------------------------------------
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:18 ; elapsed = 00:00:19 . Memory (MB): peak = 414.598 ; gain = 151.180
+INFO: [Device 21-403] Loading part xc7a100tfgg484-2
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:18 ; elapsed = 00:00:20 . Memory (MB): peak = 414.598 ; gain = 151.180
+---------------------------------------------------------------------------------
+
+Report RTL Partitions: 
++-+--------------+------------+----------+
+| |RTL Partition |Replication |Instances |
++-+--------------+------------+----------+
++-+--------------+------------+----------+
+No constraint files found.
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input     16 Bit       Adders := 2     
++---Registers : 
+	               16 Bit    Registers := 2     
++---Muxes : 
+	   2 Input     16 Bit        Muxes := 1     
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start RTL Hierarchical Component Statistics 
+---------------------------------------------------------------------------------
+Hierarchical RTL Component report 
+Module axis_passthrough_mon 
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input     16 Bit       Adders := 2     
++---Registers : 
+	               16 Bit    Registers := 2     
++---Muxes : 
+	   2 Input     16 Bit        Muxes := 1     
+---------------------------------------------------------------------------------
+Finished RTL Hierarchical Component Statistics
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Part Resource Summary
+---------------------------------------------------------------------------------
+Part Resources:
+DSPs: 240 (col length:80)
+BRAMs: 270 (col length: RAMB18 80 RAMB36 40)
+---------------------------------------------------------------------------------
+Finished Part Resource Summary
+---------------------------------------------------------------------------------
+No constraint files found.
+---------------------------------------------------------------------------------
+Start Cross Boundary and Area Optimization
+---------------------------------------------------------------------------------
+WARNING: [Synth 8-3331] design axis_passthrough_mon has unconnected port aresetn
+---------------------------------------------------------------------------------
+Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:00:27 ; elapsed = 00:00:30 . Memory (MB): peak = 563.734 ; gain = 300.316
+---------------------------------------------------------------------------------
+
+Report RTL Partitions: 
++-+--------------+------------+----------+
+| |RTL Partition |Replication |Instances |
++-+--------------+------------+----------+
++-+--------------+------------+----------+
+No constraint files found.
+---------------------------------------------------------------------------------
+Start Timing Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Timing Optimization : Time (s): cpu = 00:00:27 ; elapsed = 00:00:30 . Memory (MB): peak = 563.734 ; gain = 300.316
+---------------------------------------------------------------------------------
+
+Report RTL Partitions: 
++-+--------------+------------+----------+
+| |RTL Partition |Replication |Instances |
++-+--------------+------------+----------+
++-+--------------+------------+----------+
+---------------------------------------------------------------------------------
+Start Technology Mapping
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Technology Mapping : Time (s): cpu = 00:00:27 ; elapsed = 00:00:30 . Memory (MB): peak = 563.738 ; gain = 300.320
+---------------------------------------------------------------------------------
+
+Report RTL Partitions: 
++-+--------------+------------+----------+
+| |RTL Partition |Replication |Instances |
++-+--------------+------------+----------+
++-+--------------+------------+----------+
+---------------------------------------------------------------------------------
+Start IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished IO Insertion : Time (s): cpu = 00:00:30 ; elapsed = 00:00:33 . Memory (MB): peak = 563.738 ; gain = 300.320
+---------------------------------------------------------------------------------
+
+Report Check Netlist: 
++------+------------------+-------+---------+-------+------------------+
+|      |Item              |Errors |Warnings |Status |Description       |
++------+------------------+-------+---------+-------+------------------+
+|1     |multi_driven_nets |      0|        0|Passed |Multi driven nets |
++------+------------------+-------+---------+-------+------------------+
+---------------------------------------------------------------------------------
+Start Renaming Generated Instances
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Instances : Time (s): cpu = 00:00:30 ; elapsed = 00:00:33 . Memory (MB): peak = 563.738 ; gain = 300.320
+---------------------------------------------------------------------------------
+
+Report RTL Partitions: 
++-+--------------+------------+----------+
+| |RTL Partition |Replication |Instances |
++-+--------------+------------+----------+
++-+--------------+------------+----------+
+---------------------------------------------------------------------------------
+Start Rebuilding User Hierarchy
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Rebuilding User Hierarchy : Time (s): cpu = 00:00:30 ; elapsed = 00:00:33 . Memory (MB): peak = 563.738 ; gain = 300.320
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Ports
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Ports : Time (s): cpu = 00:00:30 ; elapsed = 00:00:33 . Memory (MB): peak = 563.738 ; gain = 300.320
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:30 ; elapsed = 00:00:33 . Memory (MB): peak = 563.738 ; gain = 300.320
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Nets
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Nets : Time (s): cpu = 00:00:30 ; elapsed = 00:00:33 . Memory (MB): peak = 563.738 ; gain = 300.320
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Writing Synthesis Report
+---------------------------------------------------------------------------------
+
+Report BlackBoxes: 
++-+--------------+----------+
+| |BlackBox name |Instances |
++-+--------------+----------+
++-+--------------+----------+
+
+Report Cell Usage: 
++------+-------+------+
+|      |Cell   |Count |
++------+-------+------+
+|1     |BUFG   |     1|
+|2     |CARRY4 |     8|
+|3     |LUT1   |    53|
+|4     |LUT2   |     1|
+|5     |LUT3   |     1|
+|6     |LUT4   |     1|
+|7     |FDRE   |    32|
+|8     |IBUF   |    53|
+|9     |OBUF   |    52|
++------+-------+------+
+
+Report Instance Areas: 
++------+---------+-------+------+
+|      |Instance |Module |Cells |
++------+---------+-------+------+
+|1     |top      |       |   202|
++------+---------+-------+------+
+---------------------------------------------------------------------------------
+Finished Writing Synthesis Report : Time (s): cpu = 00:00:30 ; elapsed = 00:00:33 . Memory (MB): peak = 563.738 ; gain = 300.320
+---------------------------------------------------------------------------------
+Synthesis finished with 0 errors, 0 critical warnings and 2 warnings.
+Synthesis Optimization Runtime : Time (s): cpu = 00:00:30 ; elapsed = 00:00:33 . Memory (MB): peak = 563.738 ; gain = 300.320
+Synthesis Optimization Complete : Time (s): cpu = 00:00:30 ; elapsed = 00:00:33 . Memory (MB): peak = 563.738 ; gain = 300.320
+INFO: [Project 1-571] Translating synthesized netlist
+INFO: [Netlist 29-17] Analyzing 61 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-570] Preparing netlist for logic optimization
+INFO: [Opt 31-138] Pushed 0 inverter(s) to 0 load pin(s).
+INFO: [Project 1-111] Unisim Transformation Summary:
+No Unisim elements were transformed.
+
+INFO: [Common 17-83] Releasing license: Synthesis
+42 Infos, 2 Warnings, 0 Critical Warnings and 0 Errors encountered.
+synth_design completed successfully
+synth_design: Time (s): cpu = 00:00:39 ; elapsed = 00:00:45 . Memory (MB): peak = 675.551 ; gain = 424.535
+INFO: [Common 17-1381] The checkpoint 'C:/work/library_of_hdmi/axis_passthrough_mon/axis_passthrough_mon.runs/synth_1/axis_passthrough_mon.dcp' has been generated.
+INFO: [runtcl-4] Executing : report_utilization -file axis_passthrough_mon_utilization_synth.rpt -pb axis_passthrough_mon_utilization_synth.pb
+report_utilization: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.071 . Memory (MB): peak = 675.551 ; gain = 0.000
+INFO: [Common 17-206] Exiting Vivado at Tue Oct 26 15:26:15 2021...

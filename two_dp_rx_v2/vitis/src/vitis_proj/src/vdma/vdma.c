@@ -553,6 +553,73 @@ int vdma_write_init(short DeviceID,XAxiVdma *Vdma,short HoriSizeInput,short Vert
 
 #if 1
 
+/*
+ * Fill frame buffer with fill_byte and flush to DDR for VDMA.
+ * Keep D-cache enabled: much faster than Xil_DCacheDisable + memset,
+ * and still guarantees DDR is clean for MM2S.
+ * fill_byte: 0xFF = white, 0x00 = black, others as needed.
+ */
+static void framebuf_fill(UINTPTR addr, u32 nbytes, u8 fill_byte)
+{
+	u32 words;
+	u32 *p32;
+	u8 *p8;
+	u32 len = nbytes;
+	u32 fill32;
+
+	fill32 = ((u32)fill_byte << 24) | ((u32)fill_byte << 16) |
+		 ((u32)fill_byte << 8) | (u32)fill_byte;
+
+	p8 = (u8 *)addr;
+	while ((nbytes != 0U) && ((((UINTPTR)p8) & 3U) != 0U)) {
+		*p8++ = fill_byte;
+		nbytes--;
+	}
+
+	p32 = (u32 *)(void *)p8;
+	words = nbytes >> 2;
+	while (words >= 8U) {
+		p32[0] = fill32;
+		p32[1] = fill32;
+		p32[2] = fill32;
+		p32[3] = fill32;
+		p32[4] = fill32;
+		p32[5] = fill32;
+		p32[6] = fill32;
+		p32[7] = fill32;
+		p32 += 8;
+		words -= 8U;
+	}
+	while (words != 0U) {
+		*p32++ = fill32;
+		words--;
+	}
+
+	p8 = (u8 *)(void *)p32;
+	nbytes &= 3U;
+	while (nbytes != 0U) {
+		*p8++ = fill_byte;
+		nbytes--;
+	}
+
+	Xil_DCacheFlushRange((INTPTR)addr, len);
+}
+
+/* Stop MM2S/S2MM and wait Halted so clear is not overwritten mid-frame. */
+static void vdma_stop_wait_halt(u32 vdma_base)
+{
+	u32 t;
+
+	Xil_Out32(vdma_base + 0x00, 0x8A); /* stop mm2s */
+	Xil_Out32(vdma_base + 0x30, 0x8A); /* stop s2mm */
+	for (t = 0; t < 100000U; t++) {
+		if (((Xil_In32(vdma_base + 0x04) & 0x1U) != 0U) &&
+		    ((Xil_In32(vdma_base + 0x34) & 0x1U) != 0U)) {
+			break;
+		}
+	}
+}
+
 #if (XPAR_XAXIVDMA_NUM_INSTANCES >= 1U)
 void vdma_config_0(void)
 {
@@ -1619,6 +1686,7 @@ void clear_vdma_0(void)
 	u32 VDMA_BASE_ADDR = XPAR_AXIVDMA_0_BASEADDR;
 	u32 line = 0;
 	u32 column = 0;
+	u32 frame_bytes;
 
 #if (defined R1080P60)
 	line = 1920;
@@ -1627,19 +1695,18 @@ void clear_vdma_0(void)
 	line = 3840;
 	column = 2160;
 #else
+	/* match vdma_config_0() */
 	line = 5200;
 	column = 1800;
 #endif
 
-    Xil_Out32(VDMA_BASE_ADDR + 0x00, 0x8A);//stop mm2s
-	Xil_Out32(VDMA_BASE_ADDR + 0x30, 0x8A);//stop s2mm
+	frame_bytes = line * column * bytePerPixels;
 
-	Xil_DCacheDisable();
-    memset(FRAME_BUFFER_1,0xff,line*column*bytePerPixels);//background
-    memset(FRAME_BUFFER_2,0xff,line*column*bytePerPixels);//background
-    memset(FRAME_BUFFER_3,0xff,line*column*bytePerPixels);//background
+	vdma_stop_wait_halt(VDMA_BASE_ADDR);
 
-	Xil_DCacheEnable();
+	framebuf_fill((UINTPTR)FRAME_BUFFER_1, frame_bytes, 0xFFU); /* white */
+	framebuf_fill((UINTPTR)FRAME_BUFFER_2, frame_bytes, 0xFFU);
+	framebuf_fill((UINTPTR)FRAME_BUFFER_3, frame_bytes, 0xFFU);
 
 	xil_printf("clear vdma_0 Done\n\r");
 //	vdma_config_0();
@@ -1653,6 +1720,7 @@ void clear_vdma_1(void)
 	u32 VDMA_BASE_ADDR = XPAR_AXIVDMA_1_BASEADDR;
 	u32 line = 0;
 	u32 column = 0;
+	u32 frame_bytes;
 
 #if (defined R1080P60)
 	line = 1920;
@@ -1661,18 +1729,18 @@ void clear_vdma_1(void)
 	line = 3840;
 	column = 2160;
 #else
-	line = 5200;
-	column = 1800;
+	/* match vdma_config_1() */
+	line = 5120;
+	column = 1600;
 #endif
 
-    Xil_Out32(VDMA_BASE_ADDR + 0x00, 0x8A);//stop mm2s
-	Xil_Out32(VDMA_BASE_ADDR + 0x30, 0x8A);//stop s2mm
+	frame_bytes = line * column * bytePerPixels;
 
-	Xil_DCacheDisable();
-    memset(FRAME_BUFFER_4,0xff,line*column*bytePerPixels);//background
-    memset(FRAME_BUFFER_5,0xff,line*column*bytePerPixels);//background
-    memset(FRAME_BUFFER_6,0xff,line*column*bytePerPixels);//background
-	Xil_DCacheEnable();
+	vdma_stop_wait_halt(VDMA_BASE_ADDR);
+
+	framebuf_fill((UINTPTR)FRAME_BUFFER_4, frame_bytes, 0xFFU); /* white */
+	framebuf_fill((UINTPTR)FRAME_BUFFER_5, frame_bytes, 0xFFU);
+	framebuf_fill((UINTPTR)FRAME_BUFFER_6, frame_bytes, 0xFFU);
 
 	xil_printf("clear vdma_1 Done\n\r");
 //	vdma_config_1();
@@ -1686,6 +1754,7 @@ void clear_vdma_2(void)
 	u32 VDMA_BASE_ADDR = XPAR_AXIVDMA_2_BASEADDR;
 	u32 line = 0;
 	u32 column = 0;
+	u32 frame_bytes;
 
 #if (defined R1080P60)
 	line = 1920;
@@ -1694,18 +1763,18 @@ void clear_vdma_2(void)
 	line = 3840;
 	column = 2160;
 #else
-	line = 5200;
-	column = 1800;
+	/* match vdma_config_2() */
+	line = 5120;
+	column = 1600;
 #endif
 
-    Xil_Out32(VDMA_BASE_ADDR + 0x00, 0x8A);//stop mm2s
-	Xil_Out32(VDMA_BASE_ADDR + 0x30, 0x8A);//stop s2mm
+	frame_bytes = line * column * bytePerPixels;
 
-	Xil_DCacheDisable();
-    memset(FRAME_BUFFER_7,0xff,line*column*bytePerPixels);//background
-    memset(FRAME_BUFFER_8,0xff,line*column*bytePerPixels);//background
-    memset(FRAME_BUFFER_9,0xff,line*column*bytePerPixels);//background
-	Xil_DCacheEnable();
+	vdma_stop_wait_halt(VDMA_BASE_ADDR);
+
+	framebuf_fill((UINTPTR)FRAME_BUFFER_7, frame_bytes, 0xFFU); /* white */
+	framebuf_fill((UINTPTR)FRAME_BUFFER_8, frame_bytes, 0xFFU);
+	framebuf_fill((UINTPTR)FRAME_BUFFER_9, frame_bytes, 0xFFU);
 
 	xil_printf("clear vdma_2 Done\n\r");
 //	vdma_config_2();
@@ -1720,6 +1789,7 @@ void clear_vdma_3(void)
 	u32 VDMA_BASE_ADDR = XPAR_AXIVDMA_3_BASEADDR;
 	u32 line = 0;
 	u32 column = 0;
+	u32 frame_bytes;
 
 #if (defined R1080P60)
 	line = 1920;
@@ -1728,22 +1798,20 @@ void clear_vdma_3(void)
 	line = 3840;
 	column = 2160;
 #else
+	/* match vdma_config_3() */
 	line = 3040;
 	column = 1708;
 #endif
 
+	frame_bytes = line * column * bytePerPixels;
 
-    Xil_Out32(VDMA_BASE_ADDR + 0x00, 0x8A);//stop mm2s
-	Xil_Out32(VDMA_BASE_ADDR + 0x30, 0x8A);//stop s2mm
+	vdma_stop_wait_halt(VDMA_BASE_ADDR);
 
-	Xil_DCacheDisable();
+	framebuf_fill((UINTPTR)FRAME_BUFFER_10, frame_bytes, 0xFFU); /* white */
+	framebuf_fill((UINTPTR)FRAME_BUFFER_11, frame_bytes, 0xFFU);
+	framebuf_fill((UINTPTR)FRAME_BUFFER_12, frame_bytes, 0xFFU);
 
-    memset(FRAME_BUFFER_10,0xff,line*column*bytePerPixels);//background
-    memset(FRAME_BUFFER_11,0xff,line*column*bytePerPixels);//background
-    memset(FRAME_BUFFER_12,0xff,line*column*bytePerPixels);//background
-
-    Xil_DCacheEnable();
-    xil_printf("clear vdma_3 Done\n\r");
+	xil_printf("clear vdma_3 Done\n\r");
 //	vdma_config_3();
 }
 #endif
@@ -1755,6 +1823,7 @@ void clear_vdma_4(void)
 	u32 VDMA_BASE_ADDR = XPAR_AXIVDMA_4_BASEADDR;
 	u32 line = 0;
 	u32 column = 0;
+	u32 frame_bytes;
 
 #if (defined R1080P60)
 	line = 1920;
@@ -1763,21 +1832,20 @@ void clear_vdma_4(void)
 	line = 3840;
 	column = 2160;
 #else
+	/* match vdma_config_4() */
 	line = 3040;
 	column = 1708;
 #endif
 
-    Xil_Out32(VDMA_BASE_ADDR + 0x00, 0x8A);//stop mm2s
-	Xil_Out32(VDMA_BASE_ADDR + 0x30, 0x8A);//stop s2mm
+	frame_bytes = line * column * bytePerPixels;
 
-	Xil_DCacheDisable();
+	vdma_stop_wait_halt(VDMA_BASE_ADDR);
 
-    memset(FRAME_BUFFER_13,0xff,line*column*bytePerPixels);//background
-    memset(FRAME_BUFFER_14,0xff,line*column*bytePerPixels);//background
-    memset(FRAME_BUFFER_15,0xff,line*column*bytePerPixels);//background
+	framebuf_fill((UINTPTR)FRAME_BUFFER_13, frame_bytes, 0xFFU); /* white */
+	framebuf_fill((UINTPTR)FRAME_BUFFER_14, frame_bytes, 0xFFU);
+	framebuf_fill((UINTPTR)FRAME_BUFFER_15, frame_bytes, 0xFFU);
 
-    Xil_DCacheEnable();
-    xil_printf("clear vdma_4 Done\n\r");
+	xil_printf("clear vdma_4 Done\n\r");
 //	vdma_config_4();
 }
 
@@ -1791,29 +1859,29 @@ void clear_vdma_5(void)
 	u32 VDMA_BASE_ADDR = XPAR_AXIVDMA_5_BASEADDR;
 	u32 line = 0;
 	u32 column = 0;
+	u32 frame_bytes;
 
 #if (defined R1080P60)
 	line = 1920;
 	column = 1080;
 #elif (defined R4K30W)
-	line = 1920;
-	column = 1286;
+	line = 3840;
+	column = 2160;
 #else
-	line = 1920;
-	column = 1280;
+	/* match vdma_config_5() */
+	line = 480;
+	column = 320;
 #endif
 
-    Xil_Out32(VDMA_BASE_ADDR + 0x00, 0x8A);//stop mm2s
-	Xil_Out32(VDMA_BASE_ADDR + 0x30, 0x8A);//stop s2mm
+	frame_bytes = line * column * bytePerPixels;
 
-	Xil_DCacheDisable();
+	vdma_stop_wait_halt(VDMA_BASE_ADDR);
 
-    memset(FRAME_BUFFER_16,0xff,line*column*bytePerPixels);//background
-    memset(FRAME_BUFFER_17,0xff,line*column*bytePerPixels);//background
-    memset(FRAME_BUFFER_18,0xff,line*column*bytePerPixels);//background
+	framebuf_fill((UINTPTR)FRAME_BUFFER_16, frame_bytes, 0xFFU); /* white */
+	framebuf_fill((UINTPTR)FRAME_BUFFER_17, frame_bytes, 0xFFU);
+	framebuf_fill((UINTPTR)FRAME_BUFFER_18, frame_bytes, 0xFFU);
 
-    Xil_DCacheEnable();
-    xil_printf("clear vdma_5 Done\n\r");
+	xil_printf("clear vdma_5 Done\n\r");
 //	vdma_config_5();
 }
 
@@ -1826,29 +1894,29 @@ void clear_vdma_6(void)
 	u32 VDMA_BASE_ADDR = XPAR_AXIVDMA_6_BASEADDR;
 	u32 line = 0;
 	u32 column = 0;
+	u32 frame_bytes;
 
 #if (defined R1080P60)
 	line = 1920;
 	column = 1080;
 #elif (defined R4K30W)
-	line = 1920;
-	column = 1080;
+	line = 3840;
+	column = 2160;
 #else
-	line = 1920;
-	column = 1280;
+	/* match vdma_config_6() */
+	line = 480;
+	column = 320;
 #endif
 
-    Xil_Out32(VDMA_BASE_ADDR + 0x00, 0x8A);//stop mm2s
-	Xil_Out32(VDMA_BASE_ADDR + 0x30, 0x8A);//stop s2mm
+	frame_bytes = line * column * bytePerPixels;
 
-	Xil_DCacheDisable();
+	vdma_stop_wait_halt(VDMA_BASE_ADDR);
 
-    memset(FRAME_BUFFER_19,0xff,line*column*bytePerPixels);//background
-    memset(FRAME_BUFFER_20,0xff,line*column*bytePerPixels);//background
-    memset(FRAME_BUFFER_21,0xff,line*column*bytePerPixels);//background
+	framebuf_fill((UINTPTR)FRAME_BUFFER_19, frame_bytes, 0xFFU); /* white */
+	framebuf_fill((UINTPTR)FRAME_BUFFER_20, frame_bytes, 0xFFU);
+	framebuf_fill((UINTPTR)FRAME_BUFFER_21, frame_bytes, 0xFFU);
 
-    Xil_DCacheEnable();
-    xil_printf("clear vdma_6 Done\n\r");
+	xil_printf("clear vdma_6 Done\n\r");
 //	vdma_config_6();
 }
 
@@ -1861,29 +1929,29 @@ void clear_vdma_7(void)
 	u32 VDMA_BASE_ADDR = XPAR_AXIVDMA_7_BASEADDR;
 	u32 line = 0;
 	u32 column = 0;
+	u32 frame_bytes;
 
 #if (defined R1080P60)
 	line = 1920;
 	column = 1080;
 #elif (defined R4K30W)
-	line = 1920;
-	column = 1080;
+	line = 3840;
+	column = 2160;
 #else
-	line = 1920;
-	column = 1280;
+	/* match vdma_config_7() */
+	line = 480;
+	column = 320;
 #endif
 
-    Xil_Out32(VDMA_BASE_ADDR + 0x00, 0x8A);//stop mm2s
-	Xil_Out32(VDMA_BASE_ADDR + 0x30, 0x8A);//stop s2mm
+	frame_bytes = line * column * bytePerPixels;
 
-	Xil_DCacheDisable();
+	vdma_stop_wait_halt(VDMA_BASE_ADDR);
 
-    memset(FRAME_BUFFER_22,0xff,line*column*bytePerPixels);//background
-    memset(FRAME_BUFFER_23,0xff,line*column*bytePerPixels);//background
-    memset(FRAME_BUFFER_24,0xff,line*column*bytePerPixels);//background
+	framebuf_fill((UINTPTR)FRAME_BUFFER_22, frame_bytes, 0xFFU); /* white */
+	framebuf_fill((UINTPTR)FRAME_BUFFER_23, frame_bytes, 0xFFU);
+	framebuf_fill((UINTPTR)FRAME_BUFFER_24, frame_bytes, 0xFFU);
 
-    Xil_DCacheEnable();
-    xil_printf("clear vdma_6 Done\n\r");
+	xil_printf("clear vdma_7 Done\n\r");
 //	vdma_config_7();
 }
 

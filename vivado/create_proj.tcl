@@ -146,6 +146,27 @@ update_compile_order -fileset sources_1
 #write_bd_layout -format pdf -orientation portrait -force ./$BD_name.pdf
 
 #set_property STEPS.WRITE_BITSTREAM.ARGS.BIN_FILE true [get_runs impl_1]
+
+# system_clkgrp.xdc names clk_pl_0, which the PS IP creates during
+# implementation. Synthesis must not read it, and implementation must
+# read it after every other XDC. Banks 65 and 66 are one clock region,
+# so opt_design keeps a single IDELAYCTRL.
+set clkgrp [get_files -quiet -of_objects [get_filesets constrs_1] *system_clkgrp.xdc]
+if {[llength $clkgrp]} {
+  set_property USED_IN {implementation} $clkgrp
+  set_property PROCESSING_ORDER LATE $clkgrp
+  puts "CLKGRP USED_IN=[get_property USED_IN $clkgrp] PROCESSING_ORDER=[get_property PROCESSING_ORDER $clkgrp]"
+} else {
+  puts "WARN: system_clkgrp.xdc was not added to constrs_1"
+}
+set idelay_hook [file normalize [file join [file dirname [info script]] scripts merge_idelayctrl.tcl]]
+if {[file exists $idelay_hook] && [llength [get_runs -quiet impl_1]]} {
+  set_property STEPS.OPT_DESIGN.TCL.POST $idelay_hook [get_runs impl_1]
+  puts "OPT_DESIGN.TCL.POST $idelay_hook"
+} else {
+  puts "WARN: IDELAYCTRL merge hook not applied: $idelay_hook"
+}
+
 close_project
 ######
 #exit

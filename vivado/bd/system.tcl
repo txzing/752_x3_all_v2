@@ -128,7 +128,7 @@ xilinx.com:ip:axi_gpio:2.0\
 xilinx.com:ip:axi_vdma:6.3\
 xilinx.com:user:axis_passthrough_monitor:1.1\
 xilinx.com:ip:axis_switch:1.1\
-user.org:user:lvds4x2_1to7:1.0\
+user.org:user:lvds4x2_1to7:1.5\
 xilinx.com:ip:v_vid_in_axi4s:4.0\
 xilinx.com:ip:xlconcat:2.1\
 xilinx.com:ip:xlslice:1.0\
@@ -893,7 +893,6 @@ proc create_hier_cell_processor_subsystem { parentCell nameHier } {
   create_bd_pin -dir I -from 0 -to 0 In4
   create_bd_pin -dir I -from 0 -to 0 In5
   create_bd_pin -dir I -from 0 -to 0 In6
-  create_bd_pin -dir I -type rst M04_ARESETN
   create_bd_pin -dir I -from 31 -to 0 VERSION
   create_bd_pin -dir O -from 0 -to 0 -type rst peripheral_aresetn
   create_bd_pin -dir O -from 0 -to 0 -type rst peripheral_reset
@@ -1377,6 +1376,9 @@ proc create_hier_cell_processor_subsystem { parentCell nameHier } {
   connect_bd_intf_net -intf_net Conn15 [get_bd_intf_pins M18_AXI] [get_bd_intf_pins ps8_0_axi_periph/M18_AXI]
   connect_bd_intf_net -intf_net Conn16 [get_bd_intf_pins M19_AXI] [get_bd_intf_pins ps8_0_axi_periph/M19_AXI]
   connect_bd_intf_net -intf_net Conn17 [get_bd_intf_pins M20_AXI] [get_bd_intf_pins ps8_0_axi_periph/M20_AXI]
+  connect_bd_intf_net -intf_net Conn18 [get_bd_intf_pins M21_AXI] [get_bd_intf_pins ps8_0_axi_periph/M21_AXI]
+  connect_bd_intf_net -intf_net Conn19 [get_bd_intf_pins M22_AXI] [get_bd_intf_pins ps8_0_axi_periph/M22_AXI]
+  connect_bd_intf_net -intf_net Conn20 [get_bd_intf_pins M23_AXI] [get_bd_intf_pins ps8_0_axi_periph/M23_AXI]
   connect_bd_intf_net -intf_net S05_AXI_1 [get_bd_intf_pins S05_AXI] [get_bd_intf_pins axi_smc/S05_AXI]
   connect_bd_intf_net -intf_net S06_AXI_1 [get_bd_intf_pins S06_AXI] [get_bd_intf_pins axi_smc/S06_AXI]
   connect_bd_intf_net -intf_net S07_AXI_1 [get_bd_intf_pins S07_AXI] [get_bd_intf_pins axi_smc/S07_AXI]
@@ -1396,9 +1398,6 @@ proc create_hier_cell_processor_subsystem { parentCell nameHier } {
   connect_bd_intf_net -intf_net ps8_0_axi_periph_M02_AXI [get_bd_intf_pins ps8_0_axi_periph/M02_AXI] [get_bd_intf_pins rs485_hier/S_AXI1]
   connect_bd_intf_net -intf_net ps8_0_axi_periph_M03_AXI [get_bd_intf_pins ps8_0_axi_periph/M03_AXI] [get_bd_intf_pins rs485_hier/S_AXI2]
   connect_bd_intf_net -intf_net ps8_0_axi_periph_M04_AXI [get_bd_intf_pins ps8_0_axi_periph/M04_AXI] [get_bd_intf_pins rs485_hier/S_AXI]
-  connect_bd_intf_net -intf_net ps8_0_axi_periph_M21_AXI [get_bd_intf_pins M21_AXI] [get_bd_intf_pins ps8_0_axi_periph/M21_AXI]
-  connect_bd_intf_net -intf_net ps8_0_axi_periph_M22_AXI [get_bd_intf_pins M22_AXI] [get_bd_intf_pins ps8_0_axi_periph/M22_AXI]
-  connect_bd_intf_net -intf_net ps8_0_axi_periph_M23_AXI [get_bd_intf_pins M23_AXI] [get_bd_intf_pins ps8_0_axi_periph/M23_AXI]
   connect_bd_intf_net -intf_net zynq_ultra_ps_e_0_GPIO_0 [get_bd_intf_pins gpio] [get_bd_intf_pins zynq_ultra_ps_e_0/GPIO_0]
   connect_bd_intf_net -intf_net zynq_ultra_ps_e_0_IIC_0 [get_bd_intf_pins eeprom] [get_bd_intf_pins zynq_ultra_ps_e_0/IIC_0]
   connect_bd_intf_net -intf_net zynq_ultra_ps_e_0_M_AXI_HPM0_LPD [get_bd_intf_pins ps8_0_axi_periph/S00_AXI] [get_bd_intf_pins zynq_ultra_ps_e_0/M_AXI_HPM0_LPD]
@@ -1408,12 +1407,11 @@ proc create_hier_cell_processor_subsystem { parentCell nameHier } {
   connect_bd_net -net In3_1 [get_bd_pins In4] [get_bd_pins xlconcat_0/In4]
   connect_bd_net -net In5_1 [get_bd_pins In5] [get_bd_pins xlconcat_0/In5]
   connect_bd_net -net In6_1 [get_bd_pins In6] [get_bd_pins xlconcat_0/In6]
-  connect_bd_net -net M04_ARESETN_1 [get_bd_pins M04_ARESETN] [get_bd_pins ps8_0_axi_periph/M04_ARESETN] [get_bd_pins ps8_0_axi_periph/M05_ARESETN] [get_bd_pins ps8_0_axi_periph/M06_ARESETN] [get_bd_pins ps8_0_axi_periph/M07_ARESETN] [get_bd_pins ps8_0_axi_periph/M08_ARESETN] [get_bd_pins ps8_0_axi_periph/M09_ARESETN] [get_bd_pins ps8_0_axi_periph/M10_ARESETN] [get_bd_pins ps8_0_axi_periph/M11_ARESETN] [get_bd_pins ps8_0_axi_periph/M12_ARESETN] [get_bd_pins ps8_0_axi_periph/M13_ARESETN] [get_bd_pins ps8_0_axi_periph/M14_ARESETN] [get_bd_pins ps8_0_axi_periph/M15_ARESETN] [get_bd_pins ps8_0_axi_periph/M16_ARESETN] [get_bd_pins ps8_0_axi_periph/M17_ARESETN] [get_bd_pins ps8_0_axi_periph/M18_ARESETN] [get_bd_pins ps8_0_axi_periph/M19_ARESETN] [get_bd_pins ps8_0_axi_periph/M20_ARESETN]
   connect_bd_net -net axi_gpio_0_gpio_io_o1 [get_bd_pins uart_0_txen] [get_bd_pins rs485_hier/uart_0_txen]
   connect_bd_net -net axi_timer_0_interrupt [get_bd_pins axi_timer_0/interrupt] [get_bd_pins xlconcat_0/In0]
   connect_bd_net -net axi_uartlite_0_interrupt [get_bd_pins rs485_hier/interrupt] [get_bd_pins xlconcat_0/In1]
   connect_bd_net -net rs485_hier_interrupt1 [get_bd_pins rs485_hier/interrupt1] [get_bd_pins xlconcat_0/In2]
-  connect_bd_net -net rst_ps8_0_300M_peripheral_aresetn [get_bd_pins peripheral_aresetn] [get_bd_pins AXI_LITE_REG_0/s00_axi_aresetn] [get_bd_pins axi_smc/aresetn] [get_bd_pins axi_timer_0/s_axi_aresetn] [get_bd_pins ps8_0_axi_periph/ARESETN] [get_bd_pins ps8_0_axi_periph/M00_ARESETN] [get_bd_pins ps8_0_axi_periph/M01_ARESETN] [get_bd_pins ps8_0_axi_periph/M02_ARESETN] [get_bd_pins ps8_0_axi_periph/M03_ARESETN] [get_bd_pins ps8_0_axi_periph/M21_ARESETN] [get_bd_pins ps8_0_axi_periph/M22_ARESETN] [get_bd_pins ps8_0_axi_periph/M23_ARESETN] [get_bd_pins ps8_0_axi_periph/S00_ARESETN] [get_bd_pins rs485_hier/s_axi_aresetn] [get_bd_pins rst_ps8_0_300M/peripheral_aresetn]
+  connect_bd_net -net rst_ps8_0_300M_peripheral_aresetn [get_bd_pins peripheral_aresetn] [get_bd_pins AXI_LITE_REG_0/s00_axi_aresetn] [get_bd_pins axi_smc/aresetn] [get_bd_pins axi_timer_0/s_axi_aresetn] [get_bd_pins ps8_0_axi_periph/ARESETN] [get_bd_pins ps8_0_axi_periph/M00_ARESETN] [get_bd_pins ps8_0_axi_periph/M01_ARESETN] [get_bd_pins ps8_0_axi_periph/M02_ARESETN] [get_bd_pins ps8_0_axi_periph/M03_ARESETN] [get_bd_pins ps8_0_axi_periph/M04_ARESETN] [get_bd_pins ps8_0_axi_periph/M05_ARESETN] [get_bd_pins ps8_0_axi_periph/M06_ARESETN] [get_bd_pins ps8_0_axi_periph/M07_ARESETN] [get_bd_pins ps8_0_axi_periph/M08_ARESETN] [get_bd_pins ps8_0_axi_periph/M09_ARESETN] [get_bd_pins ps8_0_axi_periph/M10_ARESETN] [get_bd_pins ps8_0_axi_periph/M11_ARESETN] [get_bd_pins ps8_0_axi_periph/M12_ARESETN] [get_bd_pins ps8_0_axi_periph/M13_ARESETN] [get_bd_pins ps8_0_axi_periph/M14_ARESETN] [get_bd_pins ps8_0_axi_periph/M15_ARESETN] [get_bd_pins ps8_0_axi_periph/M16_ARESETN] [get_bd_pins ps8_0_axi_periph/M17_ARESETN] [get_bd_pins ps8_0_axi_periph/M18_ARESETN] [get_bd_pins ps8_0_axi_periph/M19_ARESETN] [get_bd_pins ps8_0_axi_periph/M20_ARESETN] [get_bd_pins ps8_0_axi_periph/M21_ARESETN] [get_bd_pins ps8_0_axi_periph/M22_ARESETN] [get_bd_pins ps8_0_axi_periph/M23_ARESETN] [get_bd_pins ps8_0_axi_periph/S00_ARESETN] [get_bd_pins rs485_hier/s_axi_aresetn] [get_bd_pins rst_ps8_0_300M/peripheral_aresetn]
   connect_bd_net -net rst_ps8_0_300M_peripheral_reset [get_bd_pins peripheral_reset] [get_bd_pins rst_ps8_0_300M/peripheral_reset]
   connect_bd_net -net xlconcat_0_dout [get_bd_pins xlconcat_0/dout] [get_bd_pins zynq_ultra_ps_e_0/pl_ps_irq0]
   connect_bd_net -net xlconstant_1_dout [get_bd_pins VERSION] [get_bd_pins AXI_LITE_REG_0/VERSION]
@@ -2021,8 +2019,8 @@ proc create_hier_cell_fake_touch { parentCell nameHier } {
   connect_bd_intf_net -intf_net Conn6 [get_bd_intf_pins i2c_3] [get_bd_intf_pins fake_i2c_2/i2c_1]
 
   # Create port connections
+  connect_bd_net -net Din_1 [get_bd_pins Din] [get_bd_pins xlslice_2/Din]
   connect_bd_net -net VCC_dout [get_bd_pins VCC] [get_bd_pins fake_i2c_0/VCC] [get_bd_pins fake_i2c_1/VCC] [get_bd_pins fake_i2c_2/VCC]
-  connect_bd_net -net axi_gpio_lvds_reset_gpio_io_o [get_bd_pins Din] [get_bd_pins xlslice_2/Din]
   connect_bd_net -net proc_sys_reset_0_peripheral_aresetn [get_bd_pins fake_i2c_0/sys_rst_n] [get_bd_pins fake_i2c_1/sys_rst_n] [get_bd_pins fake_i2c_2/sys_rst_n] [get_bd_pins proc_sys_reset_0/peripheral_aresetn]
   connect_bd_net -net sys_clk_1 [get_bd_pins sys_clk] [get_bd_pins fake_i2c_0/sys_clk] [get_bd_pins fake_i2c_1/sys_clk] [get_bd_pins fake_i2c_2/sys_clk] [get_bd_pins proc_sys_reset_0/slowest_sync_clk]
   connect_bd_net -net util_vector_logic_0_Res [get_bd_pins proc_sys_reset_0/ext_reset_in] [get_bd_pins util_vector_logic_0/Res]
@@ -2113,7 +2111,7 @@ proc create_root_design { parentCell } {
   # Create instance: HW_VER, and set properties
   set HW_VER [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 HW_VER ]
   set_property -dict [ list \
-   CONFIG.CONST_VAL {0x20260728} \
+   CONFIG.CONST_VAL {0x20261028} \
    CONFIG.CONST_WIDTH {32} \
  ] $HW_VER
 
@@ -2169,21 +2167,21 @@ proc create_root_design { parentCell } {
   create_hier_cell_fake_touch [current_bd_instance .] fake_touch
 
   # Create instance: lvds4x2_1to7_0, and set properties
-  set lvds4x2_1to7_0 [ create_bd_cell -type ip -vlnv user.org:user:lvds4x2_1to7:1.0 lvds4x2_1to7_0 ]
+  set lvds4x2_1to7_0 [ create_bd_cell -type ip -vlnv user.org:user:lvds4x2_1to7:1.5 lvds4x2_1to7_0 ]
   set_property -dict [ list \
    CONFIG.CLKIN_PERIOD {20} \
    CONFIG.USE_PLL {FALSE} \
  ] $lvds4x2_1to7_0
 
   # Create instance: lvds4x2_1to7_1, and set properties
-  set lvds4x2_1to7_1 [ create_bd_cell -type ip -vlnv user.org:user:lvds4x2_1to7:1.0 lvds4x2_1to7_1 ]
+  set lvds4x2_1to7_1 [ create_bd_cell -type ip -vlnv user.org:user:lvds4x2_1to7:1.5 lvds4x2_1to7_1 ]
   set_property -dict [ list \
    CONFIG.CLKIN_PERIOD {20} \
    CONFIG.USE_PLL {FALSE} \
  ] $lvds4x2_1to7_1
 
   # Create instance: lvds4x2_1to7_2, and set properties
-  set lvds4x2_1to7_2 [ create_bd_cell -type ip -vlnv user.org:user:lvds4x2_1to7:1.0 lvds4x2_1to7_2 ]
+  set lvds4x2_1to7_2 [ create_bd_cell -type ip -vlnv user.org:user:lvds4x2_1to7:1.5 lvds4x2_1to7_2 ]
   set_property -dict [ list \
    CONFIG.CLKIN_PERIOD {12} \
    CONFIG.USE_PLL {TRUE} \
@@ -2249,7 +2247,10 @@ proc create_root_design { parentCell } {
   # Create instance: xlslice_0, and set properties
   set xlslice_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice:1.0 xlslice_0 ]
   set_property -dict [ list \
+   CONFIG.DIN_FROM {0} \
+   CONFIG.DIN_TO {0} \
    CONFIG.DIN_WIDTH {5} \
+   CONFIG.DOUT_WIDTH {1} \
  ] $xlslice_0
 
   # Create instance: xlslice_lvds_0, and set properties
@@ -2258,6 +2259,7 @@ proc create_root_design { parentCell } {
    CONFIG.DIN_FROM {1} \
    CONFIG.DIN_TO {1} \
    CONFIG.DIN_WIDTH {5} \
+   CONFIG.DOUT_WIDTH {1} \
  ] $xlslice_lvds_0
 
   # Create instance: xlslice_lvds_1, and set properties
@@ -2279,10 +2281,10 @@ proc create_root_design { parentCell } {
  ] $xlslice_lvds_2
 
   # Create interface connections
-  connect_bd_intf_net -intf_net S00_AXI_1 [get_bd_intf_pins lvds_s2/S00_AXI] [get_bd_intf_pins processor_subsystem/M18_AXI]
+  connect_bd_intf_net -intf_net S00_AXI_1 [get_bd_intf_pins lvds_s2/S00_AXI] [get_bd_intf_pins processor_subsystem/M21_AXI]
   connect_bd_intf_net -intf_net S04_AXI_1 [get_bd_intf_pins lvds_s1/M_AXI_S2MM] [get_bd_intf_pins processor_subsystem/S04_AXI]
-  connect_bd_intf_net -intf_net S_AXI_CTRL_1 [get_bd_intf_pins lvds_s2/S_AXI_CTRL] [get_bd_intf_pins processor_subsystem/M19_AXI]
-  connect_bd_intf_net -intf_net S_AXI_LITE1_1 [get_bd_intf_pins lvds_s2/S_AXI_LITE1] [get_bd_intf_pins processor_subsystem/M17_AXI]
+  connect_bd_intf_net -intf_net S_AXI_CTRL_1 [get_bd_intf_pins lvds_s2/S_AXI_CTRL] [get_bd_intf_pins processor_subsystem/M22_AXI]
+  connect_bd_intf_net -intf_net S_AXI_LITE1_1 [get_bd_intf_pins lvds_s2/S_AXI_LITE1] [get_bd_intf_pins processor_subsystem/M19_AXI]
   connect_bd_intf_net -intf_net axi_uartlite_0_UART [get_bd_intf_ports uart_0] [get_bd_intf_pins processor_subsystem/uart_0]
   connect_bd_intf_net -intf_net axis_passthrough_mon_0_m_axis [get_bd_intf_pins axis_passthrough_mon_0/m_axis] [get_bd_intf_pins lvds_s0/S_AXIS]
   connect_bd_intf_net -intf_net axis_passthrough_mon_1_m_axis [get_bd_intf_pins axis_passthrough_mon_1/m_axis] [get_bd_intf_pins lvds_s1/S_AXIS]
@@ -2307,20 +2309,20 @@ proc create_root_design { parentCell } {
   connect_bd_intf_net -intf_net lvds_s3_M_AXI_S2MM [get_bd_intf_pins lvds_s0/M_AXI_S2MM] [get_bd_intf_pins processor_subsystem/S02_AXI]
   connect_bd_intf_net -intf_net lvds_s3_M_AXI_S2MM1 [get_bd_intf_pins lvds_s1/M_AXI_MM2S] [get_bd_intf_pins processor_subsystem/S03_AXI]
   connect_bd_intf_net -intf_net processor_subsystem_M05_AXI [get_bd_intf_pins axis_switch_0/S_AXI_CTRL] [get_bd_intf_pins processor_subsystem/M10_AXI]
-  connect_bd_intf_net -intf_net processor_subsystem_M07_AXI [get_bd_intf_pins lvds_s1/S_AXI_LITE1] [get_bd_intf_pins processor_subsystem/M14_AXI]
+  connect_bd_intf_net -intf_net processor_subsystem_M07_AXI [get_bd_intf_pins lvds_s1/S_AXI_LITE1] [get_bd_intf_pins processor_subsystem/M15_AXI]
   connect_bd_intf_net -intf_net processor_subsystem_M08_AXI [get_bd_intf_pins axis_passthrough_mon_1/s_axi_lite] [get_bd_intf_pins processor_subsystem/M08_AXI]
   connect_bd_intf_net -intf_net processor_subsystem_M09_AXI [get_bd_intf_pins lvds_s0/S_AXI_LITE1] [get_bd_intf_pins processor_subsystem/M11_AXI]
   connect_bd_intf_net -intf_net processor_subsystem_M10_AXI [get_bd_intf_pins axi_vdma_lwip/S_AXI_LITE] [get_bd_intf_pins processor_subsystem/M06_AXI]
   connect_bd_intf_net -intf_net processor_subsystem_M11_AXI [get_bd_intf_pins axis_passthrough_mon_0/s_axi_lite] [get_bd_intf_pins processor_subsystem/M07_AXI]
-  connect_bd_intf_net -intf_net processor_subsystem_M15_AXI [get_bd_intf_pins lvds_s1/S00_AXI] [get_bd_intf_pins processor_subsystem/M15_AXI]
+  connect_bd_intf_net -intf_net processor_subsystem_M15_AXI [get_bd_intf_pins lvds_s1/S00_AXI] [get_bd_intf_pins processor_subsystem/M17_AXI]
   connect_bd_intf_net -intf_net processor_subsystem_M16_AXI [get_bd_intf_pins axis_passthrough_mon_2/s_axi_lite] [get_bd_intf_pins processor_subsystem/M09_AXI]
-  connect_bd_intf_net -intf_net processor_subsystem_M17_AXI [get_bd_intf_pins lvds_s1/S_AXI_CTRL] [get_bd_intf_pins processor_subsystem/M16_AXI]
-  connect_bd_intf_net -intf_net processor_subsystem_M18_AXI [get_bd_intf_pins lvds_s0/S00_AXI] [get_bd_intf_pins processor_subsystem/M12_AXI]
-  connect_bd_intf_net -intf_net processor_subsystem_M19_AXI [get_bd_intf_pins lvds_s0/S_AXI_CTRL] [get_bd_intf_pins processor_subsystem/M13_AXI]
-  connect_bd_intf_net -intf_net processor_subsystem_M21_AXI [get_bd_intf_pins lvds_s0/S_AXI_LITE] [get_bd_intf_pins processor_subsystem/M21_AXI]
-  connect_bd_intf_net -intf_net processor_subsystem_M22_AXI [get_bd_intf_pins lvds_s1/S_AXI_LITE] [get_bd_intf_pins processor_subsystem/M22_AXI]
-  connect_bd_intf_net -intf_net processor_subsystem_M23_AXI [get_bd_intf_pins lvds_s2/S_AXI_LITE] [get_bd_intf_pins processor_subsystem/M23_AXI]
-  connect_bd_intf_net -intf_net ps8_0_axi_periph_M08_AXI [get_bd_intf_pins processor_subsystem/M20_AXI] [get_bd_intf_pins xgpio_i2c_0/S_AXI]
+  connect_bd_intf_net -intf_net processor_subsystem_M17_AXI [get_bd_intf_pins lvds_s1/S_AXI_CTRL] [get_bd_intf_pins processor_subsystem/M18_AXI]
+  connect_bd_intf_net -intf_net processor_subsystem_M18_AXI [get_bd_intf_pins lvds_s0/S00_AXI] [get_bd_intf_pins processor_subsystem/M13_AXI]
+  connect_bd_intf_net -intf_net processor_subsystem_M19_AXI [get_bd_intf_pins lvds_s0/S_AXI_CTRL] [get_bd_intf_pins processor_subsystem/M14_AXI]
+  connect_bd_intf_net -intf_net processor_subsystem_M21_AXI [get_bd_intf_pins lvds_s0/S_AXI_LITE] [get_bd_intf_pins processor_subsystem/M12_AXI]
+  connect_bd_intf_net -intf_net processor_subsystem_M22_AXI [get_bd_intf_pins lvds_s1/S_AXI_LITE] [get_bd_intf_pins processor_subsystem/M16_AXI]
+  connect_bd_intf_net -intf_net processor_subsystem_M23_AXI [get_bd_intf_pins lvds_s2/S_AXI_LITE] [get_bd_intf_pins processor_subsystem/M20_AXI]
+  connect_bd_intf_net -intf_net ps8_0_axi_periph_M08_AXI [get_bd_intf_pins processor_subsystem/M23_AXI] [get_bd_intf_pins xgpio_i2c_0/S_AXI]
   connect_bd_intf_net -intf_net ps8_0_axi_periph_M09_AXI [get_bd_intf_pins axi_gpio_lvds_reset/S_AXI] [get_bd_intf_pins processor_subsystem/M05_AXI]
   connect_bd_intf_net -intf_net v_vid_in_axi4s_0_video_out [get_bd_intf_pins axis_passthrough_mon_0/s_axis] [get_bd_intf_pins v_vid_in_axi4s_0/video_out]
   connect_bd_intf_net -intf_net v_vid_in_axi4s_1_video_out [get_bd_intf_pins axis_passthrough_mon_1/s_axis] [get_bd_intf_pins v_vid_in_axi4s_1/video_out]
@@ -2380,15 +2382,15 @@ proc create_root_design { parentCell } {
   connect_bd_net -net lvds4x2_1to7_2_px_clk [get_bd_pins lvds4x2_1to7_2/px_clk] [get_bd_pins v_vid_in_axi4s_2/vid_io_in_clk]
   connect_bd_net -net lvds4x2_1to7_2_vs0 [get_bd_pins lvds4x2_1to7_2/vs0] [get_bd_pins v_vid_in_axi4s_2/vid_vsync]
   connect_bd_net -net lvds_s0_intr [get_bd_pins lvds_s0/intr] [get_bd_pins processor_subsystem/In4]
-  connect_bd_net -net lvds_s0_peripheral_aresetn [get_bd_pins axis_passthrough_mon_0/aresetn] [get_bd_pins lvds_s0/peripheral_aresetn] [get_bd_pins processor_subsystem/M04_ARESETN] [get_bd_pins v_vid_in_axi4s_0/aresetn]
-  connect_bd_net -net lvds_s0_peripheral_reset [get_bd_pins lvds_s0/peripheral_reset] [get_bd_pins v_vid_in_axi4s_0/vid_io_in_reset]
+  connect_bd_net -net lvds_s0_peripheral_aresetn [get_bd_pins axis_passthrough_mon_0/aresetn] [get_bd_pins lvds_s0/peripheral_aresetn] [get_bd_pins v_vid_in_axi4s_0/aresetn]
+  connect_bd_net -net lvds_s0_peripheral_reset [get_bd_pins lvds4x2_1to7_0/reset] [get_bd_pins lvds_s0/peripheral_reset] [get_bd_pins v_vid_in_axi4s_0/vid_io_in_reset]
   connect_bd_net -net lvds_s1_intr [get_bd_pins lvds_s1/intr] [get_bd_pins processor_subsystem/In5]
   connect_bd_net -net lvds_s1_peripheral_aresetn [get_bd_pins axis_passthrough_mon_1/aresetn] [get_bd_pins lvds_s1/peripheral_aresetn] [get_bd_pins v_vid_in_axi4s_1/aresetn]
-  connect_bd_net -net lvds_s1_peripheral_reset [get_bd_pins lvds_s1/peripheral_reset] [get_bd_pins v_vid_in_axi4s_1/vid_io_in_reset]
+  connect_bd_net -net lvds_s1_peripheral_reset [get_bd_pins lvds4x2_1to7_1/reset] [get_bd_pins lvds_s1/peripheral_reset] [get_bd_pins v_vid_in_axi4s_1/vid_io_in_reset]
   connect_bd_net -net lvds_s2_intr [get_bd_pins lvds_s2/intr] [get_bd_pins processor_subsystem/In6]
   connect_bd_net -net lvds_s2_peripheral_aresetn [get_bd_pins axis_passthrough_mon_2/aresetn] [get_bd_pins lvds_s2/peripheral_aresetn] [get_bd_pins v_vid_in_axi4s_2/aresetn]
-  connect_bd_net -net lvds_s2_peripheral_reset [get_bd_pins lvds_s2/peripheral_reset] [get_bd_pins v_vid_in_axi4s_2/vid_io_in_reset]
-  connect_bd_net -net proc_sys_reset_0_peripheral_reset [get_bd_pins lvds4x2_1to7_0/reset] [get_bd_pins lvds4x2_1to7_1/reset] [get_bd_pins lvds4x2_1to7_2/reset] [get_bd_pins xlslice_0/Dout]
+  connect_bd_net -net lvds_s2_peripheral_reset [get_bd_pins lvds4x2_1to7_2/reset] [get_bd_pins lvds_s2/peripheral_reset] [get_bd_pins v_vid_in_axi4s_2/vid_io_in_reset]
+  connect_bd_net -net proc_sys_reset_0_peripheral_reset [get_bd_pins lvds4x2_1to7_0/dlyctrl_rst] [get_bd_pins lvds4x2_1to7_1/dlyctrl_rst] [get_bd_pins lvds4x2_1to7_2/dlyctrl_rst] [get_bd_pins xlslice_0/Dout]
   connect_bd_net -net rst_ps8_0_300M_peripheral_aresetn [get_bd_pins axi_gpio_lvds_reset/s_axi_aresetn] [get_bd_pins axi_vdma_lwip/axi_resetn] [get_bd_pins axis_passthrough_mon_0/s_axi_lite_aresetn] [get_bd_pins axis_passthrough_mon_1/s_axi_lite_aresetn] [get_bd_pins axis_passthrough_mon_2/s_axi_lite_aresetn] [get_bd_pins axis_switch_0/aresetn] [get_bd_pins axis_switch_0/s_axi_ctrl_aresetn] [get_bd_pins lvds_s0/s_axi_lite_aresetn] [get_bd_pins lvds_s1/s_axi_lite_aresetn] [get_bd_pins lvds_s2/s_axi_lite_aresetn] [get_bd_pins processor_subsystem/peripheral_aresetn] [get_bd_pins xgpio_i2c_0/s_axi_aresetn]
   connect_bd_net -net sys_clk_1 [get_bd_pins fake_touch/sys_clk] [get_bd_pins processor_subsystem/pl_clk1_50m]
   connect_bd_net -net xlconcat_1_dout [get_bd_pins v_vid_in_axi4s_0/vid_data] [get_bd_pins xlconcat_0/dout]

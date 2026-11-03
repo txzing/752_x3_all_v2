@@ -38,6 +38,42 @@
 // Revision History:
 //    Rev 1.0 - Initial Release (knagara)
 //    Rev 0.9 - Early Access Release (mcgett)
+//    Rev 1.1 - 2026-10-28
+//              Clock IDELAY RST was !cmt_locked and EN_VTC was !idelay_rdy.
+//              CNTVALUEOUT (taps per bit) was valid only while the shared
+//              IDELAYCTRL was held in reset, so one channel could not relock.
+//              RST is Mstr_IdlyRst & idelay_rdy again (FSM state 0).
+//              EN_VTC is 1 in states 0-7 and after rx_ready, and 0 while LOAD
+//              writes a new tap. dlyctrl_rst is not required on cable up.
+//    Rev 1.2 - 2026-10-28
+//              Rev 1.1 never reached rx_ready. State 7 required
+//              CNTVALUEOUT >= 64, but DELAY_VALUE is capped at 1100 ps.
+//              At REF_FREQ 300 MHz one tap is ~52 ps, so the calibrated
+//              count is ~21 and the FSM retried states 1-7 forever.
+//              px_ready stayed 0 and vid_in emitted no AXI frames.
+//              Accept a calibrated count >= 8. Below that, pulse RST again.
+//    Rev 1.3 - 2026-10-28
+//              Rev 1.2 still never released video. A count < 8 sent the FSM
+//              back to state 0, so RST was pulsed again every 8 clocks and
+//              CNTVALUEOUT never settled. Stay in state 7 until the same
+//              count >= 8 is seen twice. EN_VTC stays low after state 7 so
+//              the LOAD tap is kept; raising it at rx_ready reloads 1100 ps.
+//    Rev 1.4 - 2026-10-28
+//              Rev 1.3 required two identical CNTVALUEOUT samples. VT
+//              dither held state 7, so rx_ready stayed 0. Take the first
+//              sample >= 8. After ~1M rx_clkdiv8 cycles still short of
+//              rx_ready, jump to state 0x15 and finish training.
+//    Rev 1.5 - 2026-10-29
+//              Rev 1.4 held EN_VTC high through state 7. CNTVALUEOUT is
+//              invalid while EN_VTC is high, so the sample never qualified
+//              and the timeout broadcast tap 0. State 0 also pulsed IDELAY
+//              RST, which clears the TIME calibration and only returns on
+//              the shared IDELAYCTRL reset. EN_VTC is now high only while
+//              idelay_rdy is low (the bit0 calibration window). Clock
+//              IDELAY RST stays low, so a channel reset re-reads the same
+//              tap and retrains bitslip without dlyctrl_rst. If no sample
+//              >= 8 appears, the timeout loads 21 taps and finishes from
+//              the 0%/50% alignment instead of a wrapped count.
 //////////////////////////////////////////////////////////////////////////////
 //
 //  Disclaimer:
@@ -140,6 +176,8 @@ wire       px_reset;
 
 (* DONT_TOUCH = "yes", s="true",keep="true" *)(* mark_debug="true" *)reg  [8:0] BitTime_Val;
 (* DONT_TOUCH = "yes", s="true",keep="true" *)(* mark_debug="true" *)reg  [5:0] rx_state;
+reg [19:0] train_wait;
+reg        finish_now;
 (* DONT_TOUCH = "yes", s="true",keep="true" *)(* mark_debug="true" *)reg  [7:0] Delay_Change;
 (* DONT_TOUCH = "yes", s="true",keep="true" *)(* mark_debug="true" *)reg  [4:0] pd_count;
 (* DONT_TOUCH = "yes", s="true",keep="true" *)(* mark_debug="true" *)reg        pd_ovflw_up;
@@ -273,6 +311,16 @@ begin
 end
 assign px_reset = px_reset_sync[0];
 
+// Sample CNTVALUEOUT only while EN_VTC=1 (states 0-7, after one RST).
+// EN_VTC must then stay low: LOAD is ignored while it is high, and raising
+// it again at rx_ready puts the 1100 ps DELAY_VALUE back.
+// Do not use !idelay_rdy or !cmt_locked.
+// Rev 1.5: do not RST the clock IDELAY. A pulse clears the calibrated tap
+// and it only comes back when the shared IDELAYCTRL is reset. EN_VTC is
+// high only while that controller is in reset, so CNTVALUEOUT is valid
+// for the whole training sequence and a later LOAD is not overwritten.
+wire clk_idelay_rst = 1'b0;
+wire clk_idelay_vtc = ~idelay_rdy;
 
 //-----------------------------------------------------------------------------
 //
@@ -293,13 +341,12 @@ IDELAYE3 # (
       .DATAOUT          (clkin_p_d),
       .CLK              (rx_clkdiv8),
       .CE               (1'b0),
-      .RST              (!cmt_locked),
-   // .RST              (Mstr_IdlyRst & idelay_rdy),
+      .RST              (clk_idelay_rst),
       .INC              (1'b0),
       .DATAIN           (1'b0),
       .LOAD             (Mstr_Load),
       .CNTVALUEIN       (Mstr_CntVal_In),
-      .EN_VTC           (!idelay_rdy),
+      .EN_VTC           (clk_idelay_vtc),
       .CASC_IN          (1'b0),
       .CASC_RETURN      (1'b0),
       .CASC_OUT         (),
@@ -324,12 +371,12 @@ IDELAYE3 # (
       .DATAOUT          (clkin_n_d),
       .CLK              (rx_clkdiv8),
       .CE               (1'b0),
-      .RST              (!cmt_locked),
+      .RST              (clk_idelay_rst),
       .INC              (1'b0),
       .DATAIN           (1'b0),
       .LOAD             (Slve_Load),
       .CNTVALUEIN       (Slve_CntVal_In),
-      .EN_VTC           (!idelay_rdy),
+      .EN_VTC           (clk_idelay_vtc),
       .CASC_IN          (1'b0),
       .CASC_RETURN      (1'b0),
       .CASC_OUT         (),
@@ -528,6 +575,8 @@ always @ (posedge rx_clkdiv8) begin
       rx_cntval         <= 9'b0;
       rx_dlyload        <= 1'b0;
       rx_ready          <= 1'b0;
+      train_wait        <= 20'h0;
+      finish_now        <= 1'b0;
    end else begin
       //
       // Pre-compute values for timing closure
@@ -535,6 +584,8 @@ always @ (posedge rx_clkdiv8) begin
       MstrCnt_GE_BTval  <= (Mstr_CntVal_In >= BitTime_Val);
       MstrCnt_GE_HalfBT <= (Mstr_CntVal_In >= {1'b0,BitTime_Val[8:1]});
       MstrCnt_LE_Seven  <= (Mstr_CntVal_In <= 9'h007);
+      if ((rx_state != 6'h1F) && (train_wait != 20'hFFFFF))
+         train_wait <= train_wait + 1'b1;
 
       //
       // Massive state machine
@@ -544,7 +595,8 @@ always @ (posedge rx_clkdiv8) begin
          // 0 - Initialization
          //
          5'h00 :  begin
-            Mstr_IdlyRst   <= 1'b1;
+            // Leave the calibrated tap in place. Pulsing RST here wiped it.
+            Mstr_IdlyRst   <= 1'b0;
             rx_state       <= rx_state + 1'b1;      // Increment to next state
          end
          //
@@ -558,11 +610,10 @@ always @ (posedge rx_clkdiv8) begin
          // 7 - Store bit time value 6 cycles after reset complete
          //
          5'h07 :  begin
-            if (Mstr_CntVal_Out < 64 ) begin
-               rx_state    <= 5'h01;
-            end
-            else begin
-               BitTime_Val    <= Mstr_CntVal_Out;      // Save Bit UI in taps
+            // One sample is enough. Requiring two identical reads deadlocks
+            // when CNTVALUEOUT dithers. Do not pulse RST again.
+            if (Mstr_CntVal_Out >= 9'h008) begin
+               BitTime_Val    <= Mstr_CntVal_Out;
                rx_state       <= rx_state + 1'b1;      // 0x08 - Store Initial
             end
          end
@@ -655,10 +706,13 @@ always @ (posedge rx_clkdiv8) begin
                 Delay_Change <= {1'b0,Delay_Change[7:1]};
             end
             else begin
-               if ((                       Update_Seq == 8'hAA) |
+               // finish_now: the timeout already reloaded the 0%/50% point.
+               // Do not return to bang-bang; a one-sided detector wraps the tap.
+               if (finish_now |
+                   (                       Update_Seq == 8'hAA) |
                    (VCO_MULTIPLIER > 1 && Update_Seq == 8'h7F) |
                    (VCO_MULTIPLIER > 1 && Update_Seq == 8'h80)
-                ) 
+                )
                begin
                   rx_state <= 5'h15;         // 0x15 - Stop training
                end
@@ -705,6 +759,15 @@ always @ (posedge rx_clkdiv8) begin
             rx_state   <= rx_state + 1'b1;   // Increment to next state
          end
       endcase
+      // Rev 1.5: one-shot. A missing sample gets the nominal 21 taps.
+      // Either way, reload the 0%/50% alignment and let state 0x14 stop
+      // because finish_now is set. Do not broadcast a wrapped tap.
+      if ((train_wait == 20'hFFFFF) && (rx_state < 6'h15) && !finish_now) begin
+         finish_now <= 1'b1;
+         if (BitTime_Val < 9'd8)
+            BitTime_Val <= 9'd21;
+         rx_state <= 6'h08;
+      end
    end
 end
 

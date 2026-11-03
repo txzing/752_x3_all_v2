@@ -1,7 +1,8 @@
 
 set_false_path -to [get_pins icontrol/RST]
 
-# Clock group constraint to ensure correct clock skew for ISERDES
+# xczu2cg puts bank 65 and bank 66 in clock region X1Y2.
+# That region allows one IDELAYCTRL, so every instance must use this same group.
 set_property CLOCK_DELAY_GROUP ioclockGroup_rx [get_nets rx_inst/rx_clkdiv*]
 
 set_false_path -to [get_pins {rx_inst/rxc_delay/iserdes_m/D}]

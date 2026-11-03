@@ -28,39 +28,39 @@ set_property PULLUP true [get_ports i2c_0_scl_io]
 #pcb F_SCL1
 ## sda
 set_property -dict {PACKAGE_PIN Y8 IOSTANDARD LVCMOS18} [get_ports i2c_1_sda_io]
-set_property PULLUP true [get_ports i2c_1_sda_io]
+#set_property PULLUP true [get_ports i2c_1_sda_io]
 ## scl
 set_property -dict {PACKAGE_PIN W8 IOSTANDARD LVCMOS18} [get_ports i2c_1_scl_io]
-set_property PULLUP true [get_ports i2c_1_scl_io]
+#set_property PULLUP true [get_ports i2c_1_scl_io]
 
 # ch_1
 #pcb F_SDA2
 #pcb F_SCL2
 ## sda
 set_property -dict {PACKAGE_PIN C1 IOSTANDARD LVCMOS18} [get_ports i2c_2_sda_io]
-set_property PULLUP true [get_ports i2c_2_sda_io]
+#set_property PULLUP true [get_ports i2c_2_sda_io]
 ## scl
 set_property -dict {PACKAGE_PIN B1 IOSTANDARD LVCMOS18} [get_ports i2c_2_scl_io]
-set_property PULLUP true [get_ports i2c_2_scl_io]
+#set_property PULLUP true [get_ports i2c_2_scl_io]
 
 # ch_2
 #pcb F_SDA0
 #pcb F_SCL0
 ## sda
 set_property -dict {PACKAGE_PIN V9 IOSTANDARD LVCMOS18} [get_ports i2c_3_sda_io]
-set_property PULLUP true [get_ports i2c_3_sda_io]
+#set_property PULLUP true [get_ports i2c_3_sda_io]
 ## scl
 set_property -dict {PACKAGE_PIN U9 IOSTANDARD LVCMOS18} [get_ports i2c_3_scl_io]
-set_property PULLUP true [get_ports i2c_3_scl_io]
+#set_property PULLUP true [get_ports i2c_3_scl_io]
 
 # unused
 # ch_3
 ## sda
 set_property -dict {PACKAGE_PIN C9 IOSTANDARD LVCMOS18} [get_ports i2c_4_sda_io]
-set_property PULLUP true [get_ports i2c_4_sda_io]
+#set_property PULLUP true [get_ports i2c_4_sda_io]
 ## scl
 set_property -dict {PACKAGE_PIN B9 IOSTANDARD LVCMOS18} [get_ports i2c_4_scl_io]
-set_property PULLUP true [get_ports i2c_4_scl_io]
+#set_property PULLUP true [get_ports i2c_4_scl_io]
 
 
 # relay_ctrl
@@ -383,9 +383,12 @@ set_property IOSTANDARD DIFF_HSTL_I_18 [get_ports {ch2_datain1_n[3]}]
 #set_false_path -from [get_clocks -of_objects [get_pins system_i/lvds4x2_1to7_3/inst/rx_inst/rx_clkgen/rx_plle2_adv_inst/CLKFBOUT]] -to [get_clocks -of_objects [get_pins system_i/lvds4x2_1to7_1/inst/rx_inst/rx_clkgen/rx_plle2_adv_inst/CLKFBOUT]]
 #set_false_path -from [get_clocks -of_objects [get_pins system_i/lvds4x2_1to7_3/inst/rx_inst/rx_clkgen/rx_plle2_adv_inst/CLKFBOUT]] -to [get_clocks -of_objects [get_pins system_i/lvds4x2_1to7_2/inst/rx_inst/rx_clkgen/rx_plle2_adv_inst/CLKFBOUT]]
 #0和2同一个bank65,1单独一个bank66
-set_property LOC BITSLICE_CONTROL_X0Y11 [get_cells system_i/lvds4x2_1to7_2/inst/icontrol]
-set_property LOC BITSLICE_CONTROL_X0Y12 [get_cells system_i/lvds4x2_1to7_0/inst/icontrol]
-set_property LOC BITSLICE_CONTROL_X0Y19 [get_cells system_i/lvds4x2_1to7_1/inst/icontrol]
+# Bank 65 and bank 66 are both in clock region X1Y2. One region, one IDELAYCTRL.
+# All three share pl_clk0 (REFCLK) and gpio bit0 (RST). Do not LOC any of them:
+# a LOC assigns ARTIFICIAL_GROUP and blocks the merge (DRC PLIDC-7, Place 30-803).
+#set_property LOC BITSLICE_CONTROL_X0Y11 [get_cells system_i/lvds4x2_1to7_2/inst/icontrol]
+# IODELAY_GROUP is applied from system_clkgrp.xdc during implementation only.
+#set_property LOC BITSLICE_CONTROL_X0Y19 [get_cells system_i/lvds4x2_1to7_1/inst/icontrol]
 #set_property LOC BITSLICE_CONTROL_X0Y20 [get_cells system_i/lvds4x2_1to7_3/inst/icontrol]
 
 
@@ -394,6 +397,5 @@ set_property LOC BITSLICE_CONTROL_X0Y19 [get_cells system_i/lvds4x2_1to7_1/inst/
 #set_false_path -from [get_clocks clk_pl_0] -to [get_clocks -of_objects [get_pins system_i/lvds4x2_1to7_1/inst/rx_inst/rx_clkgen/rx_plle2_adv_inst/CLKFBOUT]]
 #set_false_path -from [get_clocks clk_pl_0] -to [get_clocks -of_objects [get_pins system_i/lvds4x2_1to7_2/inst/rx_inst/rx_clkgen/rx_plle2_adv_inst/CLKFBOUT]]
 
-set_clock_groups -asynchronous \
-  -group [get_clocks clk_pl_0] \
-  -group [get_clocks {px_pllmmcm px_pllmmcm_1 px_pllmmcm_2}]
+# Async groups are in system_clkgrp.xdc (processing order LATE).
+# clk_pl_0 does not exist yet when this file is read.
